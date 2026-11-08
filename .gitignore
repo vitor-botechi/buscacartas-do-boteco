@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Dados locais de cada usuário (não versionar)
+lojas.json
+config.json
+debug/
+
+# Páginas salvas do navegador para análise (podem conter dados da conta)
+view-source_*.html
+debug_*.html
+
+# Geração do instalador
+build/
+dist/
+
+# Editor / sistema
+.vscode/
+.idea/
+Thumbs.db
