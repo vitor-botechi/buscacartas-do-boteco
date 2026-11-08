@@ -1,0 +1,63 @@
+# Buscador de Cartas MTG: guia para o Claude Code
+
+Este arquivo é lido no início de cada sessão. Explica o projeto, as decisões já tomadas e as regras de trabalho.
+O roteiro de melhorias e o histórico de decisões estão em `docs/ROTEIRO.md`.
+
+## O que é
+
+Programa de computador (Windows, Python + Tkinter) que busca cartas de **Magic: The Gathering** em várias lojas ao mesmo tempo.
+A pessoa digita o nome da carta, marca as lojas e vê em quais há estoque, com edições, idioma, qualidade e preço.
+As lojas usam o padrão **LigaMagic**. O público é a comunidade local de Magic: o programa precisa ser prático, rápido e intuitivo.
+Todo o texto da interface e os comentários estão em **português do Brasil**; mantenha assim.
+
+## Como rodar
+
+```
+pip install -r requirements.txt
+python buscador_mtg.py
+```
+
+Python 3.10 ou mais novo. Dependências: `requests`, `beautifulsoup4` (o app abre sem elas, mas a busca interna fica desligada).
+
+## Estrutura (arquivo único, `buscador_mtg.py`)
+
+Ainda não está dividido em módulos; a refatoração está planejada (ver o roteiro). Seções, na ordem do arquivo:
+
+1. **Configuração**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`) e constantes de limites (`AUTO_*`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`).
+2. **Lojas e configurações salvas**: `lojas.json` (lojas e seleção) e `config.json` (preferências), ao lado do programa.
+3. **Busca e leitura da lista**: `search_store`, `parse_results`, `product_from_page`.
+4. **Página do produto**: `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço e promoção), `fetch_product` com cache curto.
+5. **Detalhes automáticos**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
+6. **Nome exato**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara.
+7. **Interface**: classe `App` (tela principal, painel lateral "Edições e preços", histórico Voltar/Avançar), mais `Tooltip` e `enable_word_editing`.
+
+## Regras de funcionamento a preservar
+
+- **Tkinter só na thread principal.** As threads de busca falam com a tela pela fila `self.queue`, com tuplas `(tipo, sid, dados)`. Tipos: `result`, `names`, `offers`, `details`, `autostart`, `autostep`, `autoend`, `autostop`.
+- **`search_id`** invalida respostas atrasadas: mensagens de uma busca antiga são ignoradas (exceto `details`, que usa o próprio `detail_token`). Ao iniciar, cancelar ou voltar para outra busca, o `search_id` aumenta e o `AutoCtl` da busca anterior é parado.
+- **Histórico**: cada entrada guarda uma "foto" da tela (`snapshot`). Entradas com mais de `STALE_AFTER` (30 min) são refeitas em vez de restauradas.
+- A leitura é feita **por requisição única por loja e por busca**; páginas de produto só sob demanda ou automaticamente para poucos itens.
+
+## Regras de ética e de conduta com as lojas (importante)
+
+- **Não contornar a proteção de preços das lojas.** Na lista de busca, as lojas desenham preço e quantidade com imagens (sprites) e classes embaralhadas, para impedir leitura automática. Decidimos **não** usar OCR nem outro desvio. O preço vem da página do produto, onde está em texto, e só quando a pessoa pede ou para poucos itens.
+- **Ritmo de requisições conservador**: uma página por vez em cada loja, com pausa de ~0,8 a 1,2 s, teto de `AUTO_TOTAL_CAP` páginas por busca e cache de `CACHE_TTL`. Qualquer sinal de bloqueio (403/429/503, captcha) pausa todos os detalhes automáticos. Não aumentar esses limites sem testar com cuidado e sem registrar no roteiro.
+- Nunca fazer varreduras em massa. Uma futura "busca de lista inteira" precisa de um desenho próprio, com ritmo mais lento.
+- **Não automatizar o botão Comprar.** Abrir a página do produto para a pessoa adicionar ao carrinho já basta.
+- **Não versionar dados pessoais**: nada de páginas salvas do navegador (`view-source_*.html`, que trazem nome e carrinho da conta), nem a pasta `debug/`, `lojas.json` ou `config.json`. Fixtures de teste devem ser **sanitizadas** (sem nome, carrinho, e-mail ou identificadores de sessão).
+
+## Particularidades das lojas (padrão LigaMagic)
+
+- Busca: `/?view=ecom/itens&busca=NOME&txt_estoque=1&txt_order=3&txt_limit=120&page=1` (`txt_estoque=1` = só com estoque, `txt_order=3` = menor preço).
+- Quando a busca tem **um único resultado**, a loja devolve direto a **página do produto** (`#product--list`). Por isso `product_from_page` existe.
+- Resultados da lista estão em `.cards:not(.cards-hint) .card-item`. O bloco **"Cards Associados"** (`.cards-hint`) não faz parte da busca e deve ser ignorado.
+- Os nomes podem vir como `Nome PT / Nome EN` e com sufixos entre parênteses (`Ilha (#266)`); `matches_exact` trata isso.
+- Página do produto: ofertas em `div.table-cards-row` (edição, idioma, qualidade, extras, estoque, preço). Linhas com "Avise quando chegar" não têm estoque e são ignoradas. **Promoção**: preço riscado vem antes do novo; o programa usa o último valor.
+- As lojas podem mudar o HTML a qualquer momento: se a leitura quebrar, comparar com uma página nova (sanitizada) antes de mexer.
+
+## Como trabalhar neste repositório
+
+- Fazer mudanças em **ramificação** (`git switch -c nome`) e commits pequenos, com mensagens em português.
+- Não há testes automáticos ainda. Antes de entregar uma mudança de leitura de página, testar com HTML real (sanitizado); para a interface, rodar o programa e conferir de verdade.
+- Não alterar o comportamento visível sem pedir: o dono do projeto testa e ajusta a interface passo a passo.
+- Ao concluir uma etapa, atualizar `docs/ROTEIRO.md` (o que foi feito, o que ficou pendente).
