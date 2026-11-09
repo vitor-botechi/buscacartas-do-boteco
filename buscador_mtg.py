@@ -1024,12 +1024,21 @@ class App:
     def selected_stores(self):
         return [s for s in self.stores if self.vars[s["url"]].get()]
 
+    def center_over_root(self, win):
+        """Centraliza o pop-up sobre a janela principal (onde quer que ela esteja, inclusive em outro monitor)."""
+        win.update_idletasks()
+        w, h = win.winfo_reqwidth(), win.winfo_reqheight()
+        r = self.root
+        x = r.winfo_x() + (r.winfo_width() - w) // 2
+        y = r.winfo_y() + (r.winfo_height() - h) // 2
+        win.geometry(f"+{x}+{y}")
+
     def add_store_dialog(self):
         win = tk.Toplevel(self.root)
+        win.withdraw()  # só aparece depois de posicionado, para não "piscar" no canto da tela
         win.title("Adicionar loja")
         win.transient(self.root)
         win.resizable(False, False)
-        win.grab_set()
         frm = ttk.Frame(win, padding=12)
         frm.pack()
         ttk.Label(frm, text="Link da loja (ex.: www.minhaloja.com.br):").grid(row=0, column=0, sticky="w")
@@ -1060,6 +1069,12 @@ class App:
 
         ttk.Button(frm, text="Adicionar", command=ok).grid(row=4, column=0, sticky="e")
         win.bind("<Return>", ok)
+        self.center_over_root(win)
+        win.deiconify()
+        try:
+            win.grab_set()  # bloqueia a janela principal enquanto o pop-up estiver aberto
+        except tk.TclError:
+            pass
         e1.focus_set()
 
     def remove_store(self, store):
