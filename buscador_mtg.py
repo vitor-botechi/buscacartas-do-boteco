@@ -11,7 +11,6 @@ Uso:
     python buscador_mtg.py
 """
 
-import json
 import os
 import queue
 import random
@@ -19,12 +18,9 @@ import re
 import sys
 import threading
 import time
-import unicodedata
 import webbrowser
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
-from urllib.parse import quote_plus, urljoin, urlparse
-
+from concurrent.futures import ThreadPoolExecutor
+from urllib.parse import quote_plus, urljoin
 import tkinter as tk
 from tkinter import messagebox, ttk
 
@@ -36,132 +32,43 @@ try:
 except ImportError:  # o app ainda abre; só a busca interna fica desativada
     HAS_SCRAPING = False
 
-# --------------------------------------------------------------------------
-# Configuração
-# --------------------------------------------------------------------------
-
-# Lojas que já vêm no programa. Para incluir mais por padrão, basta adicionar aqui.
-DEFAULT_STORES = [
-    {"name": "Overrun", "url": "https://www.overrun.com.br"},
-    {"name": "Jackpot Jogos", "url": "https://www.jackpotjogos.com.br"},
-    {"name": "Legacy TCG", "url": "https://www.legacytcg.com.br"},
-    {"name": "Deckmaster Games", "url": "https://www.deckmastergames.com.br"},
-]
-
-# Padrão de busca das lojas LigaMagic: só itens COM ESTOQUE, do menor para o maior
-# preço, 120 por página. Se alguma loja usar outro formato, mude este modelo.
-SEARCH_PATH = "/?view=ecom/itens&busca={query}&txt_estoque=1&txt_order=3&txt_limit=120&page={page}"
-PAGE_SIZE = 120
-MAX_PAGES = 3
-
-# Detalhes automáticos (edições e preços sem precisar clicar). Valores conservadores de propósito:
-DEFAULT_AUTO_LIMIT = 5      # só detalha sozinho quando a loja tem até N itens
-MAX_AUTO_LIMIT = 10         # teto do controle na tela
-AUTO_TOTAL_CAP = 24         # no máximo N páginas de produto por busca, somando todas as lojas
-AUTO_DELAY = 0.8            # segundos entre páginas da MESMA loja (mais um pouco de aleatoriedade)
-CACHE_TTL = 300             # segundos que uma página de produto lida fica guardada
-HISTORY_MAX = 10            # quantas buscas o Voltar/Avançar lembram
-STALE_AFTER = 30 * 60       # resultados guardados mais velhos que isto (30 min) são refeitos ao voltar/avançar
-DETAIL_W = 560              # largura do painel de edições e preços (a janela cresce isso ao abri-lo)
-
-HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-        "(KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-    ),
-    "Accept-Language": "pt-BR,pt;q=0.9,en;q=0.8",
-}
-TIMEOUT = 15
-MAX_ITEMS_PER_STORE = 8
-
-
-def app_dir():
-    if getattr(sys, "frozen", False):  # quando virar .exe com PyInstaller
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
-
-
-CONFIG_FILE = os.path.join(app_dir(), "lojas.json")
-SETTINGS_FILE = os.path.join(app_dir(), "config.json")
-
-
-def load_settings():
-    try:
-        with open(SETTINGS_FILE, encoding="utf-8") as f:
-            data = json.load(f)
-            return data if isinstance(data, dict) else {}
-    except (OSError, ValueError):
-        return {}
-
-
-def save_settings(data):
-    try:
-        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
-    except OSError:
-        pass
+from buscador.armazenamento import (
+    default_name,
+    host_key,
+    load_settings,
+    load_stores,
+    normalize_base,
+    save_settings,
+    save_stores,
+)
+from buscador.config import (
+    AUTO_DELAY,
+    AUTO_TOTAL_CAP,
+    CACHE_TTL,
+    DEFAULT_AUTO_LIMIT,
+    DETAIL_W,
+    HEADERS,
+    HISTORY_MAX,
+    MAX_AUTO_LIMIT,
+    MAX_ITEMS_PER_STORE,
+    MAX_PAGES,
+    PAGE_SIZE,
+    SEARCH_PATH,
+    STALE_AFTER,
+    TIMEOUT,
+    app_dir,
+)
+from buscador.modelos import Item, Offer, StoreResult
+from buscador.texto import age_text, clean_card_name, money, norm, offer_desc, strip_suffix
 
 
 # --------------------------------------------------------------------------
 # Lojas (carregar / salvar / normalizar)
 # --------------------------------------------------------------------------
 
-def normalize_base(url):
-    url = url.strip()
-    if not re.match(r"^https?://", url, re.I):
-        url = "https://" + url
-    p = urlparse(url)
-    if not p.netloc or "." not in p.netloc:
-        raise ValueError("Link inválido")
-    return f"{p.scheme}://{p.netloc}"
-
-
-def host_key(url):
-    return urlparse(url).netloc.lower().replace("www.", "")
-
-
-def default_name(url):
-    return host_key(url).split(".")[0].capitalize()
-
 
 def build_search_url(base, card, page=1):
     return base.rstrip("/") + SEARCH_PATH.format(query=quote_plus(card), page=page)
-
-
-def load_stores():
-    stores = [dict(s, builtin=True, enabled=True) for s in DEFAULT_STORES]
-    try:
-        with open(CONFIG_FILE, encoding="utf-8") as f:
-            saved = json.load(f).get("stores", [])
-    except (OSError, ValueError):
-        return stores
-
-    by_host = {host_key(s["url"]): s for s in stores}
-    for s in saved:
-        try:
-            key = host_key(s["url"])
-        except (KeyError, TypeError):
-            continue
-        if key in by_host:  # loja padrão: só lembra se estava marcada
-            by_host[key]["enabled"] = bool(s.get("enabled", True))
-        else:  # loja adicionada pelo usuário
-            stores.append(
-                {
-                    "name": s.get("name") or default_name(s["url"]),
-                    "url": s["url"],
-                    "builtin": False,
-                    "enabled": bool(s.get("enabled", True)),
-                }
-            )
-    return stores
-
-
-def save_stores(stores):
-    try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-            json.dump({"stores": stores}, f, ensure_ascii=False, indent=2)
-    except OSError:
-        pass
 
 
 # --------------------------------------------------------------------------
@@ -178,54 +85,6 @@ BLOCK_MARKERS = (
     "attention required", "verificando se voce", "checking your browser",
 )
 SOLDOUT_MARKERS = ("indisponivel", "esgotado", "sem estoque")
-
-
-@dataclass
-class Item:
-    name: str
-    price: float | None
-    url: str
-    available: bool = True
-    offers: list | None = None  # preenchido quando a busca já devolveu a página do produto
-
-
-@dataclass
-class StoreResult:
-    store: dict
-    search_url: str
-    status: str  # found | soldout | none | blocked | unknown | error
-    items: list = field(default_factory=list)
-    msg: str = ""
-
-
-def norm(s):
-    for ch in "’‘´`":
-        s = s.replace(ch, "'")
-    s = unicodedata.normalize("NFKD", s)
-    return "".join(c for c in s if not unicodedata.combining(c)).lower().strip()
-
-
-INVISIBLE_CHARS = dict.fromkeys(map(ord, "\u200b\u200c\u200d\u2060\ufeff"))  # zero-width, comuns ao copiar de sites
-
-
-def clean_card_name(text):
-    """Tira espaços nas pontas, junta espaços repetidos e remove espaços 'invisíveis' de textos copiados."""
-    return " ".join(text.translate(INVISIBLE_CHARS).split())
-
-
-def age_text(seconds):
-    m = int(seconds // 60)
-    if m < 60:
-        return f"há {m} min"
-    h, m = divmod(m, 60)
-    return f"há {h} h" + (f" {m} min" if m else "")
-
-
-def money(v):
-    if v is None:
-        return ""
-    s = f"{v:,.2f}"
-    return "R$ " + s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
 def is_product_href(href):
@@ -327,16 +186,6 @@ def product_from_page(html, page_url):
     return name, url, offers, status
 
 
-def offer_desc(o):
-    """Resumo de uma oferta: 'Português · NM · 2 un. · Foil · -10%'."""
-    parts = [o.language or "—", o.quality or "—", f"{o.stock} un."]
-    if o.extras:
-        parts.append(o.extras)
-    if o.original_price and o.price:
-        parts.append(f"-{round((1 - o.price / o.original_price) * 100)}%")
-    return "    ·    ".join(parts)
-
-
 def fetch_page(store, card, page):
     url = build_search_url(store["url"], card, page)
     r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
@@ -391,17 +240,6 @@ def search_store(store, card):
 # --------------------------------------------------------------------------
 # Página do produto: edições, idioma, qualidade, estoque e preço (sob demanda)
 # --------------------------------------------------------------------------
-
-@dataclass
-class Offer:
-    edition: str
-    language: str
-    quality: str
-    extras: str
-    stock: int | None
-    price: float | None
-    preorder: bool = False
-    original_price: float | None = None  # preço riscado, quando a oferta está em promoção
 
 
 def parse_product_page(html):
@@ -562,15 +400,6 @@ def scry_get(path, params):
     r = requests.get(SCRY_API + path, params=params, headers=SCRY_HEADERS, timeout=10)
     time.sleep(0.12)  # cortesia: o Scryfall pede no máximo ~10 requisições por segundo
     return r
-
-
-def strip_suffix(name):
-    """'Sol Ring (Human)' -> 'Sol Ring'; 'Ilha (#266)' -> 'Ilha'."""
-    prev = None
-    while prev != name:
-        prev = name
-        name = re.sub(r"\s*\([^)]*\)\s*$", "", name)
-    return name.strip()
 
 
 def add_names(names, text):
