@@ -11,7 +11,6 @@ Uso:
     python buscador_mtg.py
 """
 
-import os
 import queue
 import random
 import re
@@ -20,17 +19,13 @@ import threading
 import time
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
-from urllib.parse import quote_plus, urljoin
 import tkinter as tk
 from tkinter import messagebox, ttk
 
 try:
     import requests
-    from bs4 import BeautifulSoup
-
-    HAS_SCRAPING = True
-except ImportError:  # o app ainda abre; só a busca interna fica desativada
-    HAS_SCRAPING = False
+except ImportError:  # sem a biblioteca a busca interna fica desligada (ver rede.HAS_SCRAPING)
+    requests = None
 
 from buscador.armazenamento import (
     default_name,
@@ -44,293 +39,16 @@ from buscador.armazenamento import (
 from buscador.config import (
     AUTO_DELAY,
     AUTO_TOTAL_CAP,
-    CACHE_TTL,
     DEFAULT_AUTO_LIMIT,
     DETAIL_W,
-    HEADERS,
     HISTORY_MAX,
     MAX_AUTO_LIMIT,
     MAX_ITEMS_PER_STORE,
-    MAX_PAGES,
-    PAGE_SIZE,
-    SEARCH_PATH,
     STALE_AFTER,
-    TIMEOUT,
-    app_dir,
 )
-from buscador.modelos import Item, Offer, StoreResult
+from buscador.lojas.ligamagic import build_search_url
+from buscador.rede import HAS_SCRAPING, fetch_product, safe_search
 from buscador.texto import age_text, clean_card_name, money, norm, offer_desc, strip_suffix
-
-
-# --------------------------------------------------------------------------
-# Lojas (carregar / salvar / normalizar)
-# --------------------------------------------------------------------------
-
-
-def build_search_url(base, card, page=1):
-    return base.rstrip("/") + SEARCH_PATH.format(query=quote_plus(card), page=page)
-
-
-# --------------------------------------------------------------------------
-# Busca e leitura da página
-# --------------------------------------------------------------------------
-
-PRICE_RE = re.compile(r"R\$\s*([\d.]+,\d{2})")
-NONE_PHRASES = (
-    "nenhum produto", "nenhum resultado", "nenhum item", "nao encontramos",
-    "nao foram encontrad", "sem resultados", "0 resultado", "nada encontrado",
-)
-BLOCK_MARKERS = (
-    "just a moment", "cf-browser-verification", "captcha", "access denied",
-    "attention required", "verificando se voce", "checking your browser",
-)
-SOLDOUT_MARKERS = ("indisponivel", "esgotado", "sem estoque")
-
-
-def is_product_href(href):
-    return "view=ecom/item" in href and "ecom/itens" not in href
-
-
-def parse_results(html, base_url):
-    """Lê a página de busca e devolve (itens, texto_normalizado_da_página)."""
-    soup = BeautifulSoup(html, "html.parser")
-    for tag in soup(["script", "style", "noscript"]):
-        tag.decompose()
-    page_text = norm(soup.get_text(" ", strip=True))
-
-    products = {}
-    scope = soup.select(".cards:not(.cards-hint) .card-item")
-    anchors = ([a for c in scope for a in c.find_all("a", href=True)] if scope
-               else soup.find_all("a", href=True))
-    for a in anchors:
-        href = a["href"]
-        if not is_product_href(href):
-            continue
-
-        # sobe na árvore até achar o "cartão" do produto (que tenha preço)
-        box = a
-        for _ in range(5):
-            parent = box.parent
-            if parent is None or parent.name in ("body", "html"):
-                break
-            others = {
-                x["href"] for x in parent.find_all("a", href=True)
-                if is_product_href(x["href"])
-            } - {href}
-            if others:  # o pai já engloba outros produtos
-                break
-            box = parent
-            if PRICE_RE.search(box.get_text(" ", strip=True)):
-                break
-        box_text = box.get_text(" ", strip=True)
-
-        img = a.find("img")
-        name = a.get("title") or a.get_text(" ", strip=True) or (img.get("alt") if img else "") or ""
-        name = PRICE_RE.sub("", str(name)).strip(" -|")[:90]
-
-        entry = products.setdefault(href, {"name": "", "prices": [], "sold": False})
-        if len(name) > len(entry["name"]):
-            entry["name"] = name
-        if not entry["prices"]:
-            entry["prices"] = [float(p.replace(".", "").replace(",", ".")) for p in PRICE_RE.findall(box_text)]
-        if any(m in norm(box_text) for m in SOLDOUT_MARKERS):
-            entry["sold"] = True
-
-    items = [
-        Item(
-            name=e["name"] or "Produto",
-            price=min(e["prices"]) if e["prices"] else None,
-            url=urljoin(base_url.rstrip("/") + "/", href),
-            available=not e["sold"],
-        )
-        for href, e in products.items()
-    ]
-    return items, page_text
-
-
-def save_debug(store, url, r):
-    """Grava o HTML recebido em debug/ e imprime um resumo no console (para diagnóstico)."""
-    try:
-        folder = os.path.join(app_dir(), "debug")
-        os.makedirs(folder, exist_ok=True)
-        path = os.path.join(folder, f"debug_{host_key(store['url'])}.html")
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(f"<!-- {url} | HTTP {r.status_code} -->\n{r.text}")
-        print(f"[{store['name']}] HTTP {r.status_code} | {len(r.text)} bytes | "
-              f"links de produto: {r.text.count('view=ecom/item&')} | com refid: {r.text.count('refid=')}")
-    except OSError:
-        pass
-
-
-def safe_search(store, card):
-    """Qualquer erro inesperado vira um resultado 'error' em vez de travar a busca."""
-    try:
-        return search_store(store, card)
-    except Exception as e:  # noqa: BLE001
-        url = build_search_url(store["url"], card)
-        return StoreResult(store, url, "error", msg=f"{type(e).__name__}: {e}"[:120])
-
-
-def product_from_page(html, page_url):
-    """Se a busca devolveu direto a página de UM produto (acontece quando há um único resultado),
-    devolve (nome, url, ofertas, status); senão, None."""
-    soup = BeautifulSoup(html, "html.parser")
-    if not soup.select_one("#product--list"):
-        return None
-    pt, en = soup.select_one(".nome_pt_cards"), soup.select_one(".nome_en_cards")
-    names = [x.get_text(" ", strip=True) for x in (pt, en) if x and x.get_text(strip=True)]
-    name = " / ".join(dict.fromkeys(names)) or "Produto"
-    og = soup.select_one('meta[property="og:url"]')
-    url = og.get("content") if og and og.get("content") else page_url
-    offers, status = parse_product_page(html)
-    return name, url, offers, status
-
-
-def fetch_page(store, card, page):
-    url = build_search_url(store["url"], card, page)
-    r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-    return url, r
-
-
-def search_store(store, card):
-    url = build_search_url(store["url"], card)
-    if not HAS_SCRAPING:
-        return StoreResult(store, url, "error", msg="Bibliotecas ausentes")
-    try:
-        _, r = fetch_page(store, card, 1)
-    except requests.RequestException as e:
-        return StoreResult(store, url, "error", msg=str(e)[:120])
-
-    save_debug(store, url, r)
-    prod = product_from_page(r.text, r.url)
-    if prod:
-        name, purl, offers, pstatus = prod
-        if offers:
-            return StoreResult(store, url, "found", [Item(name, offers[0].price, purl, True, offers)])
-        return StoreResult(store, url, "none" if pstatus == "empty" else "unknown")
-
-    items, text = parse_results(r.text, store["url"])
-
-    if not items:
-        if r.status_code in (403, 429, 503) or any(m in text for m in BLOCK_MARKERS):
-            return StoreResult(store, url, "blocked")
-        # página de busca válida (tem o filtro de estoque) e sem produtos = não tem a carta
-        if "txt_estoque" in r.text or any(p in text for p in NONE_PHRASES):
-            return StoreResult(store, url, "none")
-        return StoreResult(store, url, "unknown")
-
-    # páginas seguintes (se houver mais resultados que cabem numa página)
-    m = re.search(r"\d+-\d+ de (\d+)", text)
-    total = int(m.group(1)) if m else len(items)
-    pages = min(MAX_PAGES, -(-total // PAGE_SIZE))
-    seen = {i.url for i in items}
-    for page in range(2, pages + 1):
-        try:
-            _, rp = fetch_page(store, card, page)
-        except requests.RequestException:
-            break
-        more, _ = parse_results(rp.text, store["url"])
-        items += [i for i in more if i.url not in seen]
-        seen.update(i.url for i in more)
-
-    # a loja já devolve só itens com estoque, do menor para o maior preço
-    return StoreResult(store, url, "found", items)
-
-
-# --------------------------------------------------------------------------
-# Página do produto: edições, idioma, qualidade, estoque e preço (sob demanda)
-# --------------------------------------------------------------------------
-
-
-def parse_product_page(html):
-    """Devolve (ofertas, status). status: ok | empty | unreadable."""
-    soup = BeautifulSoup(html, "html.parser")
-    for t in soup.select(".title-mobile"):
-        t.decompose()
-    rows = soup.select("div.table-cards-row")
-    if not rows:
-        return [], "empty"
-
-    offers = []
-    for row in rows:
-        cells = row.find_all("div", class_="table-cards-body-cell", recursive=False)
-        price_cell = row.select_one(".card-preco")
-        if len(cells) < 4 or price_cell is None:
-            continue
-        idx = cells.index(price_cell)
-        stock_cell = cells[idx - 1]
-
-        img = cells[0].select_one("img.icon-edicao, img")
-        edition = (img.get("title") or img.get("alt") or "") if img else ""
-        tip = cells[0].select_one(".tooltip")
-        if tip and tip.get_text(strip=True):
-            edition = tip.get_text(strip=True)
-        lang_img = cells[1].select_one("img")
-        language = (lang_img.get("title") or lang_img.get("alt") or "") if lang_img else ""
-
-        q_cell = row.select_one(".quality")
-        quality = ""
-        if q_cell:
-            for t in q_cell.select(".tooltip"):
-                t.decompose()
-            quality = q_cell.get_text(" ", strip=True)
-        e_cell = row.select_one(".card-extras")
-        extras = e_cell.get_text(" ", strip=True) if e_cell else ""
-        extras = "" if extras in ("-", "–") else extras
-
-        preorder = stock_cell.select_one(".icone-pre-order") is not None
-        m = re.search(r"(\d+)\s*unid", stock_cell.get_text(" ", strip=True))
-        stock = int(m.group(1)) if m else None
-        prices = [float(x.replace(".", "").replace(",", "."))
-                  for x in PRICE_RE.findall(price_cell.get_text(" ", strip=True))]
-        # em promoção a loja mostra o preço riscado e, depois, o preço novo
-        price = prices[-1] if prices else None
-        original = prices[0] if len(prices) >= 2 and prices[0] > prices[-1] else None
-
-        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original))
-
-    if not offers or all(o.stock is None and o.price is None for o in offers):
-        return [], "unreadable"  # existem linhas, mas os números não vieram como texto
-    offers = [o for o in offers if o.stock]  # a página também lista edições sem estoque
-    if not offers:
-        return [], "empty"
-    offers.sort(key=lambda o: (o.price is None, o.price if o.price is not None else 0))
-    return offers, "ok"
-
-
-PRODUCT_CACHE = {}
-
-
-def fetch_product(store, url):
-    """Abre UMA página de produto e lê as ofertas (com cache curto para não repetir requisições)."""
-    hit = PRODUCT_CACHE.get(url)
-    if hit and time.time() - hit[0] < CACHE_TTL:
-        return hit[1]
-    data = _fetch_product(store, url)
-    if data["status"] in ("ok", "empty"):
-        PRODUCT_CACHE[url] = (time.time(), data)
-    return data
-
-
-def _fetch_product(store, url):
-    if not HAS_SCRAPING:
-        return {"status": "error", "msg": "Bibliotecas ausentes", "offers": []}
-    try:
-        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
-    except requests.RequestException as e:
-        return {"status": "error", "msg": str(e)[:120], "offers": []}
-    try:
-        folder = os.path.join(app_dir(), "debug")
-        os.makedirs(folder, exist_ok=True)
-        with open(os.path.join(folder, f"debug_produto_{host_key(store['url'])}.html"), "w",
-                  encoding="utf-8") as f:
-            f.write(f"<!-- {url} | HTTP {r.status_code} -->\n{r.text}")
-    except OSError:
-        pass
-    if r.status_code in (403, 429, 503):
-        return {"status": "blocked", "offers": []}
-    offers, status = parse_product_page(r.text)
-    return {"status": status, "offers": offers}
 
 
 # --------------------------------------------------------------------------
