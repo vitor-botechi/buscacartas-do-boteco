@@ -34,10 +34,11 @@ requisições (`rede.py`), detalhes automáticos, Scryfall e a interface (`inter
 
 ```
 pip install -r requirements-dev.txt
-python -m pytest
+py -m pytest
 ```
 
-(Use `python -m pytest`, e não só `pytest`: assim funciona mesmo quando a pasta de comandos do Python não está no PATH do Windows.)
+No Windows, use `py -m pytest` (o lançador `py` vem com o instalador do Python). Só `pytest`, ou mesmo
+`python -m pytest`, pode não ser encontrado quando a pasta de comandos do Python não está no PATH.
 
 Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, e não fazem requisições.
 

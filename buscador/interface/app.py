@@ -213,7 +213,7 @@ class App:
         head.columnconfigure(0, weight=1)
         self.detail_title = ttk.Label(head, text="", font=("", 10, "bold"), wraplength=DETAIL_W - 90, justify="left")
         self.detail_title.grid(row=0, column=0, sticky="w")
-        ttk.Button(head, text="▶ Ocultar painel", command=self.close_details).grid(row=0, column=1, sticky="e")
+        ttk.Button(head, text="◀ Ocultar painel", command=self.close_details).grid(row=0, column=1, sticky="e")
         self.detail_info = ttk.Label(f, text="", wraplength=DETAIL_W - 40, justify="left")
         self.detail_info.grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 6))
 
