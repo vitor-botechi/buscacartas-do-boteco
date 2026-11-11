@@ -23,6 +23,13 @@ Feito para lojas que usam o padrão **LigaMagic**.
    python buscador_mtg.py
    ```
 
+   (também funciona `python -m buscador`)
+
+## Organização do código
+
+O código fica no pacote `buscador/`: configuração, lojas salvas, leitura das páginas no padrão LigaMagic (`lojas/`),
+requisições (`rede.py`), detalhes automáticos, Scryfall e a interface (`interface/`). O `buscador_mtg.py` só inicia o programa.
+
 ## Atalhos
 
 | Atalho | Ação |

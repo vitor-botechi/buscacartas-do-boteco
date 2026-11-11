@@ -27,7 +27,10 @@
 ## Próximos passos (em ordem sugerida)
 
 1. **Versionamento no GitHub**: feito (repositório criado). Marcar versões com tags (`v0.1.0`...).
-2. **Refatoração**: dividir em módulos (configuração e lojas, modelos, leitura das lojas, cliente HTTP com cache e detalhes automáticos, Scryfall, interface), com testes automáticos usando HTMLs **sanitizados** de busca e de produto de cada loja, número de versão e um ponto de entrada único. Preparar suporte a lojas fora do padrão LigaMagic. Fazer em ramificação, sem mudar o comportamento.
+2. **Refatoração** (ramificação `refatoracao`):
+   - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), versão `0.1.0` em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
+   - Pendente: testes automáticos (pytest) com HTMLs **sanitizados** de busca e de produto de cada loja; conferir na mão os detalhes automáticos de uma lista com poucos itens; juntar na `main`.
+   - Depois: suporte a lojas fora do padrão LigaMagic (um módulo por padrão em `buscador/lojas/`).
 3. **Instalador para Windows**: gerar um executável/instalador (por exemplo com PyInstaller) e publicar nas versões do GitHub; escolher a **licença** antes de tornar o repositório público.
 
 ## Melhorias futuras anotadas
