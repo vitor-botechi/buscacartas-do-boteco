@@ -12,8 +12,6 @@ Uso:
 """
 
 import queue
-import random
-import re
 import sys
 import threading
 import time
@@ -21,11 +19,6 @@ import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 import tkinter as tk
 from tkinter import messagebox, ttk
-
-try:
-    import requests
-except ImportError:  # sem a biblioteca a busca interna fica desligada (ver rede.HAS_SCRAPING)
-    requests = None
 
 from buscador.armazenamento import (
     default_name,
@@ -36,8 +29,8 @@ from buscador.armazenamento import (
     save_settings,
     save_stores,
 )
+from buscador.automatico import AutoCtl, auto_details
 from buscador.config import (
-    AUTO_DELAY,
     AUTO_TOTAL_CAP,
     DEFAULT_AUTO_LIMIT,
     DETAIL_W,
@@ -48,120 +41,8 @@ from buscador.config import (
 )
 from buscador.lojas.ligamagic import build_search_url
 from buscador.rede import HAS_SCRAPING, fetch_product, safe_search
-from buscador.texto import age_text, clean_card_name, money, norm, offer_desc, strip_suffix
-
-
-# --------------------------------------------------------------------------
-# Detalhes automáticos (com freios para não sobrecarregar nem ser bloqueado)
-# --------------------------------------------------------------------------
-
-class AutoCtl:
-    """Orçamento total de requisições da busca + freio de emergência compartilhado entre as lojas."""
-
-    def __init__(self, cap):
-        self.cap = cap
-        self.lock = threading.Lock()
-        self.stop = threading.Event()
-
-    def take(self):
-        with self.lock:
-            if self.cap <= 0:
-                return False
-            self.cap -= 1
-            return True
-
-
-def auto_details(res, limit, ctl, exact, names_box, names_ready, post):
-    """Lê, uma por vez e devagar, as páginas dos itens de UMA loja (se forem poucos)."""
-    items = res.items
-    if exact:
-        names_ready.wait(timeout=10)
-        names = names_box.get("names")
-        if names:
-            items = [i for i in items if matches_exact(i.name, names)]
-    todo = [i for i in items if i.offers is None]
-    if not todo or len(items) > limit:
-        return
-    store_url = res.store["url"]
-    post("autostart", (store_url, [i.url for i in todo]))
-    done = 0
-    try:
-        for n, it in enumerate(todo):
-            if ctl.stop.is_set() or not ctl.take():
-                return
-            time.sleep(0.3 if n == 0 else random.uniform(AUTO_DELAY, AUTO_DELAY * 1.5))
-            data = fetch_product(res.store, it.url)
-            done += 1
-            status = data["status"]
-            if status == "ok":
-                post("offers", (store_url, it.url, data["offers"]))
-            post("autostep", (store_url, it.url))
-            if status in ("blocked", "error"):
-                ctl.stop.set()  # qualquer sinal de bloqueio: todas as lojas param
-                post("autostop", res.store["name"])
-                return
-            if status == "unreadable":
-                return  # esta loja não entrega os números como texto: não adianta insistir
-    finally:
-        post("autoend", (store_url, [i.url for i in todo[done:]]))
-
-
-# --------------------------------------------------------------------------
-# "Só nome exato" (usa o Scryfall para descobrir os nomes da carta em inglês e português)
-# --------------------------------------------------------------------------
-
-SCRY_HEADERS = {"User-Agent": "BuscadorMTG/1.0", "Accept": "application/json;q=0.9,*/*;q=0.8"}
-SCRY_API = "https://api.scryfall.com"
-
-
-def scry_get(path, params):
-    r = requests.get(SCRY_API + path, params=params, headers=SCRY_HEADERS, timeout=10)
-    time.sleep(0.12)  # cortesia: o Scryfall pede no máximo ~10 requisições por segundo
-    return r
-
-
-def add_names(names, text):
-    n = norm(text or "")
-    if not n:
-        return
-    names.add(n)
-    for part in n.split("//"):  # cartas de duas faces: aceita cada face
-        if part.strip():
-            names.add(part.strip())
-
-
-def matches_exact(item_name, names):
-    base = norm(strip_suffix(item_name))
-    parts = [p.strip() for p in re.split(r"/+", base) if p.strip()]  # "Nome PT / Nome EN" ou "A // B"
-    return base in names or any(p in names for p in parts)
-
-
-def resolve_names(card):
-    """Devolve (conjunto de nomes aceitos, scryfall_respondeu). Sempre inclui o texto digitado."""
-    names = set()
-    add_names(names, card)
-    try:
-        english = None
-        r = scry_get("/cards/named", {"fuzzy": card})
-        if r.status_code == 200:
-            english = r.json().get("name")
-        else:  # talvez a pessoa tenha digitado em português
-            r2 = scry_get("/cards/search", {"q": f'"{card}" lang:pt', "include_multilingual": "true",
-                                            "unique": "prints"})
-            if r2.status_code == 200 and r2.json().get("data"):
-                english = r2.json()["data"][0].get("name")
-        if english:
-            add_names(names, english)
-            r3 = scry_get("/cards/search", {"q": f'!"{english}" lang:pt', "include_multilingual": "true",
-                                            "unique": "prints"})
-            if r3.status_code == 200:
-                for c in r3.json().get("data", []):
-                    add_names(names, c.get("printed_name"))
-                    for face in c.get("card_faces", []) or []:
-                        add_names(names, face.get("printed_name"))
-        return names, True
-    except (requests.RequestException, ValueError):
-        return names, False
+from buscador.scryfall import matches_exact, resolve_names
+from buscador.texto import age_text, clean_card_name, money, norm, offer_desc
 
 
 # --------------------------------------------------------------------------
