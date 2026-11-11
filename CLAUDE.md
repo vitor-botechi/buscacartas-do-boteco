@@ -14,22 +14,27 @@ Todo o texto da interface e os comentários estão em **português do Brasil**; 
 
 ```
 pip install -r requirements.txt
-python buscador_mtg.py
+python buscador_mtg.py        (ou: python -m buscador)
 ```
 
-Python 3.10 ou mais novo. Dependências: `requests`, `beautifulsoup4` (o app abre sem elas, mas a busca interna fica desligada).
+Python 3.10 ou mais novo. Dependências: `requests`, `beautifulsoup4` (o app abre sem elas, mas a busca interna fica desligada; ver `HAS_SCRAPING` em `rede.py`).
 
-## Estrutura (arquivo único, `buscador_mtg.py`)
+## Estrutura (pacote `buscador/`)
 
-Ainda não está dividido em módulos; a refatoração está planejada (ver o roteiro). Seções, na ordem do arquivo:
+`buscador_mtg.py` é só o ponto de entrada. A versão fica em `buscador/__init__.py` (`__version__`).
+As importações dentro do pacote são absolutas (`from buscador.config import ...`).
 
-1. **Configuração**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`) e constantes de limites (`AUTO_*`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`).
-2. **Lojas e configurações salvas**: `lojas.json` (lojas e seleção) e `config.json` (preferências), ao lado do programa.
-3. **Busca e leitura da lista**: `search_store`, `parse_results`, `product_from_page`.
-4. **Página do produto**: `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço e promoção), `fetch_product` com cache curto.
-5. **Detalhes automáticos**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
-6. **Nome exato**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara.
-7. **Interface**: classe `App` (tela principal, painel lateral "Edições e preços", histórico Voltar/Avançar), mais `Tooltip` e `enable_word_editing`.
+1. **`config.py`**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`), constantes de limites (`AUTO_*`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`) e `app_dir()` (pasta do programa, que é a pasta *acima* de `buscador/`, ou a do `.exe`).
+2. **`armazenamento.py`**: `lojas.json` (lojas e seleção) e `config.json` (preferências), ao lado do programa; `normalize_base`, `host_key`.
+3. **`modelos.py`**: `Item`, `StoreResult`, `Offer`.
+4. **`texto.py`**: `norm`, `clean_card_name`, `strip_suffix`, `money`, `age_text`, `offer_desc`.
+5. **`lojas/ligamagic.py`**: só leitura de HTML, **sem requisições**: `build_search_url`, `parse_results`, `product_from_page`, `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço e promoção) e os marcadores de bloqueio/sem resultado. Uma loja de outro padrão ganha um módulo próprio em `lojas/`.
+6. **`rede.py`**: requisições: `search_store`, `safe_search`, `fetch_product` com cache curto, gravação em `debug/`.
+7. **`automatico.py`**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
+8. **`scryfall.py`**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara.
+9. **`interface/app.py`**: classe `App` (tela principal, painel lateral "Edições e preços", histórico Voltar/Avançar) e `main()`; **`interface/widgets.py`**: `Tooltip`, `enable_word_editing`, `STATUS_TEXT`.
+
+Só `interface/` usa o Tkinter.
 
 ## Regras de funcionamento a preservar
 
@@ -58,6 +63,7 @@ Ainda não está dividido em módulos; a refatoração está planejada (ver o ro
 ## Como trabalhar neste repositório
 
 - Fazer mudanças em **ramificação** (`git switch -c nome`) e commits pequenos, com mensagens em português.
-- Não há testes automáticos ainda. Antes de entregar uma mudança de leitura de página, testar com HTML real (sanitizado); para a interface, rodar o programa e conferir de verdade.
+- **Testes**: `pip install -r requirements-dev.txt` e depois `py -m pytest` (no Windows do dono do projeto, `pytest` e `python -m pytest` não funcionam porque a pasta Scripts do Python não está no PATH; use sempre `py -m pytest` nas instruções). Os testes não fazem requisições: as respostas das lojas são simuladas e as páginas vêm de `tests/fixtures/` (HTML real sanitizado). Rodar antes de cada commit. A interface não tem teste automático: rode o programa e confira de verdade.
+- **Nova fixture** (loja mudou o HTML, loja nova, caso novo): `python tests/sanitizar.py pagina.html tests/fixtures/nome.html "descrição"`. O script só grava se a página limpa for lida igual à original e avisa sobre possíveis dados pessoais; mesmo assim, abra e confira o arquivo antes do commit.
 - Não alterar o comportamento visível sem pedir: o dono do projeto testa e ajusta a interface passo a passo.
 - Ao concluir uma etapa, atualizar `docs/ROTEIRO.md` (o que foi feito, o que ficou pendente).

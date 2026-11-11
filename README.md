@@ -23,6 +23,25 @@ Feito para lojas que usam o padrão **LigaMagic**.
    python buscador_mtg.py
    ```
 
+   (também funciona `python -m buscador`)
+
+## Organização do código
+
+O código fica no pacote `buscador/`: configuração, lojas salvas, leitura das páginas no padrão LigaMagic (`lojas/`),
+requisições (`rede.py`), detalhes automáticos, Scryfall e a interface (`interface/`). O `buscador_mtg.py` só inicia o programa.
+
+## Testes
+
+```
+pip install -r requirements-dev.txt
+py -m pytest
+```
+
+No Windows, use `py -m pytest` (o lançador `py` vem com o instalador do Python). Só `pytest`, ou mesmo
+`python -m pytest`, pode não ser encontrado quando a pasta de comandos do Python não está no PATH.
+
+Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, e não fazem requisições.
+
 ## Atalhos
 
 | Atalho | Ação |
