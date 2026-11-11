@@ -38,6 +38,12 @@ def parse_results(html, base_url):
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript"]):
         tag.decompose()
+    # O resumo do carrinho aparece em toda página e diz "Nenhum item em seu carrinho". Se ficasse,
+    # "nenhum item" (NONE_PHRASES) seria achado em qualquer página, e uma página que não conseguimos
+    # ler passaria por "não encontrada". A frase real de busca vazia ("Nenhum item encontrado com os
+    # filtros utilizados") fica fora do carrinho e continua valendo.
+    for tag in soup.select(".carrinho"):
+        tag.decompose()
     page_text = norm(soup.get_text(" ", strip=True))
 
     products = {}

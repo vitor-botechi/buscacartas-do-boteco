@@ -92,5 +92,11 @@ def test_busca_sem_resultados(pagina):
     assert parse_product_page(html) == ([], "empty")
 
 
+def test_texto_da_pagina_ignora_o_resumo_do_carrinho(pagina):
+    _, texto = parse_results(pagina("busca_sem_resultado"), "https://www.legacytcg.com.br")
+    assert "nenhum item encontrado com os filtros utilizados" in texto
+    assert "seu carrinho" not in texto
+
+
 def test_pagina_sem_linhas_de_oferta_e_vazia():
     assert parse_product_page("<html><body><p>nada</p></body></html>") == ([], "empty")

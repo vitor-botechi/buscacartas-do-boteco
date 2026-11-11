@@ -58,6 +58,25 @@ def test_sem_resultados_vira_none(lojas_falsas, pagina):
     assert rede.search_store(LOJA, "Unholy Grotto").status == "none"
 
 
+CARRINHO_VAZIO = ('<div class="carrinho dropdown-cart"><div class="nomessages">'
+                  'Nenhum item em seu carrinho.</div></div>')
+
+
+def test_carrinho_vazio_nao_conta_como_busca_sem_resultado(lojas_falsas):
+    # página que não é de busca (sem o filtro txt_estoque) e sem itens: não sabemos ler -> "unknown",
+    # mesmo com o resumo do carrinho dizendo "Nenhum item em seu carrinho"
+    respostas, _ = lojas_falsas
+    respostas["busca="] = RespostaFalsa(f"<html><body>{CARRINHO_VAZIO}<p>Página em manutenção</p></body></html>")
+    assert rede.search_store(LOJA, "Sol Ring").status == "unknown"
+
+
+def test_frase_de_busca_vazia_fora_do_carrinho_continua_valendo(lojas_falsas):
+    respostas, _ = lojas_falsas
+    respostas["busca="] = RespostaFalsa(f"<html><body>{CARRINHO_VAZIO}"
+                                        "<p>Nenhum item encontrado com os filtros utilizados.</p></body></html>")
+    assert rede.search_store(LOJA, "Sol Ring").status == "none"
+
+
 @pytest.mark.parametrize("codigo", [403, 429, 503])
 def test_bloqueio_vira_blocked(lojas_falsas, codigo):
     respostas, _ = lojas_falsas
