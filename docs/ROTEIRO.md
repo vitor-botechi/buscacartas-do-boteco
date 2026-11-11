@@ -29,7 +29,9 @@
 1. **Versionamento no GitHub**: feito (repositório criado). Marcar versões com tags (`v0.1.0`...).
 2. **Refatoração** (ramificação `refatoracao`):
    - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), versão `0.1.0` em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
-   - Pendente: testes automáticos (pytest) com HTMLs **sanitizados** de busca e de produto de cada loja; conferir na mão os detalhes automáticos de uma lista com poucos itens; juntar na `main`.
+   - Feito: testes automáticos com pytest (52 testes, sem requisições), com 4 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
+   - Pendente: conferir na mão os detalhes automáticos de uma lista com poucos itens (ex.: "Thalia" na Overrun, 4 resultados); fixtures das outras lojas (hoje há páginas da Overrun, Jackpot e Legacy); juntar na `main`.
+   - Observado ao criar as fixtures: toda página traz o resumo do carrinho vazio ("Nenhum item em seu carrinho"), e "nenhum item" está em `NONE_PHRASES`. Então uma página sem itens e sem o filtro `txt_estoque` é marcada como "não encontrada" em vez de "não consegui ler". Decidir se ajusta (comportamento não alterado na refatoração).
    - Depois: suporte a lojas fora do padrão LigaMagic (um módulo por padrão em `buscador/lojas/`).
 3. **Instalador para Windows**: gerar um executável/instalador (por exemplo com PyInstaller) e publicar nas versões do GitHub; escolher a **licença** antes de tornar o repositório público.
 

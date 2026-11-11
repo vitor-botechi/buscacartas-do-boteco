@@ -30,6 +30,15 @@ Feito para lojas que usam o padrão **LigaMagic**.
 O código fica no pacote `buscador/`: configuração, lojas salvas, leitura das páginas no padrão LigaMagic (`lojas/`),
 requisições (`rede.py`), detalhes automáticos, Scryfall e a interface (`interface/`). O `buscador_mtg.py` só inicia o programa.
 
+## Testes
+
+```
+pip install -r requirements-dev.txt
+pytest
+```
+
+Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, e não fazem requisições.
+
 ## Atalhos
 
 | Atalho | Ação |

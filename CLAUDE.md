@@ -63,6 +63,7 @@ Só `interface/` usa o Tkinter.
 ## Como trabalhar neste repositório
 
 - Fazer mudanças em **ramificação** (`git switch -c nome`) e commits pequenos, com mensagens em português.
-- Não há testes automáticos ainda. Antes de entregar uma mudança de leitura de página, testar com HTML real (sanitizado); para a interface, rodar o programa e conferir de verdade.
+- **Testes**: `pip install -r requirements-dev.txt` e depois `pytest`. Os testes não fazem requisições: as respostas das lojas são simuladas e as páginas vêm de `tests/fixtures/` (HTML real sanitizado). Rodar antes de cada commit. A interface não tem teste automático: rode o programa e confira de verdade.
+- **Nova fixture** (loja mudou o HTML, loja nova, caso novo): `python tests/sanitizar.py pagina.html tests/fixtures/nome.html "descrição"`. O script só grava se a página limpa for lida igual à original e avisa sobre possíveis dados pessoais; mesmo assim, abra e confira o arquivo antes do commit.
 - Não alterar o comportamento visível sem pedir: o dono do projeto testa e ajusta a interface passo a passo.
 - Ao concluir uma etapa, atualizar `docs/ROTEIRO.md` (o que foi feito, o que ficou pendente).
