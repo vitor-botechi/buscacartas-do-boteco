@@ -55,9 +55,10 @@
 - Tutorial dentro do aplicativo, para ensinar a usar.
 - Pesquisar uma lista inteira de cartas: aceitar um nome por linha e formatos como `1 Sol Ring` e `4x Island`. Exige ritmo mais lento (uma lista de 30 cartas em 4 lojas são 120 buscas) e talvez sem detalhes automáticos; mostrar por loja quantas cartas da lista ela tem.
 - Talvez: histórico persistente entre sessões (hoje o Voltar/Avançar some ao fechar o programa).
+- **Programa pronto para Linux e macOS**, como o `.exe` do Windows. O PyInstaller só gera programa para o sistema em que roda, então seria preciso gerar em cada sistema: num Mac e num Linux, ou automaticamente pelo GitHub Actions (máquinas Windows, macOS e Linux na nuvem, que geram e publicam os três a cada versão). No macOS: um `.app` (talvez num `.dmg`), com aviso do Gatekeeper por não ter assinatura da Apple, e dados em `~/Library/Application Support/`. No Linux: um executável ou AppImage, com dados em `~/.local/share/`. Exige ajustar `user_data_dir()` em `config.py` para cada sistema e testar antes em cada um (hoje nunca foi testado fora do Windows).
 
 ## Perguntas em aberto
 
 - Qual o limite seguro de requisições por loja? Registrar aqui o que for observado nos testes (bloqueios, avisos de "detalhes automáticos pausados").
 - Como avisar a comunidade de versões novas? (Hoje: baixar o `.exe` novo na página de versões; as preferências continuam. Poderia haver um aviso no programa quando sair versão nova.)
-- Linux e macOS: o programa roda pelo código-fonte (nada no código é exclusivo do Windows), mas nunca foi testado nesses sistemas. O `.exe` é só para Windows; um executável para eles teria de ser gerado no próprio sistema.
+- Linux e macOS: o programa roda pelo código-fonte (nada no código é exclusivo do Windows), mas nunca foi testado nesses sistemas. Programa pronto para eles: ver "Melhorias futuras anotadas".
