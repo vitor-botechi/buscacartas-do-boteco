@@ -27,7 +27,7 @@
 
 ## Próximos passos (em ordem sugerida)
 
-1. **Versionamento no GitHub**: feito. Versões marcadas com tags: `v0.1.0` (primeira versão, arquivo único) `v0.2.0` (refatoração em módulos, testes e correções) e `v0.3.0` (pré-venda com data, licença MIT e primeiro programa para Windows). A cada versão: subir `__version__` em `buscador/__init__.py`, juntar na `main`, criar a tag no commit da `main`, gerar o `.exe` (`py instalador/gerar_exe.py`) e publicá-lo na página de versões (Releases) do GitHub.
+1. **Versionamento no GitHub**: feito. Versões marcadas com tags: `v0.1.0` (primeira versão, arquivo único), `v0.2.0` (refatoração em módulos, testes e correções), `v0.3.0` (pré-venda com data, licença MIT e primeiro programa para Windows, em .zip) e `v0.4.0` (`.exe` único, dados em `%APPDATA%`). A cada versão: subir `__version__` em `buscador/__init__.py`, juntar na `main`, criar a tag no commit da `main`, gerar o `.exe` (`py instalador/gerar_exe.py`) e publicá-lo na página de versões (Releases) do GitHub.
 2. **Refatoração**: concluída e juntada na `main` (PR #1, versão `0.2.0`).
    - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), número de versão em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
    - Feito: testes automáticos com pytest (64 testes na versão 0.2.0, sem requisições), com 5 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
@@ -36,24 +36,28 @@
    - Corrigido: toda página traz o resumo do carrinho vazio ("Nenhum item em seu carrinho"), e "nenhum item" está em `NONE_PHRASES`. Uma página sem itens e sem o filtro `txt_estoque` aparecia como "não encontrada" em vez de "não consegui ler". Agora `parse_results` ignora o bloco `.carrinho` ao montar o texto da página; a frase real de busca vazia ("Nenhum item encontrado com os filtros utilizados") continua valendo.
    - Corrigido: "Apenas nome exato" com nome ambíguo. "Thalia" corresponde a várias cartas; o Scryfall recusa a busca aproximada e o programa ficava com a primeira carta da busca em português ("Thalia e O Monstro Gitrog"), uma escolha quase ao acaso. Agora a busca em português só vale se o nome bater por inteiro; senão, fica só o nome digitado. A regra continua sendo o nome completo (não um trecho).
    - Lojas fora do padrão LigaMagic: em nov/2026 não achamos nenhuma loja brasileira de cartas avulsas fora do padrão (testadas Cards of Paradise, Cardtutor, Bazar de Bagdá, Magic Domain e Epic Game/Epic One, todas LigaMagic). Fica em espera; a estrutura (um módulo por padrão em `buscador/lojas/`) já permite se aparecer uma.
-3. **Programa para Windows**: feito (PR #4, versão `0.3.0`).
+3. **Programa para Windows**: feito (PR #4, versão `0.3.0`, em .zip; PR #6, versão `0.4.0`, `.exe` único).
    - Feito (nov/2026): licença **MIT** (`LICENSE`).
    - Feito: `instalador/gerar_exe.py` gera, com o PyInstaller, o `BuscadorMTG.exe` (sem janela de terminal, com nome e versão nas propriedades do arquivo). Testado numa pasta limpa, sem depender do Python instalado.
    - Versão 0.3.0: era uma pasta (`--onedir`) num `.zip`. Problema: quem abria o `.exe` de dentro do zip (Explorador do Windows, 7-Zip) recebia só o `.exe`, sem a pasta `_internal`, e via uma janela de erro; e as lojas e preferências iam para uma pasta temporária.
-   - Decisão (nov/2026, ramificação `exe-unico-dados-appdata`): **`.exe` único** (`--onefile`), sem zip e sem instalador clássico, e os dados do `.exe` em **`%APPDATA%\BuscadorMTG`**. Funciona de qualquer pasta, e as lojas e preferências continuam ao trocar de versão. Custo: abre em ~2 s (descompacta numa pasta temporária a cada uso) e alguns antivírus desconfiam mais desse formato. Pelo código-fonte, os arquivos continuam na pasta do projeto. Na primeira vez, o `.exe` copia `lojas.json` e `config.json` que estejam ao lado dele (quem usou a 0.3.0).
+   - Decisão (nov/2026, PR #6, versão 0.4.0): **`.exe` único** (`--onefile`), sem zip e sem instalador clássico, e os dados do `.exe` em **`%APPDATA%\BuscadorMTG`**. Funciona de qualquer pasta, e as lojas e preferências continuam ao trocar de versão. Custo: abre em ~2 s (descompacta numa pasta temporária a cada uso) e alguns antivírus desconfiam mais desse formato. Pelo código-fonte, os arquivos continuam na pasta do projeto. Na primeira vez, o `.exe` copia `lojas.json` e `config.json` que estejam ao lado dele (quem usou a 0.3.0).
    - A cada versão, publicar o `.exe` na página de versões do GitHub (tag `vX.Y.Z`). O aviso do SmartScreen continua porque o programa não tem assinatura digital (certificado pago). Ícone próprio fica para a etapa de design.
 
 ## Melhorias futuras anotadas
 
 - Arte do card ao passar o mouse sobre cada linha.
 - Comparar com o menor preço da LigaMagic, para ver se as lojas estão muito acima de um preço justo. Primeiro verificar se a LigaMagic entrega os preços como texto ao programa. Decidir se o estado (NM/SP) entra na comparação.
-- Design mais moderno, com cores diferentes para idioma, qualidade (NM/SP), unidades e preço. Avaliar linhas separadoras mais suaves (hoje há só listras alternadas).
+- **Design (próxima etapa, ramificação `design-cores`)**: cores diferentes para idioma, qualidade (NM/SP), unidades e preço; avaliar linhas separadoras mais suaves (hoje há só listras alternadas). Incluir:
+  - **Tela de abertura animada** enquanto o `.exe` abre (~2 s, tempo que ele leva para se descompactar): algo amigável, talvez um desenho de Magic ou uma animação "procurando cartas". Opções: a tela de abertura do PyInstaller (`--splash`, só imagem parada, aparece antes de o Python carregar) ou uma janela própria em Tkinter (permite animação, mas só aparece quando o Python já carregou). Talvez combinar as duas.
+  - Ícone próprio para o `.exe` e para a janela.
+- **Nome do aplicativo**: escolher um nome melhor que "Buscador de Cartas MTG". Ideias de partida: um trocadilho com "Botechi" ou com o "Boteco de Pedidos" (o esquema de pedidos da comunidade). Ao trocar, atualizar título da janela, nome do `.exe` (`NOME` em `instalador/gerar_exe.py`), pasta em `%APPDATA%` (migrar a antiga), README e repositório.
 - Busca inteligente que tolere erro de digitação: avisar que o nome parece errado, sugerir o certo (como o Google) e pesquisar mesmo assim. Incluir o caso de nome ambíguo em "Apenas nome exato" (ex.: "Thalia"): avisar que há várias cartas e sugerir os nomes completos (o Scryfall já informa a ambiguidade).
 - Tutorial dentro do aplicativo, para ensinar a usar.
 - Pesquisar uma lista inteira de cartas: aceitar um nome por linha e formatos como `1 Sol Ring` e `4x Island`. Exige ritmo mais lento (uma lista de 30 cartas em 4 lojas são 120 buscas) e talvez sem detalhes automáticos; mostrar por loja quantas cartas da lista ela tem.
-- Talvez: botão "Avançar" e histórico persistente entre sessões (hoje o histórico some ao fechar).
+- Talvez: histórico persistente entre sessões (hoje o Voltar/Avançar some ao fechar o programa).
 
 ## Perguntas em aberto
 
 - Qual o limite seguro de requisições por loja? Registrar aqui o que for observado nos testes (bloqueios, avisos de "detalhes automáticos pausados").
-- Como distribuir atualizações para a comunidade depois do instalador?
+- Como avisar a comunidade de versões novas? (Hoje: baixar o `.exe` novo na página de versões; as preferências continuam. Poderia haver um aviso no programa quando sair versão nova.)
+- Linux e macOS: o programa roda pelo código-fonte (nada no código é exclusivo do Windows), mas nunca foi testado nesses sistemas. O `.exe` é só para Windows; um executável para eles teria de ser gerado no próprio sistema.
