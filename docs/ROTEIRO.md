@@ -27,7 +27,7 @@
 
 ## Próximos passos (em ordem sugerida)
 
-1. **Versionamento no GitHub**: feito. Versões marcadas com tags: `v0.1.0` (primeira versão, arquivo único) `v0.2.0` (refatoração em módulos, testes e correções) e `v0.3.0` (pré-venda com data, licença MIT e primeiro programa para Windows). A cada versão: subir `__version__` em `buscador/__init__.py`, juntar na `main`, criar a tag no commit da `main`, gerar o zip (`py instalador/gerar_exe.py`) e publicá-lo na página de versões (Releases) do GitHub.
+1. **Versionamento no GitHub**: feito. Versões marcadas com tags: `v0.1.0` (primeira versão, arquivo único) `v0.2.0` (refatoração em módulos, testes e correções) e `v0.3.0` (pré-venda com data, licença MIT e primeiro programa para Windows). A cada versão: subir `__version__` em `buscador/__init__.py`, juntar na `main`, criar a tag no commit da `main`, gerar o `.exe` (`py instalador/gerar_exe.py`) e publicá-lo na página de versões (Releases) do GitHub.
 2. **Refatoração**: concluída e juntada na `main` (PR #1, versão `0.2.0`).
    - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), número de versão em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
    - Feito: testes automáticos com pytest (64 testes na versão 0.2.0, sem requisições), com 5 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
@@ -38,10 +38,10 @@
    - Lojas fora do padrão LigaMagic: em nov/2026 não achamos nenhuma loja brasileira de cartas avulsas fora do padrão (testadas Cards of Paradise, Cardtutor, Bazar de Bagdá, Magic Domain e Epic Game/Epic One, todas LigaMagic). Fica em espera; a estrutura (um módulo por padrão em `buscador/lojas/`) já permite se aparecer uma.
 3. **Programa para Windows**: feito (PR #4, versão `0.3.0`).
    - Feito (nov/2026): licença **MIT** (`LICENSE`).
-   - Feito: `instalador/gerar_exe.py` gera, com o PyInstaller, a pasta `dist/BuscadorMTG/` (`BuscadorMTG.exe`, sem janela de terminal, com nome e versão nas propriedades do arquivo) e o `BuscadorMTG-<versão>-windows.zip` com `LEIA-ME.txt` e `LICENSE.txt`. Testado descompactando numa pasta limpa, sem depender do Python instalado.
-   - Decisão: distribuir como pasta compactada (.zip), e não com instalador clássico. O programa grava `lojas.json`, `config.json` e `debug/` ao lado do `.exe`; em "Arquivos de Programas" isso exigiria administrador. Formato pasta (`--onedir`) em vez de `.exe` único: abre mais rápido e gera menos alarme falso de antivírus.
-   - A cada versão, publicar o .zip na página de versões do GitHub (tag `vX.Y.Z`). O aviso do SmartScreen continua porque o programa não tem assinatura digital (certificado pago). Ícone próprio fica para a etapa de design.
-   - Se um dia houver instalador clássico (Inno Setup, com atalho no menu Iniciar), os arquivos do usuário precisam ir para `%APPDATA%`; isso muda `app_dir()`.
+   - Feito: `instalador/gerar_exe.py` gera, com o PyInstaller, o `BuscadorMTG.exe` (sem janela de terminal, com nome e versão nas propriedades do arquivo). Testado numa pasta limpa, sem depender do Python instalado.
+   - Versão 0.3.0: era uma pasta (`--onedir`) num `.zip`. Problema: quem abria o `.exe` de dentro do zip (Explorador do Windows, 7-Zip) recebia só o `.exe`, sem a pasta `_internal`, e via uma janela de erro; e as lojas e preferências iam para uma pasta temporária.
+   - Decisão (nov/2026, ramificação `exe-unico-dados-appdata`): **`.exe` único** (`--onefile`), sem zip e sem instalador clássico, e os dados do `.exe` em **`%APPDATA%\BuscadorMTG`**. Funciona de qualquer pasta, e as lojas e preferências continuam ao trocar de versão. Custo: abre em ~2 s (descompacta numa pasta temporária a cada uso) e alguns antivírus desconfiam mais desse formato. Pelo código-fonte, os arquivos continuam na pasta do projeto. Na primeira vez, o `.exe` copia `lojas.json` e `config.json` que estejam ao lado dele (quem usou a 0.3.0).
+   - A cada versão, publicar o `.exe` na página de versões do GitHub (tag `vX.Y.Z`). O aviso do SmartScreen continua porque o programa não tem assinatura digital (certificado pago). Ícone próprio fica para a etapa de design.
 
 ## Melhorias futuras anotadas
 

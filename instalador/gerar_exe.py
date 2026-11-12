@@ -1,23 +1,21 @@
-"""Gera o programa para Windows (BuscadorMTG.exe) e o .zip para publicar nas versões do GitHub.
+"""Gera o programa para Windows (BuscadorMTG.exe), um arquivo único para publicar nas versões do GitHub.
 
 Uso (na pasta do projeto):
     py -m pip install -r instalador/requirements.txt
     py instalador/gerar_exe.py
 
-Resultado em dist/:
-    dist/BuscadorMTG/                      pasta do programa (BuscadorMTG.exe e _internal/)
-    dist/BuscadorMTG-<versão>-windows.zip  o que vai para a página de versões do GitHub
+Resultado: dist/BuscadorMTG.exe, o arquivo publicado na página de versões do GitHub.
 
-Formato "pasta" (--onedir) em vez de um .exe único: abre mais rápido (não descompacta a cada uso)
-e costuma gerar menos alarmes falsos de antivírus. O programa grava lojas.json, config.json e debug/
-ao lado do .exe, por isso a pasta deve ficar num lugar com permissão de escrita (Documentos, Área
-de Trabalho...), e não em "Arquivos de Programas".
+Arquivo único (--onefile): a pessoa baixa e abre, de qualquer lugar, sem descompactar nada.
+Custo: abre uns segundos mais devagar, porque se descompacta numa pasta temporária a cada uso.
+Até a versão 0.3.0 era uma pasta num .zip, e quem abria o .exe de dentro do zip (sem a pasta
+_internal) via só uma janela de erro.
+
+O .exe grava lojas.json, config.json e debug/ em %APPDATA%/BuscadorMTG (ver config.app_dir).
 """
 
 import os
-import shutil
 import sys
-import zipfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, RAIZ)
@@ -70,7 +68,7 @@ def main():
     PyInstaller.__main__.run([
         os.path.join(RAIZ, "buscador_mtg.py"),
         "--name", NOME,
-        "--onedir",
+        "--onefile",
         "--windowed",  # sem a janela preta do terminal
         "--noconfirm",
         "--clean",
@@ -81,17 +79,8 @@ def main():
         "--paths", RAIZ,
     ])
 
-    pasta = os.path.join(DIST, NOME)
-    shutil.copy(os.path.join(RAIZ, "LICENSE"), os.path.join(pasta, "LICENSE.txt"))
-    shutil.copy(os.path.join(RAIZ, "instalador", "LEIA-ME.txt"), os.path.join(pasta, "LEIA-ME.txt"))
-
-    zip_path = os.path.join(DIST, f"{NOME}-{__version__}-windows.zip")
-    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
-        for base, _, arquivos in os.walk(pasta):
-            for nome in arquivos:
-                completo = os.path.join(base, nome)
-                z.write(completo, os.path.relpath(completo, DIST))  # dentro do zip: BuscadorMTG/...
-    print(f"\nPronto: {zip_path} ({os.path.getsize(zip_path) / 1e6:.1f} MB)")
+    exe = os.path.join(DIST, f"{NOME}.exe")
+    print(f"\nPronto: {exe} ({os.path.getsize(exe) / 1e6:.1f} MB), versão {__version__}")
 
 
 if __name__ == "__main__":
