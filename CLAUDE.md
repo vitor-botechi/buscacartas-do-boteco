@@ -36,6 +36,8 @@ As importações dentro do pacote são absolutas (`from buscador.config import .
 
 Só `interface/` usa o Tkinter.
 
+Fora do pacote: `instalador/gerar_exe.py` gera o `.exe` (PyInstaller, formato pasta) e o `.zip` publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
+
 ## Regras de funcionamento a preservar
 
 - **Tkinter só na thread principal.** As threads de busca falam com a tela pela fila `self.queue`, com tuplas `(tipo, sid, dados)`. Tipos: `result`, `names`, `offers`, `details`, `autostart`, `autostep`, `autoend`, `autostop`.

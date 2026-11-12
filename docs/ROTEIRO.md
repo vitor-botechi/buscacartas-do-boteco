@@ -35,7 +35,12 @@
    - Corrigido: toda página traz o resumo do carrinho vazio ("Nenhum item em seu carrinho"), e "nenhum item" está em `NONE_PHRASES`. Uma página sem itens e sem o filtro `txt_estoque` aparecia como "não encontrada" em vez de "não consegui ler". Agora `parse_results` ignora o bloco `.carrinho` ao montar o texto da página; a frase real de busca vazia ("Nenhum item encontrado com os filtros utilizados") continua valendo.
    - Corrigido: "Apenas nome exato" com nome ambíguo. "Thalia" corresponde a várias cartas; o Scryfall recusa a busca aproximada e o programa ficava com a primeira carta da busca em português ("Thalia e O Monstro Gitrog"), uma escolha quase ao acaso. Agora a busca em português só vale se o nome bater por inteiro; senão, fica só o nome digitado. A regra continua sendo o nome completo (não um trecho).
    - Lojas fora do padrão LigaMagic: em nov/2026 não achamos nenhuma loja brasileira de cartas avulsas fora do padrão (testadas Cards of Paradise, Cardtutor, Bazar de Bagdá, Magic Domain e Epic Game/Epic One, todas LigaMagic). Fica em espera; a estrutura (um módulo por padrão em `buscador/lojas/`) já permite se aparecer uma.
-3. **Instalador para Windows**: gerar um executável/instalador (por exemplo com PyInstaller) e publicar nas versões do GitHub; escolher a **licença** antes de tornar o repositório público.
+3. **Programa para Windows**: em andamento (ramificação `instalador`).
+   - Feito (nov/2026): licença **MIT** (`LICENSE`).
+   - Feito: `instalador/gerar_exe.py` gera, com o PyInstaller, a pasta `dist/BuscadorMTG/` (`BuscadorMTG.exe`, sem janela de terminal, com nome e versão nas propriedades do arquivo) e o `BuscadorMTG-<versão>-windows.zip` com `LEIA-ME.txt` e `LICENSE.txt`. Testado descompactando numa pasta limpa, sem depender do Python instalado.
+   - Decisão: distribuir como pasta compactada (.zip), e não com instalador clássico. O programa grava `lojas.json`, `config.json` e `debug/` ao lado do `.exe`; em "Arquivos de Programas" isso exigiria administrador. Formato pasta (`--onedir`) em vez de `.exe` único: abre mais rápido e gera menos alarme falso de antivírus.
+   - Pendente: publicar o .zip na página de versões do GitHub a cada versão (tag `vX.Y.Z`); o aviso do SmartScreen continua porque o programa não tem assinatura digital (certificado pago). Ícone próprio fica para a etapa de design.
+   - Se um dia houver instalador clássico (Inno Setup, com atalho no menu Iniciar), os arquivos do usuário precisam ir para `%APPDATA%`; isso muda `app_dir()`.
 
 ## Melhorias futuras anotadas
 
@@ -50,5 +55,4 @@
 ## Perguntas em aberto
 
 - Qual o limite seguro de requisições por loja? Registrar aqui o que for observado nos testes (bloqueios, avisos de "detalhes automáticos pausados").
-- Qual licença usar quando o repositório for público?
 - Como distribuir atualizações para a comunidade depois do instalador?
