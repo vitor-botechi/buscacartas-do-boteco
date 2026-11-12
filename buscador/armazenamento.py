@@ -1,4 +1,4 @@
-"""Lojas e preferências salvas (lojas.json e config.json, ao lado do programa)."""
+"""Lojas e preferências salvas (lojas.json e config.json, na pasta de config.app_dir())."""
 
 import json
 import re

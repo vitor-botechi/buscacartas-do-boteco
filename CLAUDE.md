@@ -5,7 +5,7 @@ O roteiro de melhorias e o histórico de decisões estão em `docs/ROTEIRO.md`.
 
 ## O que é
 
-Programa de computador (Windows, Python + Tkinter) que busca cartas de **Magic: The Gathering** em várias lojas ao mesmo tempo.
+Programa de computador (Windows, Python, com a tela em HTML numa janela do pywebview) que busca cartas de **Magic: The Gathering** em várias lojas ao mesmo tempo.
 A pessoa digita o nome da carta, marca as lojas e vê em quais há estoque, com edições, idioma, qualidade e preço.
 As lojas usam o padrão **LigaMagic**. O público é a comunidade local de Magic: o programa precisa ser prático, rápido e intuitivo.
 Todo o texto da interface e os comentários estão em **português do Brasil**; mantenha assim.
@@ -32,17 +32,19 @@ As importações dentro do pacote são absolutas (`from buscador.config import .
 6. **`rede.py`**: requisições: `search_store`, `safe_search`, `fetch_product` com cache curto, gravação em `debug/`.
 7. **`automatico.py`**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
 8. **`scryfall.py`**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara.
-9. **`interface/app.py`**: classe `App` (tela principal, painel lateral "Edições e preços", histórico Voltar/Avançar) e `main()`; **`interface/widgets.py`**: `Tooltip`, `enable_word_editing`, `STATUS_TEXT`.
+9. **`web/`** (interface atual): **`ponte.py`**, classe `Ponte`, o lado Python que a página chama (buscar, detalhes, lojas, colar, abrir no navegador); **`serializar.py`** converte `Item`/`Offer`/`StoreResult` em dicionários; **`app.py`** abre a janela (`main()`); **`pagina/`** tem `index.html`, `estilo.css` e `app.js`, que só desenham a tela e guardam o estado dela (o que está aberto, histórico Voltar/Avançar).
+10. **`interface/`** (reserva, Tkinter): a interface antiga, aberta só quando o pywebview não está instalado. Será removida depois que a nova for aprovada.
 
-Só `interface/` usa o Tkinter.
+Só `interface/` usa o Tkinter; só `web/` usa o pywebview.
 
 Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller, arquivo único) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
 
 ## Regras de funcionamento a preservar
 
-- **Tkinter só na thread principal.** As threads de busca falam com a tela pela fila `self.queue`, com tuplas `(tipo, sid, dados)`. Tipos: `result`, `names`, `offers`, `details`, `autostart`, `autostep`, `autoend`, `autostop`.
-- **`search_id`** invalida respostas atrasadas: mensagens de uma busca antiga são ignoradas (exceto `details`, que usa o próprio `detail_token`). Ao iniciar, cancelar ou voltar para outra busca, o `search_id` aumenta e o `AutoCtl` da busca anterior é parado.
-- **Histórico**: cada entrada guarda uma "foto" da tela (`snapshot`). Entradas com mais de `STALE_AFTER` (30 min) são refeitas em vez de restauradas.
+- **Acontecimentos da busca vão para a página** por `app.evento(tipo, sid, dados)` (`Ponte._enviar`, que usa `evaluate_js`). Tipos: `result`, `names`, `offers`, `autostart`, `autostep`, `autoend`, `autostop`. Os detalhes sob demanda e o "Apenas nome exato" depois da busca são chamadas diretas da página (`detalhes`, `nomes_exatos`), que o pywebview roda numa thread própria.
+- **Atributos da `Ponte` começam com `_`**: o pywebview expõe à página tudo que é público na classe.
+- **`search_id`** invalida respostas atrasadas: a página ignora acontecimentos de uma busca antiga. Ao iniciar, cancelar ou voltar para outra busca, o `search_id` aumenta e o `AutoCtl` da busca anterior é parado (`Ponte.buscar`, `Ponte.cancelar`).
+- **Histórico**: fica na página (`app.js`); cada entrada é uma cópia do estado da tela. Entradas com mais de `STALE_AFTER` (30 min) são refeitas em vez de restauradas.
 - A leitura é feita **por requisição única por loja e por busca**; páginas de produto só sob demanda ou automaticamente para poucos itens.
 
 ## Regras de ética e de conduta com as lojas (importante)

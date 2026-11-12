@@ -45,11 +45,15 @@
 
 ## Melhorias futuras anotadas
 
-- Arte do card ao passar o mouse sobre cada linha.
 - Comparar com o menor preço da LigaMagic, para ver se as lojas estão muito acima de um preço justo. Primeiro verificar se a LigaMagic entrega os preços como texto ao programa. Decidir se o estado (NM/SP) entra na comparação.
-- **Design (próxima etapa, ramificação `design-cores`)**: cores diferentes para idioma, qualidade (NM/SP), unidades e preço; avaliar linhas separadoras mais suaves (hoje há só listras alternadas). Incluir:
-  - **Tela de abertura animada** enquanto o `.exe` abre (~2 s, tempo que ele leva para se descompactar): algo amigável, talvez um desenho de Magic ou uma animação "procurando cartas". Opções: a tela de abertura do PyInstaller (`--splash`, só imagem parada, aparece antes de o Python carregar) ou uma janela própria em Tkinter (permite animação, mas só aparece quando o Python já carregou). Talvez combinar as duas.
-  - Ícone próprio para o `.exe` e para a janela.
+- **Design (em andamento, ramificação `interface-html`)**: cores diferentes para idioma, qualidade (NM/SP), unidades e preço; linhas separadoras mais suaves.
+  - Decisão (nov/2026): a tabela do Tkinter só pinta a linha inteira. Comparamos dois protótipos com a mesma busca: Tkinter com ttkbootstrap + tksheet (cor por célula, visual de planilha; o tksheet parou de ser desenvolvido) e **HTML numa janela de programa (pywebview)**, que foi o escolhido: visual mais agradável e facilita arte da carta, animações e tutorial. Também consideradas: CustomTkinter (sem tabela), Qt/PySide6 (`.exe` bem maior), Flet e NiceGUI (mais pesadas).
+  - Feito (etapa 1): interface nova em `buscador/web/` com todas as funções da antiga. Mudanças visíveis: cada loja é um cartão; as edições e preços abrem dentro da lista (não há mais o painel lateral); cada item tem "Ver edições e preços" e "Abrir ↗"; cada loja tem "Abrir no navegador ↗"; etiquetas coloridas (NM verde, SP âmbar, MP/HP vermelho, Foil roxo, promoção coral, pré-venda verde, Português azul). A interface Tkinter fica como reserva até a aprovação. O `.exe` passou de 16,9 para 18,5 MB.
+  - Pendente:
+    - **Tela de abertura animada** enquanto o `.exe` abre (~2 s, tempo que ele leva para se descompactar): algo amigável, talvez um desenho de Magic ou uma animação "procurando cartas" (o protótipo HTML tinha uma). A tela de abertura do PyInstaller (`--splash`, imagem parada) aparece antes de o Python carregar; a animação em HTML só quando a janela já abriu. Talvez combinar as duas.
+    - Ícone próprio para o `.exe` e para a janela.
+    - Arte da carta ao passar o mouse (Scryfall; o protótipo HTML tinha uma versão simples).
+    - Remover a interface Tkinter (`buscador/interface/`) depois da aprovação.
 - **Nome do aplicativo**: escolher um nome melhor que "Buscador de Cartas MTG". Ideias de partida: um trocadilho com "Botechi" ou com o "Boteco de Pedidos" (o esquema de pedidos da comunidade). Ao trocar, atualizar título da janela, nome do `.exe` (`NOME` em `instalador/gerar_exe.py`), pasta em `%APPDATA%` (migrar a antiga), README e repositório.
 - Busca inteligente que tolere erro de digitação: avisar que o nome parece errado, sugerir o certo (como o Google) e pesquisar mesmo assim. Incluir o caso de nome ambíguo em "Apenas nome exato" (ex.: "Thalia"): avisar que há várias cartas e sugerir os nomes completos (o Scryfall já informa a ambiguidade).
 - Tutorial dentro do aplicativo, para ensinar a usar.
