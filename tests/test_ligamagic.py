@@ -98,6 +98,38 @@ def test_linhas_sem_estoque_sao_ignoradas(pagina):
     assert all(o.stock for o in ofertas)  # ...mas só as que têm estoque viram ofertas
 
 
+# ---- pré-venda: o "P" verde, com a data prevista de envio no title ----
+
+def test_pre_venda_na_pagina_do_produto_traz_a_data(pagina):
+    ofertas, status = parse_product_page(pagina("produto_pre_venda"))
+    assert status == "ok"
+    pre = [o for o in ofertas if o.preorder]
+    assert [(o.edition, o.stock, o.price, o.preorder_date) for o in pre] == [("Star Trek Commander", 8, 6.9, "13/11/2026")]
+
+
+def test_ofertas_normais_nao_sao_pre_venda(pagina):
+    ofertas, _ = parse_product_page(pagina("produto_pre_venda"))
+    normais = [o for o in ofertas if not o.preorder]
+    assert len(normais) == len(ofertas) - 1
+    assert all(o.preorder_date == "" for o in normais)
+
+
+def test_pre_venda_na_lista_de_busca(pagina):
+    itens, _ = parse_results(pagina("busca_lista_pre_venda"), OVERRUN)
+    marcados = {i.name: i.preorder_date for i in itens if i.preorder}
+    assert marcados == {"Anel Solar": "13/11/2026"}
+    assert any(not i.preorder for i in itens)
+
+
+def test_pre_venda_sem_data():
+    html = ("<div class='table-cards-row'><div class='table-cards-body-cell'><img title='Edição X'></div>"
+            "<div class='table-cards-body-cell'><img title='Inglês'></div>"
+            "<div class='table-cards-body-cell'><div class='icone-pre-order'>P</div> 3 unid.</div>"
+            "<div class='table-cards-body-cell card-preco'>R$ 1,00</div></div>")
+    ofertas, _ = parse_product_page(html)
+    assert (ofertas[0].preorder, ofertas[0].preorder_date) == (True, "")
+
+
 # ---- busca sem resultados ----
 
 def test_busca_sem_resultados(pagina):

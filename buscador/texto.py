@@ -34,6 +34,11 @@ def money(v):
     return "R$ " + s.replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+def preorder_text(date):
+    """'pré-venda, envio previsto 13/11/2026' (ou só 'pré-venda' quando a loja não deu a data)."""
+    return f"pré-venda, envio previsto {date}" if date else "pré-venda"
+
+
 def offer_desc(o):
     """Resumo de uma oferta: 'Português · NM · 2 un. · Foil · -10%'."""
     parts = [o.language or "—", o.quality or "—", f"{o.stock} un."]

@@ -32,7 +32,9 @@ from buscador.interface.widgets import STATUS_TEXT, Tooltip, enable_word_editing
 from buscador.lojas.ligamagic import build_search_url
 from buscador.rede import HAS_SCRAPING, fetch_product, safe_search
 from buscador.scryfall import matches_exact, resolve_names
-from buscador.texto import age_text, clean_card_name, money, norm, offer_desc
+from buscador.texto import age_text, clean_card_name, money, norm, offer_desc, preorder_text
+
+PREORDER_COLOR = "#15803d"  # verde do "P" de pré-venda nas lojas
 
 
 class App:
@@ -187,6 +189,7 @@ class App:
         self.tree.tag_configure("more", foreground="#1d4ed8")
         self.tree.tag_configure("hint", foreground="#8a8f98")
         self.tree.tag_configure("alt", background="#f4f5f7")  # listra suave para guiar o olho entre linhas
+        self.tree.tag_configure("pre", foreground=PREORDER_COLOR)  # pré-venda: verde, como o "P" das lojas
         for t in ("blocked", "unknown", "error"):
             self.tree.tag_configure(t, foreground="#b45309")
 
@@ -224,6 +227,7 @@ class App:
             tv.heading(col, text=title, anchor="w" if anchor != "center" else "center")
             tv.column(col, width=width, minwidth=minw, anchor=anchor)
         tv.tag_configure("alt", background="#f4f5f7")
+        tv.tag_configure("pre", foreground=PREORDER_COLOR)
         tv.grid(row=2, column=0, sticky="nsew")
         sb = ttk.Scrollbar(f, orient="vertical", command=tv.yview)
         sb.grid(row=2, column=1, sticky="ns")
@@ -548,9 +552,10 @@ class App:
                 promo = ""
                 if o.original_price and o.price:
                     promo = f"-{round((1 - o.price / o.original_price) * 100)}% (de {money(o.original_price)})"
-                extra = "   ·   ".join(x for x in (o.extras, promo) if x)
-                name = o.edition + ("  (pré-venda)" if o.preorder else "")
-                tv.insert("", "end", text=name, tags=(("alt",) if idx % 2 else ()),
+                pre = preorder_text(o.preorder_date) if o.preorder else ""
+                extra = "   ·   ".join(x for x in (pre, o.extras, promo) if x)
+                name = o.edition + ("  (P)" if o.preorder else "")
+                tv.insert("", "end", text=name, tags=(("alt",) if idx % 2 else ()) + (("pre",) if o.preorder else ()),
                           values=(f"{o.language or '—'} · {o.quality or '—'}", f"{o.stock} un.", money(o.price), extra))
         elif status == "empty":
             info.config(text="Esta página não tem ofertas em estoque no momento.")
@@ -879,14 +884,17 @@ class App:
                 for k, o in enumerate(it.offers):
                     oid = f"{child}#{k}"
                     self.tree.insert(child, "end", iid=oid,
-                                     text="        " + o.edition + ("  (pré-venda)" if o.preorder else ""),
-                                     values=(offer_desc(o), money(o.price)), tags=tags())
+                                     text="        " + o.edition + (f"  (P: {preorder_text(o.preorder_date)})" if o.preorder else ""),
+                                     values=(offer_desc(o), money(o.price)), tags=tags(*(("pre",) if o.preorder else ())))
                     self.url_by_iid[oid] = it.url
                     self.item_by_iid[oid] = it
             else:
                 label = "⏳ carregando edições e preços…" if it.url in self.auto_loading else "em estoque    ·    detalhes sob demanda 🔎"
-                self.tree.insert(iid, "end", iid=child, text="    " + it.name, values=(label, "—"),
-                                 tags=tags())
+                name = it.name
+                if it.preorder:  # a lista marca o item com "P" quando alguma oferta dele está em pré-venda
+                    name += f"  (P: tem oferta em {preorder_text(it.preorder_date)})"
+                self.tree.insert(iid, "end", iid=child, text="    " + name, values=(label, "—"),
+                                 tags=tags(*(("pre",) if it.preorder else ())))
             self.url_by_iid[child] = it.url
             self.item_by_iid[child] = it
         if big and not show_all:

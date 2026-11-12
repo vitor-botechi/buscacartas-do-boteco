@@ -29,6 +29,23 @@ BLOCK_MARKERS = (
 SOLDOUT_MARKERS = ("indisponivel", "esgotado", "sem estoque")
 
 
+DATE_RE = re.compile(r"\d{1,2}/\d{1,2}/\d{2,4}")
+
+
+def preorder_info(box):
+    """Procura o "P" verde de pré-venda dentro de box. Devolve (é_pré_venda, data_prevista).
+    A loja põe a data no title do "P" ou da célula em volta:
+    "Data de previsão de envio do item: 13/11/2026"."""
+    icon = box.select_one(".icone-pre-order") if box is not None else None
+    if icon is None:
+        return False, ""
+    for tag in (icon, icon.parent):
+        m = DATE_RE.search((tag.get("title") or "") if tag is not None else "")
+        if m:
+            return True, m.group(0)
+    return True, ""
+
+
 def is_product_href(href):
     return "view=ecom/item" in href and "ecom/itens" not in href
 
@@ -76,13 +93,15 @@ def parse_results(html, base_url):
         name = a.get("title") or a.get_text(" ", strip=True) or (img.get("alt") if img else "") or ""
         name = PRICE_RE.sub("", str(name)).strip(" -|")[:90]
 
-        entry = products.setdefault(href, {"name": "", "prices": [], "sold": False})
+        entry = products.setdefault(href, {"name": "", "prices": [], "sold": False, "pre": (False, "")})
         if len(name) > len(entry["name"]):
             entry["name"] = name
         if not entry["prices"]:
             entry["prices"] = [float(p.replace(".", "").replace(",", ".")) for p in PRICE_RE.findall(box_text)]
         if any(m in norm(box_text) for m in SOLDOUT_MARKERS):
             entry["sold"] = True
+        if not entry["pre"][0]:
+            entry["pre"] = preorder_info(a.find_parent(class_="card-item") or box)
 
     items = [
         Item(
@@ -90,6 +109,8 @@ def parse_results(html, base_url):
             price=min(e["prices"]) if e["prices"] else None,
             url=urljoin(base_url.rstrip("/") + "/", href),
             available=not e["sold"],
+            preorder=e["pre"][0],
+            preorder_date=e["pre"][1],
         )
         for href, e in products.items()
     ]
@@ -147,7 +168,7 @@ def parse_product_page(html):
         extras = e_cell.get_text(" ", strip=True) if e_cell else ""
         extras = "" if extras in ("-", "–") else extras
 
-        preorder = stock_cell.select_one(".icone-pre-order") is not None
+        preorder, preorder_date = preorder_info(stock_cell)
         m = re.search(r"(\d+)\s*unid", stock_cell.get_text(" ", strip=True))
         stock = int(m.group(1)) if m else None
         prices = [float(x.replace(".", "").replace(",", "."))
@@ -156,7 +177,7 @@ def parse_product_page(html):
         price = prices[-1] if prices else None
         original = prices[0] if len(prices) >= 2 and prices[0] > prices[-1] else None
 
-        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original))
+        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date))
 
     if not offers or all(o.stock is None and o.price is None for o in offers):
         return [], "unreadable"  # existem linhas, mas os números não vieram como texto
