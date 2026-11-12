@@ -10,6 +10,8 @@ class Item:
     url: str
     available: bool = True
     offers: list | None = None  # preenchido quando a busca já devolveu a página do produto
+    preorder: bool = False  # a lista da loja marcou o item com o "P" de pré-venda
+    preorder_date: str = ""  # previsão de envio, como a loja escreve (ex.: "13/11/2026")
 
 
 @dataclass
@@ -31,3 +33,4 @@ class Offer:
     price: float | None
     preorder: bool = False
     original_price: float | None = None  # preço riscado, quando a oferta está em promoção
+    preorder_date: str = ""  # previsão de envio da pré-venda (ex.: "13/11/2026")

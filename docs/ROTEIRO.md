@@ -12,6 +12,7 @@
 - Caixa "Apenas nome exato" (Scryfall para nomes em inglês e português).
 - Botão "Colar nome", Voltar e Avançar (resultados com mais de 30 min são refeitos), Ctrl+Backspace, janela centralizada e adaptada à tela.
 - Aviso na tela para itens com detalhes sob demanda; "Recolher/Expandir listas".
+- Pré-venda: as lojas marcam com um "P" verde, com a previsão de envio no `title` ("Data de previsão de envio do item: 13/11/2026"). O programa lê o "P" na lista de busca (item com alguma oferta em pré-venda) e em cada oferta da página do produto, e mostra em verde: "(P)" no nome e "pré-venda, envio DD/MM/AAAA" na coluna Situação (no painel, "(pré-venda)" na edição e a data em Extras) (nov/2026, fixtures `produto_pre_venda` e `busca_lista_pre_venda`, Anel Solar da Star Trek Commander na Overrun).
 
 ## Decisões tomadas
 
@@ -29,7 +30,7 @@
 1. **Versionamento no GitHub**: feito. Versões marcadas com tags: `v0.1.0` (primeira versão, arquivo único) e `v0.2.0` (refatoração em módulos, testes e correções). A cada versão, subir `__version__` em `buscador/__init__.py` e criar a tag no commit da `main`.
 2. **Refatoração**: concluída e juntada na `main` (PR #1, versão `0.2.0`).
    - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), número de versão em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
-   - Feito: testes automáticos com pytest (64 testes, sem requisições), com 5 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
+   - Feito: testes automáticos com pytest (64 testes na versão 0.2.0, sem requisições), com 5 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
    - Conferido na tela (nov/2026): detalhes automáticos de uma lista com poucos itens ("Thalia" na Overrun, 4 resultados, todos com ofertas e preço "a partir de").
    - Fixtures: há páginas da Overrun, Jackpot, Legacy TCG e Deckmaster (as 4 lojas que vêm no programa). Lojas adicionadas por cada pessoa não precisam de fixture.
    - Corrigido: toda página traz o resumo do carrinho vazio ("Nenhum item em seu carrinho"), e "nenhum item" está em `NONE_PHRASES`. Uma página sem itens e sem o filtro `txt_estoque` aparecia como "não encontrada" em vez de "não consegui ler". Agora `parse_results` ignora o bloco `.carrinho` ao montar o texto da página; a frase real de busca vazia ("Nenhum item encontrado com os filtros utilizados") continua valendo.

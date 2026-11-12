@@ -102,3 +102,16 @@ def test_sem_arquivo_de_lojas_usa_as_padrao(monkeypatch, tmp_path):
     lojas = armazenamento.load_stores()
     assert [s["name"] for s in lojas] == [s["name"] for s in armazenamento.DEFAULT_STORES]
     assert all(s["enabled"] for s in lojas)
+
+
+def test_texto_da_pre_venda():
+    from buscador.texto import preorder_text
+    assert preorder_text("13/11/2026") == "pré-venda, envio 13/11/2026"
+    assert preorder_text("") == "pré-venda"
+
+
+def test_resumo_da_oferta_em_pre_venda():
+    from buscador.modelos import Offer
+    from buscador.texto import offer_desc
+    o = Offer("Star Trek Commander", "Inglês", "NM", "", 8, 6.9, True, None, "13/11/2026")
+    assert offer_desc(o) == "Inglês    ·    NM    ·    8 un.    ·    pré-venda, envio 13/11/2026"
