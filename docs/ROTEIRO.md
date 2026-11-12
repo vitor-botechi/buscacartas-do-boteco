@@ -26,15 +26,15 @@
 
 ## Próximos passos (em ordem sugerida)
 
-1. **Versionamento no GitHub**: feito (repositório criado). Marcar versões com tags (`v0.1.0`...).
-2. **Refatoração** (ramificação `refatoracao`):
-   - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), versão `0.1.0` em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
-   - Feito: testes automáticos com pytest (62 testes, sem requisições), com 4 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
+1. **Versionamento no GitHub**: feito. Versões marcadas com tags: `v0.1.0` (primeira versão, arquivo único) e `v0.2.0` (refatoração em módulos, testes e correções). A cada versão, subir `__version__` em `buscador/__init__.py` e criar a tag no commit da `main`.
+2. **Refatoração**: concluída e juntada na `main` (PR #1, versão `0.2.0`).
+   - Feito (novembro de 2026): código dividido no pacote `buscador/` (config, armazenamento, modelos, texto, `lojas/ligamagic.py`, rede, automático, Scryfall, `interface/`), número de versão em `buscador/__init__.py`, ponto de entrada único (`buscador_mtg.py` ou `python -m buscador`). Código movido sem alterações de lógica; conferido comparando a leitura de páginas salvas e a tela de buscas reais com a versão anterior.
+   - Feito: testes automáticos com pytest (64 testes, sem requisições), com 5 páginas reais sanitizadas em `tests/fixtures/` (lista com vários resultados, produto devolvido direto pela busca, produto com promoção e linhas sem estoque, busca sem resultado) e o script `tests/sanitizar.py` para criar novas.
    - Conferido na tela (nov/2026): detalhes automáticos de uma lista com poucos itens ("Thalia" na Overrun, 4 resultados, todos com ofertas e preço "a partir de").
-   - Pendente: fixtures das outras lojas (hoje há páginas da Overrun, Jackpot e Legacy); juntar na `main`.
+   - Fixtures: há páginas da Overrun, Jackpot, Legacy TCG e Deckmaster (as 4 lojas que vêm no programa). Lojas adicionadas por cada pessoa não precisam de fixture.
    - Corrigido: toda página traz o resumo do carrinho vazio ("Nenhum item em seu carrinho"), e "nenhum item" está em `NONE_PHRASES`. Uma página sem itens e sem o filtro `txt_estoque` aparecia como "não encontrada" em vez de "não consegui ler". Agora `parse_results` ignora o bloco `.carrinho` ao montar o texto da página; a frase real de busca vazia ("Nenhum item encontrado com os filtros utilizados") continua valendo.
    - Corrigido: "Apenas nome exato" com nome ambíguo. "Thalia" corresponde a várias cartas; o Scryfall recusa a busca aproximada e o programa ficava com a primeira carta da busca em português ("Thalia e O Monstro Gitrog"), uma escolha quase ao acaso. Agora a busca em português só vale se o nome bater por inteiro; senão, fica só o nome digitado. A regra continua sendo o nome completo (não um trecho).
-   - Depois: suporte a lojas fora do padrão LigaMagic (um módulo por padrão em `buscador/lojas/`).
+   - Lojas fora do padrão LigaMagic: em nov/2026 não achamos nenhuma loja brasileira de cartas avulsas fora do padrão (testadas Cards of Paradise, Cardtutor, Bazar de Bagdá, Magic Domain e Epic Game/Epic One, todas LigaMagic). Fica em espera; a estrutura (um módulo por padrão em `buscador/lojas/`) já permite se aparecer uma.
 3. **Instalador para Windows**: gerar um executável/instalador (por exemplo com PyInstaller) e publicar nas versões do GitHub; escolher a **licença** antes de tornar o repositório público.
 
 ## Melhorias futuras anotadas
