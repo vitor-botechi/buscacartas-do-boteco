@@ -15,9 +15,10 @@ Feito para lojas que usam o padrão **LigaMagic**.
 
 ## Como instalar e rodar
 
-**Jeito fácil (Windows):** baixe o `BuscadorMTG-<versão>-windows.zip` na página de
-[versões (Releases)](https://github.com/vitor-botechi/buscador-mtg/releases), descompacte a pasta num lugar seu
-(por exemplo, Documentos) e abra o `BuscadorMTG.exe`. Não precisa instalar o Python.
+**Jeito fácil (Windows):** baixe o `BuscadorMTG.exe` na página de
+[versões (Releases)](https://github.com/vitor-botechi/buscador-mtg/releases) e abra. Não precisa instalar o Python
+nem descompactar nada; o arquivo pode ficar em qualquer pasta. Para atualizar, basta baixar o novo `.exe`:
+as lojas e preferências continuam.
 Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mais informações" e "Executar assim mesmo"
 (o programa não tem assinatura digital paga).
 
@@ -40,7 +41,7 @@ py -m pip install -r instalador/requirements.txt
 py instalador/gerar_exe.py
 ```
 
-O resultado fica em `dist/`: a pasta `BuscadorMTG/` e o `BuscadorMTG-<versão>-windows.zip`, que é o arquivo publicado
+O resultado é `dist/BuscadorMTG.exe`, um arquivo único, que é o publicado
 na página de versões do GitHub. Detalhes no início de `instalador/gerar_exe.py`.
 
 ## Organização do código
@@ -75,7 +76,7 @@ Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, 
 - Lê as páginas públicas de busca das lojas, uma requisição por loja e por busca.
 - As páginas de produto são lidas só sob demanda, ou automaticamente para poucos itens, com pausa entre as requisições e um teto por busca. Se alguma loja sinalizar bloqueio, a leitura automática é pausada.
 - Algumas lojas não entregam o preço e o estoque da lista de busca como texto; por isso eles aparecem ao abrir os detalhes do item.
-- Arquivos locais criados ao lado do programa: `lojas.json` (lojas e seleção), `config.json` (preferências) e a pasta `debug/` (páginas recebidas, para diagnóstico). Nenhum deles vai para o repositório.
+- Arquivos locais: `lojas.json` (lojas e seleção), `config.json` (preferências) e a pasta `debug/` (páginas recebidas, para diagnóstico). No `.exe`, ficam em `%APPDATA%\BuscadorMTG` (cole esse endereço na barra do Explorador de Arquivos para abrir); rodando pelo código-fonte, ficam na pasta do projeto. Nenhum deles vai para o repositório.
 
 ## Aviso
 
