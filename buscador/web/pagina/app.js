@@ -164,7 +164,7 @@ async function buscar(semHistorico = false) {
     tela.res[l.url] = { loja: { nome: l.nome, url: l.url }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
   }
   $("carta").value = r.carta;
-  $("recolher").textContent = "Recolher tudo";
+  textoRecolher(false);
   atualizarNavegacao();
   desenhar();
   avisar(`Buscando “${r.carta}” em ${plural(r.lojas.length, "loja", "lojas")}…`, false);
@@ -256,7 +256,7 @@ function textoStatus(r) {
 }
 
 function qualidade(q) {
-  const cls = ["NM", "SP", "MP", "HP", "D"].includes(q) ? q : "outro";
+  const cls = ["M", "NM", "SP", "MP", "HP", "D"].includes(q) ? q : "outro";
   return q ? `<span class="etq q-${cls}">${esc(q)}</span>` : "";
 }
 
@@ -264,7 +264,10 @@ const COLUNAS = '<colgroup><col class="c-edicao"><col class="c-idioma"><col clas
 
 function linhaOferta(o, itemUrl) {
   const extras = [];
-  if (o.pre) extras.push(`<span class="etq pre" title="Pré-venda">P ${o.pre_data ? "envio " + esc(o.pre_data) : "pré-venda"}</span>`);
+  if (o.pre) {
+    const dica = o.pre_data ? `Pré-venda: envio previsto para ${esc(o.pre_data)}` : "Pré-venda";
+    extras.push(`<span class="etq pre" title="${dica}">Pré-venda${o.pre_data ? " · " + esc(o.pre_data) : ""}</span>`);
+  }
   if (o.extras) {
     const foil = /foil/i.test(o.extras);
     extras.push(`<span class="etq ${foil ? "foil" : "q-outro"}">${esc(o.extras.replace(/\s*,\s*/g, ", "))}</span>`);
@@ -283,18 +286,17 @@ function linhaOferta(o, itemUrl) {
 
 function blocoItem(r, it) {
   const k = chave(r.loja.url, it.url);
-  const pre = it.pre ? `<span class="etq pre" title="Alguma oferta está em pré-venda">P pré-venda${it.pre_data ? " · envio " + esc(it.pre_data) : ""}</span>` : "";
   const abrir = `<button class="abrir" data-abrir="${esc(it.url)}" title="Abrir a página do produto na loja">Abrir ↗</button>`;
   if (it.ofertas) {
     const aberto = tela.abertos[k] ?? !tela.recolhido;
     if (!it.ofertas.length) {
-      return `<div class="item"><div class="item-cab"><span class="seta"></span><span class="item-nome">${esc(it.nome)}</span>${pre}
+      return `<div class="item"><div class="item-cab"><span class="seta"></span><span class="item-nome">${esc(it.nome)}</span>
         <span class="info">sem ofertas em estoque no momento</span>${abrir}</div></div>`;
     }
     const precos = it.ofertas.map((o) => o.preco).filter((p) => p != null);
     const menor = precos.length ? `a partir de <b>${dinheiro(Math.min(...precos))}</b>` : "";
     return `<div class="item${aberto ? "" : " fechado"}"><div class="item-cab" data-alternar="${esc(k)}">
-        <span class="seta">▾</span><span class="item-nome">${esc(it.nome)}</span>${pre}
+        <span class="seta">▾</span><span class="item-nome">${esc(it.nome)}</span>
         <span class="info">${plural(it.ofertas.length, "oferta", "ofertas")} · ${menor}</span>${abrir}</div>
       <div class="corpo"><table>${COLUNAS}${it.ofertas.map((o) => linhaOferta(o, it.url)).join("")}</table></div></div>`;
   }
@@ -307,7 +309,7 @@ function blocoItem(r, it) {
   }
   const msg = d && d.estado === "erro" ? `<div class="msg aviso">${esc(d.msg)}</div>` : "";
   return `<div class="item"><div class="item-cab" data-detalhes="${esc(k)}"><span class="seta">▸</span>
-    <span class="item-nome">${esc(it.nome)}</span>${pre}${direita}${abrir}</div>${msg}</div>`;
+    <span class="item-nome">${esc(it.nome)}</span>${direita}${abrir}</div>${msg}</div>`;
 }
 
 function blocoLoja(url) {
@@ -325,7 +327,8 @@ function blocoLoja(url) {
       : `<button class="mais" data-mais="${esc(url)}">▼ Mostrar mais ${itens.length - n}</button>`;
   }
   const temItens = mostrar.length > 0;
-  return `<div class="cartao${fechada || !temItens ? " fechado" : ""}">
+  const apagada = ["none", "soldout", "exato"].includes(cls);  // sem a carta: fica mais clara que as outras
+  return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}${cls === "found" ? " achada" : ""}">
     <div class="cab" data-loja="${esc(url)}"><span class="seta">${temItens ? "▾" : ""}</span>
       <span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
       <button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>
@@ -430,11 +433,15 @@ async function carregarDetalhes(k) {
   if (t === tela) desenhar();
 }
 
+function textoRecolher(recolhido) {
+  $("recolher").textContent = recolhido ? "▼ Expandir tudo" : "▲ Recolher tudo";
+}
+
 function alternarRecolher() {
   tela.recolhido = !tela.recolhido;
   tela.abertos = {};
   if (tela.recolhido) tela.expandidas = {};
-  $("recolher").textContent = tela.recolhido ? "Expandir tudo" : "Recolher tudo";
+  textoRecolher(tela.recolhido);
   desenhar();
 }
 
@@ -472,7 +479,7 @@ async function navegar(origem, destino) {
   tela.sid = -1;  // nenhum acontecimento novo pertence a esta tela
   tela.carregando = {}; tela.autoAtivo = 0;
   for (const k of Object.keys(tela.detalhes)) if (tela.detalhes[k].estado === "carregando") delete tela.detalhes[k];
-  $("recolher").textContent = tela.recolhido ? "Expandir tudo" : "Recolher tudo";
+  textoRecolher(tela.recolhido);
   atualizarNavegacao();
   desenhar();
   $("carta").focus();
