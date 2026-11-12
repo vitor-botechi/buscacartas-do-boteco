@@ -67,4 +67,5 @@ Use com moderação: o programa foi feito para consultas pontuais de um usuário
 
 ## Licença
 
-A definir.
+[MIT](LICENSE): qualquer pessoa pode usar, copiar, modificar e redistribuir o programa, desde que mantenha
+o aviso de autoria e da licença. O programa é oferecido sem garantia.
