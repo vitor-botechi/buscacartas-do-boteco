@@ -34,6 +34,10 @@ Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mai
 
    (também funciona `python -m buscador`)
 
+   Em **Linux ou macOS**, o programa deve rodar do mesmo jeito pelo código-fonte (use `python3`; no Linux pode ser
+   preciso instalar o Tkinter, por exemplo `sudo apt install python3-tk`). Ainda não foi testado nesses sistemas.
+   O `.exe` da página de versões é só para Windows.
+
 ## Gerar o programa para Windows
 
 ```
