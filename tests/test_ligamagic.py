@@ -63,6 +63,22 @@ def test_ofertas_trazem_idioma_qualidade_e_estoque(pagina):
     assert not primeira.preorder
 
 
+def test_deckmaster_produto_com_muitas_edicoes_sem_estoque(pagina):
+    nome, url, ofertas, status = product_from_page(pagina("busca_produto_deckmaster"), "https://pagina.pedida/")
+    assert status == "ok"
+    assert nome == "Anel Solar / Sol Ring"
+    assert url.startswith("https://www.deckmastergames.com.br/?view=ecom/item&refid=")
+    assert len(ofertas) == 6  # a página tem mais de 150 linhas, só 6 com estoque
+    assert [o.price for o in ofertas] == sorted(o.price for o in ofertas)  # do menor para o maior
+    assert (ofertas[0].edition, ofertas[0].quality, ofertas[0].price) == ("Commander 2014", "SP", 8.4)
+
+
+def test_deckmaster_extras_foil(pagina):
+    _, _, ofertas, _ = product_from_page(pagina("busca_produto_deckmaster"), "https://pagina.pedida/")
+    foils = [o for o in ofertas if o.extras == "Foil"]
+    assert [(o.edition, o.price) for o in foils] == [("Foundations (Promos)", 21.89)]
+
+
 # ---- página do produto com promoção e linhas sem estoque ----
 
 def test_promocao_usa_o_preco_novo_e_guarda_o_riscado(pagina):
