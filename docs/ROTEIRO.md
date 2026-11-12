@@ -34,7 +34,7 @@
    - Fixtures: há páginas da Overrun, Jackpot, Legacy TCG e Deckmaster (as 4 lojas que vêm no programa). Lojas adicionadas por cada pessoa não precisam de fixture.
    - Corrigido: toda página traz o resumo do carrinho vazio ("Nenhum item em seu carrinho"), e "nenhum item" está em `NONE_PHRASES`. Uma página sem itens e sem o filtro `txt_estoque` aparecia como "não encontrada" em vez de "não consegui ler". Agora `parse_results` ignora o bloco `.carrinho` ao montar o texto da página; a frase real de busca vazia ("Nenhum item encontrado com os filtros utilizados") continua valendo.
    - Corrigido: "Apenas nome exato" com nome ambíguo. "Thalia" corresponde a várias cartas; o Scryfall recusa a busca aproximada e o programa ficava com a primeira carta da busca em português ("Thalia e O Monstro Gitrog"), uma escolha quase ao acaso. Agora a busca em português só vale se o nome bater por inteiro; senão, fica só o nome digitado. A regra continua sendo o nome completo (não um trecho).
-   - Depois, se aparecer uma loja que valha a pena: suporte a lojas fora do padrão LigaMagic (um módulo por padrão em `buscador/lojas/`).
+   - Lojas fora do padrão LigaMagic: em nov/2026 não achamos nenhuma loja brasileira de cartas avulsas fora do padrão (testadas Cards of Paradise, Cardtutor, Bazar de Bagdá, Magic Domain e Epic Game/Epic One, todas LigaMagic). Fica em espera; a estrutura (um módulo por padrão em `buscador/lojas/`) já permite se aparecer uma.
 3. **Instalador para Windows**: gerar um executável/instalador (por exemplo com PyInstaller) e publicar nas versões do GitHub; escolher a **licença** antes de tornar o repositório público.
 
 ## Melhorias futuras anotadas
