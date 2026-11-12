@@ -15,6 +15,14 @@ Feito para lojas que usam o padrão **LigaMagic**.
 
 ## Como instalar e rodar
 
+**Jeito fácil (Windows):** baixe o `BuscadorMTG-<versão>-windows.zip` na página de
+[versões (Releases)](https://github.com/vitor-botechi/buscador-mtg/releases), descompacte a pasta num lugar seu
+(por exemplo, Documentos) e abra o `BuscadorMTG.exe`. Não precisa instalar o Python.
+Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mais informações" e "Executar assim mesmo"
+(o programa não tem assinatura digital paga).
+
+**Pelo código-fonte:**
+
 1. Instale o [Python 3.10 ou mais novo](https://www.python.org/downloads/) (marque *Add Python to PATH*).
 2. No terminal, dentro da pasta do projeto:
 
@@ -24,6 +32,16 @@ Feito para lojas que usam o padrão **LigaMagic**.
    ```
 
    (também funciona `python -m buscador`)
+
+## Gerar o programa para Windows
+
+```
+py -m pip install -r instalador/requirements.txt
+py instalador/gerar_exe.py
+```
+
+O resultado fica em `dist/`: a pasta `BuscadorMTG/` e o `BuscadorMTG-<versão>-windows.zip`, que é o arquivo publicado
+na página de versões do GitHub. Detalhes no início de `instalador/gerar_exe.py`.
 
 ## Organização do código
 
@@ -67,4 +85,5 @@ Use com moderação: o programa foi feito para consultas pontuais de um usuário
 
 ## Licença
 
-A definir.
+[MIT](LICENSE): qualquer pessoa pode usar, copiar, modificar e redistribuir o programa, desde que mantenha
+o aviso de autoria e da licença. O programa é oferecido sem garantia.
