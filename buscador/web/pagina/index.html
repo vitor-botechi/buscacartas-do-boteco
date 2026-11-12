@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Buscador de Cartas MTG</title>
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<aside>
+  <h3>Lojas</h3>
+  <div id="lojas"></div>
+  <div class="todas">
+    <button class="link" id="todas">Todas</button>
+    <button class="link" id="nenhuma">Nenhuma</button>
+  </div>
+  <button class="adicionar" id="adicionar">+ Adicionar loja</button>
+</aside>
+
+<main>
+  <div class="busca">
+    <label class="campo">
+      <span class="lupa" aria-hidden="true">🔍</span>
+      <input id="carta" placeholder="Nome da carta (em português ou inglês)" spellcheck="false" autocomplete="off">
+    </label>
+    <button class="btn" id="colar" title="Limpa o campo e cola o nome da carta que você copiou (Enter ou Ctrl+V)">📋 Colar nome</button>
+    <button class="btn primario" id="buscar">Buscar</button>
+    <button class="btn" id="navegador" title="Abre a busca nas lojas marcadas, no navegador">🌐</button>
+  </div>
+
+  <div class="opcoes">
+    <label class="caixa"><input type="checkbox" id="exato"> Apenas nome exato</label>
+    <button class="link" id="voltar" disabled>◀ Voltar</button>
+    <button class="link" id="avancar" disabled>Avançar ▶</button>
+    <label class="auto" title="Carrega sozinho as edições e preços quando a loja tem poucos itens (0 = desligado)">
+      Edições e preços automáticos até
+      <input type="number" id="auto" min="0" max="10" step="1"> itens
+    </label>
+    <button class="link direita" id="recolher">Recolher tudo</button>
+  </div>
+
+  <div class="progresso" id="progresso"><div id="barra"></div></div>
+  <div class="resultados" id="resultados"></div>
+
+  <footer>
+    <div id="resumo"></div>
+    <button class="btn pequeno" id="abrir-achadas" disabled>Abrir só as lojas com a carta</button>
+  </footer>
+</main>
+
+<div class="fundo-modal" id="modal" hidden>
+  <form class="modal" id="form-loja">
+    <h2>Adicionar loja</h2>
+    <label>Link da loja<input id="loja-link" placeholder="www.minhaloja.com.br" autocomplete="off"></label>
+    <label>Nome (opcional)<input id="loja-nome" autocomplete="off"></label>
+    <p class="erro" id="loja-erro"></p>
+    <div class="botoes">
+      <button type="button" class="btn" id="cancelar-loja">Cancelar</button>
+      <button type="submit" class="btn primario">Adicionar</button>
+    </div>
+  </form>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
