@@ -12,7 +12,7 @@
 - Caixa "Apenas nome exato" (Scryfall para nomes em inglês e português).
 - Botão "Colar nome", Voltar e Avançar (resultados com mais de 30 min são refeitos), Ctrl+Backspace, janela centralizada e adaptada à tela.
 - Aviso na tela para itens com detalhes sob demanda; "Recolher/Expandir listas".
-- Pré-venda: as lojas marcam com um "P" verde, com a previsão de envio no `title` ("Data de previsão de envio do item: 13/11/2026"). O programa lê o "P" na lista de busca (item com alguma oferta em pré-venda) e em cada oferta da página do produto, e mostra "pré-venda, envio previsto DD/MM/AAAA" em verde (nov/2026, fixtures `produto_pre_venda` e `busca_lista_pre_venda`, Anel Solar da Star Trek Commander na Overrun).
+- Pré-venda: as lojas marcam com um "P" verde, com a previsão de envio no `title` ("Data de previsão de envio do item: 13/11/2026"). O programa lê o "P" na lista de busca (item com alguma oferta em pré-venda) e em cada oferta da página do produto, e mostra em verde: "(P)" no nome e "pré-venda, envio DD/MM/AAAA" na coluna Situação (no painel, "(pré-venda)" na edição e a data em Extras) (nov/2026, fixtures `produto_pre_venda` e `busca_lista_pre_venda`, Anel Solar da Star Trek Commander na Overrun).
 
 ## Decisões tomadas
 

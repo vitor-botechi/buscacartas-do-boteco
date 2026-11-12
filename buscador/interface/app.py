@@ -552,9 +552,10 @@ class App:
                 promo = ""
                 if o.original_price and o.price:
                     promo = f"-{round((1 - o.price / o.original_price) * 100)}% (de {money(o.original_price)})"
-                pre = preorder_text(o.preorder_date) if o.preorder else ""
+                # o painel é estreito: "(pré-venda)" junto da edição e só a data em Extras
+                pre = (f"envio {o.preorder_date}" if o.preorder_date else "") if o.preorder else ""
                 extra = "   ·   ".join(x for x in (pre, o.extras, promo) if x)
-                name = o.edition + ("  (P)" if o.preorder else "")
+                name = o.edition + ("  (pré-venda)" if o.preorder else "")
                 tv.insert("", "end", text=name, tags=(("alt",) if idx % 2 else ()) + (("pre",) if o.preorder else ()),
                           values=(f"{o.language or '—'} · {o.quality or '—'}", f"{o.stock} un.", money(o.price), extra))
         elif status == "empty":
@@ -884,15 +885,16 @@ class App:
                 for k, o in enumerate(it.offers):
                     oid = f"{child}#{k}"
                     self.tree.insert(child, "end", iid=oid,
-                                     text="        " + o.edition + (f"  (P: {preorder_text(o.preorder_date)})" if o.preorder else ""),
+                                     text="        " + o.edition + ("  (P)" if o.preorder else ""),
                                      values=(offer_desc(o), money(o.price)), tags=tags(*(("pre",) if o.preorder else ())))
                     self.url_by_iid[oid] = it.url
                     self.item_by_iid[oid] = it
             else:
-                label = "⏳ carregando edições e preços…" if it.url in self.auto_loading else "em estoque    ·    detalhes sob demanda 🔎"
-                name = it.name
-                if it.preorder:  # a lista marca o item com "P" quando alguma oferta dele está em pré-venda
-                    name += f"  (P: tem oferta em {preorder_text(it.preorder_date)})"
+                # a lista marca o item com "P" quando alguma oferta dele está em pré-venda
+                pre = f"{preorder_text(it.preorder_date)}    ·    " if it.preorder else ""
+                label = ("⏳ carregando edições e preços…" if it.url in self.auto_loading
+                         else f"em estoque    ·    {pre}detalhes sob demanda 🔎")
+                name = it.name + ("  (P)" if it.preorder else "")
                 self.tree.insert(iid, "end", iid=child, text="    " + name, values=(label, "—"),
                                  tags=tags(*(("pre",) if it.preorder else ())))
             self.url_by_iid[child] = it.url

@@ -35,17 +35,19 @@ def money(v):
 
 
 def preorder_text(date):
-    """'pré-venda, envio previsto 13/11/2026' (ou só 'pré-venda' quando a loja não deu a data)."""
-    return f"pré-venda, envio previsto {date}" if date else "pré-venda"
+    """'pré-venda, envio 13/11/2026' (ou só 'pré-venda' quando a loja não deu a data)."""
+    return f"pré-venda, envio {date}" if date else "pré-venda"
 
 
 def offer_desc(o):
-    """Resumo de uma oferta: 'Português · NM · 2 un. · Foil · -10%'."""
+    """Resumo de uma oferta: 'Português · NM · 2 un. · Foil · -10% · pré-venda, envio 13/11/2026'."""
     parts = [o.language or "—", o.quality or "—", f"{o.stock} un."]
     if o.extras:
         parts.append(o.extras)
     if o.original_price and o.price:
         parts.append(f"-{round((1 - o.price / o.original_price) * 100)}%")
+    if o.preorder:
+        parts.append(preorder_text(o.preorder_date))
     return "    ·    ".join(parts)
 
 
