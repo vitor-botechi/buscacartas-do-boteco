@@ -295,7 +295,7 @@ class Ponte:
                 return {"erro": "Faça a busca de novo para carregar os preços."}
             if ctl.stop.is_set():
                 return {"erro": "Leitura pausada: uma loja limitou as requisições. Use “Ver edições e preços” "
-                                "nos itens ou espere um pouco e busque de novo."}
+                                "nos itens ou tente novamente em alguns segundos."}
             if loja_url in self._carregando:
                 return {"total": 0, "restantes": 0}
             pedidos = set(item_urls or [])

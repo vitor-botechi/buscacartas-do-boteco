@@ -299,7 +299,7 @@ const app = {
       tela.autoFeito += resto.length;
       resto.forEach((u) => delete tela.carregando[u]);
     } else if (tipo === "autostop") {
-      tela.aviso = `⚠ Detalhes automáticos pausados (${dados} limitou as requisições): use “Ver edições e preços” nos itens.`;
+      tela.aviso = `⚠ Detalhes automáticos pausados (${dados} limitou as requisições): use “Ver edições e preços” nos itens ou tente novamente em alguns segundos.`;
       tela.freado = true;  // some o "Carregar todos os preços" até a próxima busca
     }
     desenhar();
@@ -348,7 +348,7 @@ function textoStatus(r) {
       return ["exato", `Nenhum com o nome exato (${r.itens.length} parecidos escondidos)`];
     case "soldout": return ["soldout", "Cadastrada, mas indisponível"];
     case "none": return ["none", "Não encontrada"];
-    case "blocked": return ["blocked", "⚠ A loja bloqueou a leitura: abra no navegador"];
+    case "blocked": return ["blocked", "⚠ A loja bloqueou a leitura: abra no navegador ou tente novamente em alguns segundos"];
     case "unknown": return ["unknown", r.loja.padrao ? "⚠ Não consegui ler: abra no navegador"
       : "⚠ Não consegui ler os resultados: confira se o link da loja está certo ou abra no navegador"];
     default: return ["error", (r.loja.padrao ? "⚠ Não consegui acessar o site: abra no navegador"
@@ -580,7 +580,7 @@ async function carregarDetalhes(k) {
   } else {
     const msgs = {
       unreadable: "⚠ A loja não entregou estoque e preço como texto nesta página. Use “Abrir ↗”.",
-      blocked: "⚠ A loja bloqueou a leitura. Use “Abrir ↗”.",
+      blocked: "⚠ A loja bloqueou a leitura. Use “Abrir ↗” ou tente novamente em alguns segundos.",
     };
     t.detalhes[k] = { estado: "erro", msg: msgs[r.status] || `⚠ Falha de conexão: ${r.msg || ""}` };
   }
