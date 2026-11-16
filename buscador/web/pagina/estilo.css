@@ -123,13 +123,13 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
 .item-cab .abrir { margin-left: 6px; }
 .pedir { font-size: 12px; color: var(--cor-loja, var(--verde)); border: 1px solid color-mix(in srgb, var(--cor-loja, var(--verde)) 35%, #fff); border-radius: 6px; padding: 2px 8px; background: none; cursor: pointer; white-space: nowrap; }
 .pedir:hover { background: color-mix(in srgb, var(--cor-loja, var(--verde)) 9%, #fff); }
-.msg { padding: 8px 16px 10px 62px; color: var(--cinza); font-size: 13px; }
+.msg { padding: 8px 16px 10px 86px; color: var(--cinza); font-size: 13px; }
 .msg.aviso { color: var(--ambar); }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }  /* colunas iguais em todos os itens */
 col.c-edicao { width: 34%; } col.c-idioma { width: 15%; } col.c-qual { width: 7%; }
 col.c-estoque { width: 8%; } col.c-extras { width: 22%; } col.c-preco { width: 14%; }
 td { padding: 6px 10px; border-top: 1px solid #f3f4f6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-td.edicao { padding-left: 62px; white-space: normal; }
+td.edicao { padding-left: 86px; white-space: normal; }  /* recuada em relação ao nome do item */
 td.extras, td.pt, td.en { white-space: normal; }  /* "Português/Inglês" quebra a linha em vez de cortar */
 td.extras .etq { margin: 1px 0; }
 tr.oferta { cursor: pointer; }  /* um clique abre a página na loja */
@@ -146,9 +146,9 @@ tr.oferta:hover td { background: #f8fafb; }
 .pre { background: var(--verde-claro); color: var(--verde); }
 .promo { background: var(--rosa-claro); color: var(--rosa); }
 .obs { background: var(--azul-claro); color: var(--azul); cursor: help; }
-.pt { color: var(--azul); }
+.pt, .en { color: var(--texto); }  /* idioma em cor neutra: a bandeira já identifica */
 .bandeira { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; border-radius: 3px; }
-.en, .un { color: var(--cinza); }
+.un { color: var(--cinza); }
 .preco { text-align: right; font-weight: 600; padding-right: 18px; }
 .riscado { color: var(--cinza); font-weight: 400; text-decoration: line-through; font-size: 12px; margin-right: 6px; }
 .mais { display: block; width: 100%; border: 0; border-top: 1px solid var(--linha); background: none; padding: 8px; color: var(--azul); cursor: pointer; }

@@ -195,9 +195,13 @@ $("colar").addEventListener("keydown", (e) => {
 });
 // ao voltar para o programa (Alt+Tab), o foco vai para "Colar nome": Enter cola, Enter de novo busca
 // (a dica que explica isso só aparece ao passar o mouse no botão)
+// Mas se a pessoa voltou clicando dentro da janela (no campo de busca, por exemplo), o clique manda.
+let cliqueEm = 0;
+document.addEventListener("pointerdown", () => { cliqueEm = Date.now(); }, true);
 window.addEventListener("focus", () => {
   if (!$("modal").hidden || !$("pergunta").hidden) return;
-  setTimeout(() => $("colar").focus(), 30);
+  const voltou = Date.now();
+  setTimeout(() => { if (cliqueEm < voltou) $("colar").focus(); }, 150);
 });
 
 $("buscar").onclick = () => buscar();
