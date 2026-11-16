@@ -166,6 +166,11 @@ tr.oferta:hover td { background: #f8fafb; }
 footer { display: flex; align-items: flex-start; gap: 12px; padding-top: 8px; color: var(--cinza); font-size: 12.5px; }
 #resumo { flex: 1; }
 #resumo.alerta { color: var(--ambar); }
+#resumo > div + div { margin-top: 2px; }
+.linha-principal { color: var(--texto); font-weight: 500; }
+.linha-aviso { color: var(--ambar); background: var(--ambar-claro); border-radius: 6px; padding: 2px 8px; margin-left: -8px; width: fit-content; }
+.linha-dica { color: var(--cinza); }
+#resumo .contagem { min-width: 0; font-weight: 600; }
 
 /* ---- janela de adicionar loja ---- */
 .fundo-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .35); display: flex; align-items: center; justify-content: center; z-index: 10; }

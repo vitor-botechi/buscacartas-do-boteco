@@ -28,7 +28,7 @@ function novaTela() {
   return {
     sid: 0, carta: "", exato: false, nomes: null, nomesOk: true, tempo: Date.now(),
     ordem: [], res: {}, pendentes: 0, lojasTotal: 0, lojasFeitas: 0,
-    autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", liberaEm: 0,
+    autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", liberaEm: 0, bloqueio: "",
     abertos: {}, fechadas: {}, expandidas: {}, recolhido: false, detalhes: {},
   };
 }
@@ -172,6 +172,23 @@ function avisar(msg, alerta = true) {
   $("resumo").textContent = msg;
   $("resumo").classList.toggle("alerta", alerta);
 }
+// rodapé em linhas separadas: [{texto, tipo: "principal" | "aviso" | "dica", contagem?}]
+function avisarLinhas(linhas) {
+  const resumo = $("resumo");
+  resumo.classList.remove("alerta");
+  resumo.replaceChildren(...linhas.map((l) => {
+    const div = document.createElement("div");
+    div.className = `linha-${l.tipo}`;
+    div.append(l.texto);
+    if (l.contagem) {  // "… em <8> s": o número é atualizado pelo relógio da pausa
+      const n = document.createElement("span");
+      n.className = "contagem";
+      n.textContent = l.contagem;
+      div.append(n, " s.");
+    }
+    return div;
+  }));
+}
 async function colar() {
   let nome = await api().colar();
   if (nome === null) {  // fora do Windows: tenta pela área de transferência do navegador
@@ -296,7 +313,7 @@ const app = {
       tela.autoFeito += resto.length;
       resto.forEach((u) => delete tela.carregando[u]);
     } else if (tipo === "autostop") {
-      tela.aviso = `⚠ ${dados.loja} limitou as requisições e os detalhes automáticos pararam. Aguarde a contagem nos botões “Carregar todos os preços” e “Ver edições e preços” para tentar de novo.`;
+      tela.bloqueio = dados.loja;  // o rodapé mostra o aviso, com a contagem
       pausar(dados.pausa);
     }
     desenhar();
@@ -490,20 +507,32 @@ function resumir() {
   const rs = tela.ordem.map((u) => tela.res[u]).filter(Boolean);
   const ok = rs.filter(temCarta).length;
   const conferir = rs.filter((r) => ["blocked", "unknown", "error"].includes(r.status)).length;
-  let msg = `“${tela.carta}”: encontrada em ${ok} de ${plural(rs.length, "loja", "lojas")}`;
-  msg += tela.exato && tela.nomes ? " (nome exato)." : ".";
-  if (tela.autoAtivo > 0) {
-    msg += ` Carregando edições e preços (${tela.autoFeito}/${tela.autoTotal})…`;
-  } else if (rs.some((r) => temCarta(r) && visiveis(r).some((i) => !i.ofertas))) {
-    msg += " Onde há muitos resultados, edições e preços não carregam sozinhos: clique em “Ver edições e preços” no item ou em “Carregar todos os preços” na loja.";
-  }
-  if (tela.aviso) msg += " " + tela.aviso;
-  if (tela.exato && tela.nomes && !tela.nomesOk) msg += " Scryfall indisponível: filtrando só pelo texto digitado.";
-  if (conferir) msg += ` ${plural(conferir, "loja não pôde ser lida", "lojas não puderam ser lidas")}: confira no navegador.`;
+  const linhas = [];
+  // 1) o resultado
+  let principal = `“${tela.carta}”: encontrada em ${ok} de ${plural(rs.length, "loja", "lojas")}`;
+  principal += tela.exato && tela.nomes ? " (nome exato)." : ".";
   const seg = (Date.now() - tela.tempo) / 1000;
-  if (seg >= 120) msg += ` 🕒 Resultados ${idade(seg)}.`;
-  if (ok) msg += " Clique numa edição para abrir a página na loja. Do menor para o maior preço.";
-  avisar(msg, Boolean(tela.aviso || conferir));
+  if (seg >= 120) principal += ` 🕒 Resultados ${idade(seg)}.`;
+  linhas.push({ texto: principal, tipo: "principal" });
+  // 2) avisos, cada um na sua linha
+  const espera = segundosDePausa();
+  if (espera) {
+    linhas.push({ texto: `⚠ ${tela.bloqueio || "Uma loja"} limitou as requisições e a leitura parou. Tente de novo em `,
+      tipo: "aviso", contagem: espera });
+  } else if (tela.bloqueio) {
+    linhas.push({ texto: `⚠ ${tela.bloqueio} limitou as requisições e a leitura parou. Já pode tentar de novo: “Carregar todos os preços” na loja ou “Ver edições e preços” no item.`, tipo: "aviso" });
+  }
+  if (tela.aviso) linhas.push({ texto: tela.aviso, tipo: "aviso" });
+  if (conferir) linhas.push({ texto: `⚠ ${plural(conferir, "loja não pôde ser lida", "lojas não puderam ser lidas")}: confira no navegador.`, tipo: "aviso" });
+  if (tela.exato && tela.nomes && !tela.nomesOk) linhas.push({ texto: "⚠ Scryfall indisponível: filtrando só pelo texto digitado.", tipo: "aviso" });
+  // 3) como usar
+  if (tela.autoAtivo > 0) {
+    linhas.push({ texto: `Carregando edições e preços (${tela.autoFeito}/${tela.autoTotal})…`, tipo: "dica" });
+  } else if (rs.some((r) => temCarta(r) && visiveis(r).some((i) => !i.ofertas))) {
+    linhas.push({ texto: "Onde há muitos resultados, os preços não carregam sozinhos: use “Ver edições e preços” no item ou “Carregar todos os preços” na loja.", tipo: "dica" });
+  }
+  if (ok) linhas.push({ texto: "Clique numa edição para abrir a página na loja. Edições do menor para o maior preço.", tipo: "dica" });
+  avisarLinhas(linhas);
   $("abrir-achadas").disabled = !(ok || conferir);
 }
 
@@ -575,7 +604,7 @@ async function carregarLoja(lojaUrl) {
   if (resp.erro || !resp.total) urls.forEach((u) => delete t.carregando[u]);
   if (resp.espera) { pausar(resp.espera); desenhar(); return; }
   if (resp.erro) { avisar(resp.erro); desenhar(); return; }
-  if (resp.total) t.aviso = "";  // tentando de novo: tira o aviso do bloqueio
+  if (resp.total) { t.aviso = ""; t.bloqueio = ""; }  // tentando de novo: tira o aviso do bloqueio
   if (resp.restantes) {
     t.aviso = `Carregando ${resp.total} itens de ${r.loja.nome} (o máximo por vez); os outros ${resp.restantes} ficam para um novo clique.`;
     const resto = new Set(urls.slice(resp.total));
@@ -595,6 +624,7 @@ async function carregarDetalhes(k) {
   const r = await api().detalhes(lojaUrl, itemUrl);
   const it = t.res[lojaUrl] && t.res[lojaUrl].itens.find((i) => i.url === itemUrl);
   if (r.espera || r.pausa) pausar(r.espera || r.pausa);  // começa (ou segue) a contagem em todos os botões
+  if (r.pausa && t.res[lojaUrl]) t.bloqueio = t.res[lojaUrl].loja.nome;
   if (r.status === "espera") {
     delete t.detalhes[k];
   } else if (r.status === "ok" || r.status === "empty") {
