@@ -101,19 +101,21 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
 .cartao.apagada > .cab { background: color-mix(in srgb, var(--cor-loja2) 3%, #fff); }
 .cartao.apagada > .cab::before { opacity: .35; }
 .cartao.apagada > .cab .logo { opacity: .45; }
-.cartao.apagada > .cab .nome, .cartao.apagada > .cab .status { opacity: .5; }
+.cartao.apagada > .cab .nome { opacity: .5; }
+.cartao.apagada > .cab .status { opacity: .85; }
 .seta { width: 14px; color: var(--cinza); transition: transform .15s; flex-shrink: 0; text-align: center; }
 .fechado > .cab .seta, .fechado > .item-cab .seta { transform: rotate(-90deg); }
 .fechado > .corpo { display: none; }
 .status { font-size: 12px; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
 .status { border: 1px solid transparent; }
 .st-found { background: var(--verde-claro); color: var(--verde); border-color: color-mix(in srgb, var(--verde) 45%, #fff); }
-.st-none, .st-exato { background: #f1f2f4; color: var(--cinza); }
+.st-exato { background: #f1f2f4; color: var(--cinza); }
+.st-none { background: var(--vermelho-claro); color: var(--vermelho); border-color: #f1c4c4; }
 .st-soldout { background: var(--ambar-claro); color: var(--ambar); }
 .st-blocked, .st-unknown, .st-error { background: var(--ambar-claro); color: var(--ambar); }
 .st-buscando { background: var(--azul-claro); color: var(--azul); }
-.abrir { margin-left: auto; font-size: 12px; color: var(--cinza); text-decoration: none; padding: 2px 6px; border-radius: 6px; white-space: nowrap; border: 0; background: none; cursor: pointer; }
-.abrir:hover { color: var(--verde); background: var(--verde-claro); }
+.abrir { margin-left: auto; font-size: 12px; color: var(--azul); text-decoration: none; padding: 2px 6px; border-radius: 6px; white-space: nowrap; border: 0; background: none; cursor: pointer; }
+.abrir:hover { background: var(--azul-claro); text-decoration: underline; }  /* azul: link que abre o navegador */
 .item + .item { border-top: 1px solid var(--linha); }
 .item-cab { display: flex; align-items: center; gap: 10px; padding: 9px 16px 9px 38px; cursor: pointer; user-select: none; }
 .item-cab:hover { background: #fafbfc; }
@@ -123,6 +125,8 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
 .item-cab .abrir { margin-left: 6px; }
 .pedir { font-size: 12px; color: var(--cor-loja, var(--verde)); border: 1px solid color-mix(in srgb, var(--cor-loja, var(--verde)) 35%, #fff); border-radius: 6px; padding: 2px 8px; background: none; cursor: pointer; white-space: nowrap; }
 .cab .pedir { margin-left: auto; background: #fff; }
+.cab .pedir:disabled { color: var(--cinza); border-color: #d6dbe1; cursor: default; background: #f6f7f9; }
+.contagem { font-variant-numeric: tabular-nums; display: inline-block; min-width: 2ch; text-align: right; }
 .cab .pedir + .abrir, .lote-info + .abrir { margin-left: 8px; }
 .lote-info { margin-left: auto; font-size: 12px; color: var(--cor-loja); white-space: nowrap; }
 .pedir:hover { background: color-mix(in srgb, var(--cor-loja, var(--verde)) 9%, #fff); }

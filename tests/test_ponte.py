@@ -244,12 +244,31 @@ def test_carregar_todos_os_precos_da_loja(ponte, lojas_falsas):
     assert ponte.carregar_loja(loja, itens) == {"total": 0, "restantes": 0}  # já carregados
 
 
-def test_carregar_precos_respeita_o_freio(ponte, lojas_falsas):
+def test_carregar_precos_respeita_a_pausa_depois_de_um_bloqueio(ponte, lojas_falsas, monkeypatch):
+    ponte.buscar("Sol Ring", False, 0)
+    janela = ponte._janela
+    janela.espera(lambda ev: any(e[0] == "result" for e in ev))
+    loja = "https://www.overrun.com.br"
+    itens = [it.url for it in ponte._resultados[loja].items]
+    # uma loja limitou as requisições agora há pouco
+    ponte._ctl.stop.set()
+    ponte._bloqueio_em = time.monotonic()
+    resp = ponte.carregar_loja(loja, itens)
+    assert "Tente novamente em" in resp["erro"] and 1 <= resp["espera"] <= ponte_mod.BLOCK_COOLDOWN
+    assert lojas_falsas == []
+    # passada a pausa, o botão volta a funcionar
+    ponte._bloqueio_em = time.monotonic() - ponte_mod.BLOCK_COOLDOWN - 1
+    assert ponte.carregar_loja(loja, itens)["total"] == 2
+    janela.espera(lambda ev: any(e[0] == "autoend" for e in ev))
+    assert sorted(lojas_falsas) == sorted(itens)
+    assert "Faça a busca" in ponte.carregar_loja("https://loja-que-nao-buscou", [])["erro"]
+
+
+def test_carregar_precos_depois_de_cancelar(ponte, lojas_falsas):
     ponte.buscar("Sol Ring", False, 0)
     ponte._janela.espera(lambda ev: any(e[0] == "result" for e in ev))
-    ponte._ctl.stop.set()  # uma loja bloqueou
     loja = "https://www.overrun.com.br"
-    resp = ponte.carregar_loja(loja, [it.url for it in ponte._resultados[loja].items])
-    assert "pausada" in resp["erro"]
+    itens = [it.url for it in ponte._resultados[loja].items]
+    ponte.cancelar()
+    assert "Faça a busca" in ponte.carregar_loja(loja, itens)["erro"]
     assert lojas_falsas == []
-    assert "Faça a busca" in ponte.carregar_loja("https://loja-que-nao-buscou", [])["erro"]

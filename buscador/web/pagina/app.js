@@ -28,7 +28,7 @@ function novaTela() {
   return {
     sid: 0, carta: "", exato: false, nomes: null, nomesOk: true, tempo: Date.now(),
     ordem: [], res: {}, pendentes: 0, lojasTotal: 0, lojasFeitas: 0,
-    autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", freado: false,
+    autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", liberaEm: 0,
     abertos: {}, fechadas: {}, expandidas: {}, recolhido: false, detalhes: {},
   };
 }
@@ -194,14 +194,11 @@ $("colar").addEventListener("keydown", (e) => {
   }
 });
 // ao voltar para o programa (Alt+Tab), o foco vai para "Colar nome": Enter cola, Enter de novo busca
-// (a dica que explica isso só aparece ao passar o mouse no botão)
-// Mas se a pessoa voltou clicando dentro da janela (no campo de busca, por exemplo), o clique manda.
-let cliqueEm = 0;
-document.addEventListener("pointerdown", () => { cliqueEm = Date.now(); }, true);
-window.addEventListener("focus", () => {
+// (a dica que explica isso só aparece ao passar o mouse no botão). O foco muda já na SAÍDA da janela:
+// assim, ao voltar, ele aparece direto no botão, sem passar pelo campo. Clicar no campo ao voltar foca o campo.
+window.addEventListener("blur", () => {
   if (!$("modal").hidden || !$("pergunta").hidden) return;
-  const voltou = Date.now();
-  setTimeout(() => { if (cliqueEm < voltou) $("colar").focus(); }, 150);
+  if (document.activeElement !== $("colar")) $("colar").focus({ preventScroll: true });
 });
 
 $("buscar").onclick = () => buscar();
@@ -299,8 +296,8 @@ const app = {
       tela.autoFeito += resto.length;
       resto.forEach((u) => delete tela.carregando[u]);
     } else if (tipo === "autostop") {
-      tela.aviso = `⚠ Detalhes automáticos pausados (${dados} limitou as requisições): use “Ver edições e preços” nos itens ou tente novamente em alguns segundos.`;
-      tela.freado = true;  // some o "Carregar todos os preços" até a próxima busca
+      tela.aviso = `⚠ ${dados.loja} limitou as requisições e os detalhes automáticos pararam. Aguarde a contagem no botão “Carregar todos os preços” para tentar de novo, ou use “Ver edições e preços” num item.`;
+      pausar(dados.pausa);
     }
     desenhar();
   },
@@ -438,14 +435,17 @@ function blocoLoja(url) {
   const temItens = mostrar.length > 0;
   // "Carregar todos os preços": itens visíveis ainda sem edições (o preço da lista não vem em texto)
   let lote = "";
-  if (r.status === "found" && !tela.freado) {
+  if (r.status === "found") {
     const semPreco = itens.filter((it) => !it.ofertas);
     const carregandoAqui = itens.some((it) => tela.carregando[it.url]);
     if (carregandoAqui) {
       const falta = itens.filter((it) => tela.carregando[it.url]).length;
       lote = `<span class="lote-info"><span class="girando"></span>carregando preços (faltam ${falta})</span>`;
     } else if (semPreco.length >= 2) {
-      lote = `<button class="pedir" data-lote="${esc(url)}" title="Abre a página de cada item desta loja, um por vez e com calma, para mostrar edições e o menor preço">Carregar todos os preços (${semPreco.length})</button>`;
+      const espera = segundosDePausa();
+      lote = espera
+        ? `<button class="pedir" data-lote="${esc(url)}" disabled title="Uma loja limitou as requisições: espere um pouco para tentar de novo">Carregar todos os preços · aguarde <span class="contagem">${espera}</span> s</button>`
+        : `<button class="pedir" data-lote="${esc(url)}" title="Abre a página de cada item desta loja, um por vez e com calma, para mostrar edições e o menor preço">Carregar todos os preços (${semPreco.length})</button>`;
     }
   }
   const apagada = ["none", "soldout", "exato"].includes(cls);  // sem a carta: fica mais clara que as outras
@@ -542,10 +542,25 @@ $("resultados").addEventListener("click", (e) => {
   }
 });
 
+// pausa depois de uma loja limitar as requisições: o botão "Carregar todos os preços" mostra a contagem
+let relogioPausa = null;
+function segundosDePausa() {
+  return Math.max(0, Math.ceil((tela.liberaEm - Date.now()) / 1000));
+}
+function pausar(segundos) {
+  tela.liberaEm = Date.now() + segundos * 1000;
+  clearInterval(relogioPausa);
+  relogioPausa = setInterval(() => {
+    const s = segundosDePausa();
+    if (!s) { clearInterval(relogioPausa); relogioPausa = null; desenhar(); return; }
+    document.querySelectorAll(".contagem").forEach((el) => { el.textContent = s; });  // só o número muda
+  }, 250);
+}
+
 async function carregarLoja(lojaUrl) {
   const t = tela;
   const r = t.res[lojaUrl];
-  if (!r) return;
+  if (!r || segundosDePausa()) return;
   const urls = visiveis(r).filter((it) => !it.ofertas && !t.carregando[it.url]).map((it) => it.url);
   urls.forEach((u) => {
     t.carregando[u] = true;  // mostra o "carregando" já, antes de o Python responder
@@ -555,7 +570,9 @@ async function carregarLoja(lojaUrl) {
   const resp = await api().carregar_loja(lojaUrl, urls);
   if (t !== tela) return;
   if (resp.erro || !resp.total) urls.forEach((u) => delete t.carregando[u]);
+  if (resp.espera) { pausar(resp.espera); desenhar(); return; }
   if (resp.erro) { avisar(resp.erro); desenhar(); return; }
+  if (resp.total) t.aviso = "";  // tentando de novo: tira o aviso do bloqueio
   if (resp.restantes) {
     t.aviso = `Carregando ${resp.total} itens de ${r.loja.nome} (o máximo por vez); os outros ${resp.restantes} ficam para um novo clique.`;
     const resto = new Set(urls.slice(resp.total));

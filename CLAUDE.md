@@ -24,7 +24,7 @@ Python 3.10 ou mais novo. Dependências: `requests`, `beautifulsoup4` (o app abr
 `buscador_mtg.py` é só o ponto de entrada. A versão fica em `buscador/__init__.py` (`__version__`).
 As importações dentro do pacote são absolutas (`from buscador.config import ...`).
 
-1. **`config.py`**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`), constantes de limites (`AUTO_*`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`) e `app_dir()` (pasta do programa, que é a pasta *acima* de `buscador/`, ou a do `.exe`).
+1. **`config.py`**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`), constantes de limites (`AUTO_*`, `BLOCK_COOLDOWN`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`) e `app_dir()` (pasta do programa, que é a pasta *acima* de `buscador/`, ou a do `.exe`).
 2. **`armazenamento.py`**: `lojas.json` (lojas, seleção e, se a pessoa arrastou, a ordem: `manual_order`) e `config.json` (preferências), na pasta de `app_dir()` (projeto pelo código-fonte; `%APPDATA%\BuscadorMTG` no `.exe`); `normalize_base`, `host_key`.
 3. **`modelos.py`**: `Item`, `StoreResult`, `Offer`.
 4. **`texto.py`**: `norm`, `clean_card_name`, `strip_suffix`, `money`, `age_text`, `offer_desc`.
@@ -50,7 +50,7 @@ Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller,
 ## Regras de ética e de conduta com as lojas (importante)
 
 - **Não contornar a proteção de preços das lojas.** Na lista de busca, as lojas desenham preço e quantidade com imagens (sprites) e classes embaralhadas, para impedir leitura automática. Decidimos **não** usar OCR nem outro desvio. O preço vem da página do produto, onde está em texto, e só quando a pessoa pede ou para poucos itens.
-- **Ritmo de requisições conservador** (vale também para o botão "Carregar todos os preços" da loja, `Ponte.carregar_loja`, que só roda quando a pessoa pede): uma página por vez em cada loja, com pausa de ~0,8 a 1,2 s, teto de `AUTO_TOTAL_CAP` páginas por busca e cache de `CACHE_TTL`. Qualquer sinal de bloqueio (403/429/503, captcha) pausa todos os detalhes automáticos. Não aumentar esses limites sem testar com cuidado e sem registrar no roteiro.
+- **Ritmo de requisições conservador** (vale também para o botão "Carregar todos os preços" da loja, `Ponte.carregar_loja`, que só roda quando a pessoa pede): uma página por vez em cada loja, com pausa de ~0,8 a 1,2 s, teto de `AUTO_TOTAL_CAP` páginas por busca e cache de `CACHE_TTL`. Qualquer sinal de bloqueio (403/429/503, captcha) pausa todos os detalhes automáticos; o botão "Carregar todos os preços" só volta depois de `BLOCK_COOLDOWN` segundos, e só se a pessoa clicar. Não aumentar esses limites sem testar com cuidado e sem registrar no roteiro.
 - Nunca fazer varreduras em massa. Uma futura "busca de lista inteira" precisa de um desenho próprio, com ritmo mais lento.
 - **Não automatizar o botão Comprar.** Abrir a página do produto para a pessoa adicionar ao carrinho já basta.
 - **Não versionar dados pessoais**: nada de páginas salvas do navegador (`view-source_*.html`, que trazem nome e carrinho da conta), nem a pasta `debug/`, `lojas.json` ou `config.json`. Fixtures de teste devem ser **sanitizadas** (sem nome, carrinho, e-mail ou identificadores de sessão).

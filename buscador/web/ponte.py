@@ -13,6 +13,7 @@ Regras (as mesmas da interface Tkinter):
 import json
 import sys
 import threading
+import time
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 
@@ -29,6 +30,7 @@ from buscador.armazenamento import (
 from buscador.automatico import AutoCtl, auto_details, load_items
 from buscador.config import (
     AUTO_TOTAL_CAP,
+    BLOCK_COOLDOWN,
     DEFAULT_AUTO_LIMIT,
     HISTORY_MAX,
     MAX_AUTO_LIMIT,
@@ -86,6 +88,8 @@ class Ponte:
         self._nomes = None  # nomes aceitos pelo "Apenas nome exato" na busca atual
         self._postar = None  # como a busca atual manda as edições carregadas para a página
         self._carregando = set()  # lojas com "Carregar todos os preços" em andamento
+        self._sid_busca = 0  # busca a que _resultados pertence
+        self._bloqueio_em = None  # quando uma loja limitou as requisições nesta busca (time.monotonic)
 
     # ---- envio para a página ---------------------------------------------------
     def _enviar(self, tipo, sid, dados):
@@ -108,6 +112,7 @@ class Ponte:
             "historico_max": HISTORY_MAX,
             "velho_depois": STALE_AFTER,
             "tem_bibliotecas": HAS_SCRAPING,
+            "pausa_bloqueio": BLOCK_COOLDOWN,
         }
 
     @staticmethod
@@ -226,6 +231,8 @@ class Ponte:
             self._nomes = None
             self._ctl = ctl = AutoCtl(AUTO_TOTAL_CAP)
             self._carregando = set()
+            self._sid_busca = sid
+            self._bloqueio_em = None
 
         caixa_nomes = {"names": None}
         nomes_prontos = threading.Event()
@@ -240,6 +247,11 @@ class Ponte:
                             if it.url == item_url:
                                 it.offers = ofs
                 dados = (loja_url, item_url, serializar.ofertas(ofs))
+            elif tipo == "autostop":
+                with self._lock:
+                    if sid == self._sid:
+                        self._bloqueio_em = time.monotonic()  # conta a pausa a partir daqui
+                dados = {"loja": dados, "pausa": BLOCK_COOLDOWN}
             self._enviar(tipo, sid, dados)
 
         with self._lock:
@@ -289,13 +301,20 @@ class Ponte:
         Devolve {total, restantes} ou {erro}.
         """
         with self._lock:
-            res = self._resultados.get(loja_url)
+            res = self._resultados.get(loja_url) if self._sid == self._sid_busca else None
             ctl, postar = self._ctl, self._postar
             if res is None or ctl is None or postar is None:
                 return {"erro": "Faça a busca de novo para carregar os preços."}
             if ctl.stop.is_set():
-                return {"erro": "Leitura pausada: uma loja limitou as requisições. Use “Ver edições e preços” "
-                                "nos itens ou tente novamente em alguns segundos."}
+                # parado por bloqueio: depois da pausa, a pessoa pode tentar de novo (com um orçamento novo)
+                if self._bloqueio_em is None:
+                    return {"erro": "Faça a busca de novo para carregar os preços."}
+                falta = BLOCK_COOLDOWN - (time.monotonic() - self._bloqueio_em)
+                if falta > 0:
+                    return {"erro": f"Uma loja limitou as requisições. Tente novamente em {int(falta) + 1} s.",
+                            "espera": int(falta) + 1}
+                self._ctl = ctl = AutoCtl(AUTO_TOTAL_CAP)  # nova busca ou cancelar param este também
+                self._bloqueio_em = None
             if loja_url in self._carregando:
                 return {"total": 0, "restantes": 0}
             pedidos = set(item_urls or [])
