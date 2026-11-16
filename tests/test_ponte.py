@@ -124,8 +124,7 @@ def test_buscar_manda_o_resultado_e_os_detalhes_automaticos(ponte, lojas_falsas)
     assert all(e[1] == r["sid"] for e in janela.eventos)
     _, _, res = next(e for e in janela.eventos if e[0] == "result")
     assert res["status"] == "found"
-    assert [(i["nome"], i["pre"], i["pre_data"]) for i in res["itens"]] == [
-        ("Anel Solar", True, "13/11/2026"), ("Sol Ring (Human)", False, "")]
+    assert [i["nome"] for i in res["itens"]] == ["Anel Solar", "Sol Ring (Human)"]  # pré-venda: só na edição
     assert janela.tipos() == ["result", "autostart", "offers", "autostep", "offers", "autostep", "autoend"]
     _, _, (loja, item, ofertas) = next(e for e in janela.eventos if e[0] == "offers")
     assert loja == "https://www.overrun.com.br"

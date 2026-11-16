@@ -84,7 +84,7 @@ Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, 
 - Lê as páginas públicas de busca das lojas, uma requisição por loja e por busca.
 - As páginas de produto são lidas só sob demanda, ou automaticamente para poucos itens, com pausa entre as requisições e um teto por busca. Se alguma loja sinalizar bloqueio, a leitura automática é pausada.
 - Algumas lojas não entregam o preço e o estoque da lista de busca como texto; por isso eles aparecem ao abrir os detalhes do item.
-- Arquivos locais: `lojas.json` (lojas e seleção), `config.json` (preferências) e a pasta `debug/` (páginas recebidas, para diagnóstico). No `.exe`, ficam em `%APPDATA%\BuscadorMTG` (cole esse endereço na barra do Explorador de Arquivos para abrir); rodando pelo código-fonte, ficam na pasta do projeto. Nenhum deles vai para o repositório.
+- Arquivos locais: `lojas.json` (lojas, seleção e ordem), `config.json` (preferências) e a pasta `debug/` (páginas recebidas, para diagnóstico). No `.exe`, ficam em `%APPDATA%\BuscadorMTG` (cole esse endereço na barra do Explorador de Arquivos para abrir); rodando pelo código-fonte, ficam na pasta do projeto. Nenhum deles vai para o repositório.
 
 ## Aviso
 

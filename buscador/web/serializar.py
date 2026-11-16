@@ -21,8 +21,7 @@ def ofertas(lista):
 def item(it, nomes=None):
     """nomes: nomes aceitos pelo "Apenas nome exato" (None = ainda não se sabe)."""
     return {
-        "nome": it.name, "url": it.url, "disponivel": it.available,
-        "pre": it.preorder, "pre_data": it.preorder_date,
+        "nome": it.name, "url": it.url,
         "ofertas": ofertas(it.offers),
         "exato": None if nomes is None else matches_exact(it.name, nomes),
     }
