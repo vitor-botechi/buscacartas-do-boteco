@@ -28,7 +28,7 @@ function novaTela() {
   return {
     sid: 0, carta: "", exato: false, nomes: null, nomesOk: true, tempo: Date.now(),
     ordem: [], res: {}, pendentes: 0, lojasTotal: 0, lojasFeitas: 0,
-    autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "",
+    autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", freado: false,
     abertos: {}, fechadas: {}, expandidas: {}, recolhido: false, detalhes: {},
   };
 }
@@ -300,6 +300,7 @@ const app = {
       resto.forEach((u) => delete tela.carregando[u]);
     } else if (tipo === "autostop") {
       tela.aviso = `⚠ Detalhes automáticos pausados (${dados} limitou as requisições): use “Ver edições e preços” nos itens.`;
+      tela.freado = true;  // some o "Carregar todos os preços" até a próxima busca
     }
     desenhar();
   },
@@ -435,6 +436,18 @@ function blocoLoja(url) {
       : `<button class="mais" data-mais="${esc(url)}">▼ Mostrar mais ${itens.length - n}</button>`;
   }
   const temItens = mostrar.length > 0;
+  // "Carregar todos os preços": itens visíveis ainda sem edições (o preço da lista não vem em texto)
+  let lote = "";
+  if (r.status === "found" && !tela.freado) {
+    const semPreco = itens.filter((it) => !it.ofertas);
+    const carregandoAqui = itens.some((it) => tela.carregando[it.url]);
+    if (carregandoAqui) {
+      const falta = itens.filter((it) => tela.carregando[it.url]).length;
+      lote = `<span class="lote-info"><span class="girando"></span>carregando preços (faltam ${falta})</span>`;
+    } else if (semPreco.length >= 2) {
+      lote = `<button class="pedir" data-lote="${esc(url)}" title="Abre a página de cada item desta loja, um por vez e com calma, para mostrar edições e o menor preço">Carregar todos os preços (${semPreco.length})</button>`;
+    }
+  }
   const apagada = ["none", "soldout", "exato"].includes(cls);  // sem a carta: fica mais clara que as outras
   const corOk = (c) => /^#[0-9a-f]{6}$/i.test(c || "");
   const cor = corOk(r.loja.cor) ? r.loja.cor : "#6b7280";  // cor da loja: faixa, fundo e botões
@@ -444,7 +457,7 @@ function blocoLoja(url) {
   return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}" style="--cor-loja:${cor};--cor-loja2:${cor2}">
     <div class="cab" data-loja="${esc(url)}"><span class="seta">${temItens ? "▾" : ""}</span>
       ${logo}<span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
-      <button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>
+      ${lote}<button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>
     <div class="corpo">${corpo}</div></div>`;
 }
 
@@ -479,7 +492,7 @@ function resumir() {
   if (tela.autoAtivo > 0) {
     msg += ` Carregando edições e preços (${tela.autoFeito}/${tela.autoTotal})…`;
   } else if (rs.some((r) => temCarta(r) && visiveis(r).some((i) => !i.ofertas))) {
-    msg += " Onde há muitos resultados, edições e preços não carregam sozinhos: clique em “Ver edições e preços”.";
+    msg += " Onde há muitos resultados, edições e preços não carregam sozinhos: clique em “Ver edições e preços” no item ou em “Carregar todos os preços” na loja.";
   }
   if (tela.aviso) msg += " " + tela.aviso;
   if (tela.exato && tela.nomes && !tela.nomesOk) msg += " Scryfall indisponível: filtrando só pelo texto digitado.";
@@ -510,6 +523,8 @@ $("resultados").addEventListener("click", (e) => {
     desenhar();
     return;
   }
+  const lote = e.target.closest("[data-lote]");
+  if (lote) { carregarLoja(lote.dataset.lote); return; }
   const det = e.target.closest("[data-detalhes]");
   if (det) { carregarDetalhes(det.dataset.detalhes); return; }
   const alt = e.target.closest("[data-alternar]");
@@ -526,6 +541,28 @@ $("resultados").addEventListener("click", (e) => {
     desenhar();
   }
 });
+
+async function carregarLoja(lojaUrl) {
+  const t = tela;
+  const r = t.res[lojaUrl];
+  if (!r) return;
+  const urls = visiveis(r).filter((it) => !it.ofertas && !t.carregando[it.url]).map((it) => it.url);
+  urls.forEach((u) => {
+    t.carregando[u] = true;  // mostra o "carregando" já, antes de o Python responder
+    t.abertos[chave(lojaUrl, u)] = false;  // chegam fechados: só "N ofertas · a partir de R$"; um clique abre
+  });
+  desenhar();
+  const resp = await api().carregar_loja(lojaUrl, urls);
+  if (t !== tela) return;
+  if (resp.erro || !resp.total) urls.forEach((u) => delete t.carregando[u]);
+  if (resp.erro) { avisar(resp.erro); desenhar(); return; }
+  if (resp.restantes) {
+    t.aviso = `Carregando ${resp.total} itens de ${r.loja.nome} (o máximo por vez); os outros ${resp.restantes} ficam para um novo clique.`;
+    const resto = new Set(urls.slice(resp.total));
+    resto.forEach((u) => delete t.carregando[u]);
+  }
+  desenhar();
+}
 
 async function carregarDetalhes(k) {
   const t = tela;

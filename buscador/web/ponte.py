@@ -26,7 +26,7 @@ from buscador.armazenamento import (
     save_settings,
     save_stores,
 )
-from buscador.automatico import AutoCtl, auto_details
+from buscador.automatico import AutoCtl, auto_details, load_items
 from buscador.config import (
     AUTO_TOTAL_CAP,
     DEFAULT_AUTO_LIMIT,
@@ -84,6 +84,8 @@ class Ponte:
         self._carta = ""
         self._resultados = {}  # url da loja -> StoreResult da busca atual
         self._nomes = None  # nomes aceitos pelo "Apenas nome exato" na busca atual
+        self._postar = None  # como a busca atual manda as edições carregadas para a página
+        self._carregando = set()  # lojas com "Carregar todos os preços" em andamento
 
     # ---- envio para a página ---------------------------------------------------
     def _enviar(self, tipo, sid, dados):
@@ -223,6 +225,7 @@ class Ponte:
             self._resultados = {}
             self._nomes = None
             self._ctl = ctl = AutoCtl(AUTO_TOTAL_CAP)
+            self._carregando = set()
 
         caixa_nomes = {"names": None}
         nomes_prontos = threading.Event()
@@ -238,6 +241,10 @@ class Ponte:
                                 it.offers = ofs
                 dados = (loja_url, item_url, serializar.ofertas(ofs))
             self._enviar(tipo, sid, dados)
+
+        with self._lock:
+            if sid == self._sid:
+                self._postar = postar  # o botão "Carregar todos os preços" usa o mesmo caminho
 
         def nomes_job():
             nomes, ok = resolve_names(carta)
@@ -273,6 +280,46 @@ class Ponte:
                 "lojas": [{**serializar.aparencia(s), "nome": s["name"], "url": s["url"],
                            "url_busca": build_search_url(s["url"], carta)}
                           for s in lojas]}
+
+    def carregar_loja(self, loja_url, item_urls):
+        """Botão "Carregar todos os preços" de uma loja: lê as páginas dos itens pedidos, uma por vez,
+        no mesmo ritmo e com o mesmo freio dos detalhes automáticos (até AUTO_TOTAL_CAP por clique).
+
+        Os resultados chegam como os automáticos (autostart, offers, autostep, autoend, autostop).
+        Devolve {total, restantes} ou {erro}.
+        """
+        with self._lock:
+            res = self._resultados.get(loja_url)
+            ctl, postar = self._ctl, self._postar
+            if res is None or ctl is None or postar is None:
+                return {"erro": "Faça a busca de novo para carregar os preços."}
+            if ctl.stop.is_set():
+                return {"erro": "Leitura pausada: uma loja limitou as requisições. Use “Ver edições e preços” "
+                                "nos itens ou espere um pouco e busque de novo."}
+            if loja_url in self._carregando:
+                return {"total": 0, "restantes": 0}
+            pedidos = set(item_urls or [])
+            # só itens desta busca e desta loja, ainda sem edições, na ordem da lista (menor preço primeiro)
+            faltam = [it for it in res.items if it.url in pedidos and it.offers is None]
+            todo = faltam[:AUTO_TOTAL_CAP]
+            if not todo:
+                return {"total": 0, "restantes": 0}
+            self._carregando.add(loja_url)
+            carregando = self._carregando
+
+        lote = AutoCtl(AUTO_TOTAL_CAP, stop=ctl.stop)  # nova busca ou bloqueio param este lote também
+
+        def trabalho():
+            try:
+                load_items(res.store, todo, lote, postar)
+            except Exception:  # noqa: BLE001 - um extra; nunca derruba o programa
+                pass
+            finally:
+                with self._lock:
+                    carregando.discard(loja_url)
+
+        threading.Thread(target=trabalho, daemon=True).start()
+        return {"total": len(todo), "restantes": len(faltam) - len(todo)}
 
     def _publicar_nomes(self, sid, nomes, ok):
         """Guarda os nomes exatos e manda para a página quais itens de cada loja batem com eles."""

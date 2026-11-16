@@ -227,3 +227,29 @@ def test_site_que_nao_responde_nao_entra(ponte, monkeypatch):
     r = ponte.adicionar_loja("www.lojaquenaoexiste.com.br")
     assert "Confira se o link está certo" in r["erro"]
     assert all("lojaquenaoexiste" not in l["url"] for l in ponte.iniciar()["lojas"])
+
+
+def test_carregar_todos_os_precos_da_loja(ponte, lojas_falsas):
+    r = ponte.buscar("Sol Ring", False, 0)  # sem detalhes automáticos
+    janela = ponte._janela
+    janela.espera(lambda ev: any(e[0] == "result" for e in ev))
+    loja = "https://www.overrun.com.br"
+    itens = [it.url for it in ponte._resultados[loja].items]
+    resp = ponte.carregar_loja(loja, itens + ["https://outro-site/qualquer"])  # endereço estranho é ignorado
+    assert resp == {"total": 2, "restantes": 0}
+    janela.espera(lambda ev: any(e[0] == "autoend" for e in ev))
+    assert janela.tipos() == ["result", "autostart", "offers", "autostep", "offers", "autostep", "autoend"]
+    assert all(e[1] == r["sid"] for e in janela.eventos)
+    assert sorted(lojas_falsas) == sorted(itens)  # uma página por item, só os desta busca
+    assert ponte.carregar_loja(loja, itens) == {"total": 0, "restantes": 0}  # já carregados
+
+
+def test_carregar_precos_respeita_o_freio(ponte, lojas_falsas):
+    ponte.buscar("Sol Ring", False, 0)
+    ponte._janela.espera(lambda ev: any(e[0] == "result" for e in ev))
+    ponte._ctl.stop.set()  # uma loja bloqueou
+    loja = "https://www.overrun.com.br"
+    resp = ponte.carregar_loja(loja, [it.url for it in ponte._resultados[loja].items])
+    assert "pausada" in resp["erro"]
+    assert lojas_falsas == []
+    assert "Faça a busca" in ponte.carregar_loja("https://loja-que-nao-buscou", [])["erro"]

@@ -8,7 +8,7 @@ Feito para lojas que usam o padrão **LigaMagic**.
 
 - Lojas pré-cadastradas (liga e desliga em cada uma; arraste pela alça ⠿ para mudar a ordem dos resultados) e opção de **adicionar outras lojas** pelo link (o programa confere se o site responde antes de adicionar).
 - Resultados por loja, cada uma num cartão com a logo e as cores da loja (de uma loja nova, a logo e a cor são lidas do site dela), com link direto para a página do produto e para a busca na loja.
-- **Edições e preços** de cada item (idioma com a bandeira, qualidade, estoque, extras, promoção, pré-venda e observação da loja, com cores; um clique na edição abre a página na loja), carregados com um clique em "Ver edições e preços" ou automaticamente quando a loja tem poucos itens.
+- **Edições e preços** de cada item (idioma com a bandeira, qualidade, estoque, extras, promoção, pré-venda e observação da loja, com cores; um clique na edição abre a página na loja), carregados com um clique em "Ver edições e preços", automaticamente quando a loja tem poucos itens, ou de todos os itens de uma loja com "Carregar todos os preços" (um por vez, com calma; cada item mostra o menor preço e abre as edições com um clique).
 - Opção **Apenas nome exato**, que usa o [Scryfall](https://scryfall.com/) para reconhecer o nome da carta em inglês e português.
 - Botões **Voltar** e **Avançar** entre as buscas; buscas antigas (mais de 30 minutos) são refeitas.
 - Botão **Colar nome**, que limpa o campo e cola o texto copiado. Ao voltar para a janela, basta apertar Enter duas vezes: o primeiro cola o nome, o segundo busca.
