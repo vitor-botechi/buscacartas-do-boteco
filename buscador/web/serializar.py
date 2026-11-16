@@ -10,7 +10,7 @@ def oferta(o):
     return {
         "edicao": o.edition, "idioma": o.language, "qualidade": o.quality, "extras": o.extras,
         "estoque": o.stock, "preco": o.price, "preco_original": o.original_price, "promo": promo,
-        "pre": o.preorder, "pre_data": o.preorder_date,
+        "pre": o.preorder, "pre_data": o.preorder_date, "obs": o.note,
     }
 
 
@@ -30,11 +30,12 @@ def item(it, nomes=None):
 
 def resultado(res, nomes=None):
     return {
-        "loja": {"nome": res.store["name"], "url": res.store["url"]},
+        "loja": {"nome": res.store["name"], "url": res.store["url"], "cor": res.store.get("color") or ""},
         "url_busca": res.search_url, "status": res.status, "msg": res.msg,
         "itens": [item(i, nomes) for i in res.items],
     }
 
 
 def loja(s):
-    return {"nome": s["name"], "url": s["url"], "padrao": s["builtin"], "marcada": s["enabled"]}
+    return {"nome": s["name"], "url": s["url"], "padrao": s["builtin"], "marcada": s["enabled"],
+            "cor": s.get("color") or ""}

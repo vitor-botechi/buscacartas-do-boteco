@@ -6,11 +6,12 @@ import sys
 
 
 # Lojas que já vêm no programa. Para incluir mais por padrão, basta adicionar aqui.
+# color: cor principal da loja (do logotipo ou do site), usada no destaque do cartão de resultados
 DEFAULT_STORES = [
-    {"name": "Overrun", "url": "https://www.overrun.com.br"},
-    {"name": "Jackpot Jogos", "url": "https://www.jackpotjogos.com.br"},
-    {"name": "Legacy TCG", "url": "https://www.legacytcg.com.br"},
-    {"name": "Deckmaster Games", "url": "https://www.deckmastergames.com.br"},
+    {"name": "Deckmaster Games", "url": "https://www.deckmastergames.com.br", "color": "#00758f"},
+    {"name": "Overrun", "url": "https://www.overrun.com.br", "color": "#8b1418"},
+    {"name": "Jackpot Jogos", "url": "https://www.jackpotjogos.com.br", "color": "#00a443"},
+    {"name": "Legacy TCG", "url": "https://www.legacytcg.com.br", "color": "#0b3d63"},
 ]
 
 # Padrão de busca das lojas LigaMagic: só itens COM ESTOQUE, do menor para o maior

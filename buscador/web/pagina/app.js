@@ -107,7 +107,16 @@ $("colar").addEventListener("keydown", (e) => {
   }
 });
 // ao voltar para o programa (Alt+Tab), o foco vai para "Colar nome": Enter cola, Enter de novo busca
-window.addEventListener("focus", () => { if ($("modal").hidden) setTimeout(() => $("colar").focus(), 30); });
+// e a dica do botão aparece por alguns segundos, para lembrar do atalho
+let lembrete;
+window.addEventListener("focus", () => {
+  if (!$("modal").hidden) return;
+  setTimeout(() => $("colar").focus(), 30);
+  $("colar").classList.add("lembrar");
+  clearTimeout(lembrete);
+  lembrete = setTimeout(() => $("colar").classList.remove("lembrar"), 3500);
+});
+$("colar").addEventListener("blur", () => $("colar").classList.remove("lembrar"));
 
 $("buscar").onclick = () => buscar();
 $("carta").addEventListener("keydown", (e) => { if (e.key === "Enter") buscar(); });
@@ -161,7 +170,7 @@ async function buscar(semHistorico = false) {
   tela.lojasTotal = tela.pendentes = r.lojas.length;
   for (const l of r.lojas) {
     tela.ordem.push(l.url);
-    tela.res[l.url] = { loja: { nome: l.nome, url: l.url }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
+    tela.res[l.url] = { loja: { nome: l.nome, url: l.url, cor: l.cor }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
   }
   $("carta").value = r.carta;
   textoRecolher(false);
@@ -273,6 +282,8 @@ function linhaOferta(o, itemUrl) {
     extras.push(`<span class="etq ${foil ? "foil" : "q-outro"}">${esc(o.extras.replace(/\s*,\s*/g, ", "))}</span>`);
   }
   if (o.promo) extras.push(`<span class="etq promo">-${o.promo}%</span>`);
+  if (o.obs) extras.push(`<span class="etq obs" title="Observação da loja:
+${esc(o.obs)}">Contém obs.</span>`);
   const riscado = o.preco_original ? `<span class="riscado">${dinheiro(o.preco_original)}</span>` : "";
   const lang = o.idioma === "Português" ? "pt" : "en";
   return `<tr class="oferta" data-abrir="${esc(itemUrl)}" title="Duplo clique abre a página na loja">
@@ -328,7 +339,8 @@ function blocoLoja(url) {
   }
   const temItens = mostrar.length > 0;
   const apagada = ["none", "soldout", "exato"].includes(cls);  // sem a carta: fica mais clara que as outras
-  return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}${cls === "found" ? " achada" : ""}">
+  const cor = /^#[0-9a-f]{6}$/i.test(r.loja.cor || "") ? r.loja.cor : "#6b7280";  // cor da loja no destaque
+  return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}" style="--cor-loja:${cor}">
     <div class="cab" data-loja="${esc(url)}"><span class="seta">${temItens ? "▾" : ""}</span>
       <span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
       <button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>

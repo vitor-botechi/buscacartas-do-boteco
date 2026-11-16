@@ -61,7 +61,10 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
   background: #1f2937; color: #fff; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; white-space: nowrap;
   opacity: 0; pointer-events: none; transition: opacity .15s;
 }
-.dica:hover::after, .dica:focus-visible::after { opacity: 1; transition-delay: .35s; }
+.dica:hover::after, .dica:focus-visible::after, .dica.lembrar::after { opacity: 1; transition-delay: .35s; }
+.dica-longa::after { white-space: pre; text-align: left; line-height: 1.5; padding: 8px 12px; }
+/* o foco volta sozinho para "Colar nome": a dica longa só aparece no lembrete e ao passar o mouse */
+.dica-longa:focus-visible:not(.lembrar):not(:hover)::after { opacity: 0; transition-delay: 0s; }
 .link { border: 0; background: none; padding: 2px 0; color: var(--cinza); cursor: pointer; }
 .link:hover:not(:disabled) { color: var(--texto); text-decoration: underline; }
 .link:disabled { opacity: .45; cursor: default; }
@@ -81,10 +84,11 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
 .cartao { background: var(--branco); border: 1px solid var(--linha); border-radius: 14px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15, 23, 42, .05); }
 .cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; user-select: none; background: #fbfcfd; }
 .cab .nome { font-weight: 700; font-size: 16px; }
-.cartao.achada > .cab { box-shadow: inset 4px 0 0 var(--verde); }  /* faixa verde: loja com a carta */
+/* faixa e fundo bem claro na cor da loja (--cor-loja, definida em cada cartão) */
+.cartao > .cab { box-shadow: inset 4px 0 0 var(--cor-loja); background: color-mix(in srgb, var(--cor-loja) 7%, #fff); }
 .cartao:not(.fechado) > .cab { border-bottom: 1px solid var(--linha); }
 .cartao.apagada { background: #fcfcfd; box-shadow: none; }
-.cartao.apagada > .cab { background: none; }
+.cartao.apagada > .cab { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--cor-loja) 35%, #fff); background: color-mix(in srgb, var(--cor-loja) 3%, #fff); }
 .cartao.apagada > .cab .nome, .cartao.apagada > .cab .status { opacity: .5; }
 .seta { width: 14px; color: var(--cinza); transition: transform .15s; flex-shrink: 0; text-align: center; }
 .fechado > .cab .seta, .fechado > .item-cab .seta { transform: rotate(-90deg); }
@@ -104,16 +108,16 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
 .info { margin-left: auto; color: var(--cinza); font-size: 13px; white-space: nowrap; }
 .info b { color: var(--texto); font-size: 14px; }
 .item-cab .abrir { margin-left: 6px; }
-.pedir { font-size: 12px; color: var(--verde); border: 1px solid #b7dcc8; border-radius: 6px; padding: 2px 8px; background: none; cursor: pointer; white-space: nowrap; }
-.pedir:hover { background: var(--verde-claro); }
+.pedir { font-size: 12px; color: var(--cor-loja, var(--verde)); border: 1px solid color-mix(in srgb, var(--cor-loja, var(--verde)) 35%, #fff); border-radius: 6px; padding: 2px 8px; background: none; cursor: pointer; white-space: nowrap; }
+.pedir:hover { background: color-mix(in srgb, var(--cor-loja, var(--verde)) 9%, #fff); }
 .msg { padding: 8px 16px 10px 62px; color: var(--cinza); font-size: 13px; }
 .msg.aviso { color: var(--ambar); }
 table { width: 100%; border-collapse: collapse; table-layout: fixed; }  /* colunas iguais em todos os itens */
-col.c-edicao { width: 38%; } col.c-idioma { width: 11%; } col.c-qual { width: 7%; }
+col.c-edicao { width: 34%; } col.c-idioma { width: 15%; } col.c-qual { width: 7%; }
 col.c-estoque { width: 8%; } col.c-extras { width: 22%; } col.c-preco { width: 14%; }
 td { padding: 6px 10px; border-top: 1px solid #f3f4f6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 td.edicao { padding-left: 62px; white-space: normal; }
-td.extras { white-space: normal; }
+td.extras, td.pt, td.en { white-space: normal; }  /* "Português/Inglês" quebra a linha em vez de cortar */
 td.extras .etq { margin: 1px 0; }
 tr.oferta { cursor: default; }
 tr.oferta:hover td { background: #f8fafb; }
@@ -128,6 +132,7 @@ tr.oferta:hover td { background: #f8fafb; }
 .foil { background: var(--roxo-claro); color: var(--roxo); }
 .pre { background: var(--verde-claro); color: var(--verde); }
 .promo { background: var(--rosa-claro); color: var(--rosa); }
+.obs { background: var(--azul-claro); color: var(--azul); cursor: help; }
 .pt { color: var(--azul); }
 .en, .un { color: var(--cinza); }
 .preco { text-align: right; font-weight: 600; padding-right: 18px; }
