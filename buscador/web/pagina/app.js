@@ -296,7 +296,7 @@ const app = {
       tela.autoFeito += resto.length;
       resto.forEach((u) => delete tela.carregando[u]);
     } else if (tipo === "autostop") {
-      tela.aviso = `⚠ ${dados.loja} limitou as requisições e os detalhes automáticos pararam. Aguarde a contagem no botão “Carregar todos os preços” para tentar de novo, ou use “Ver edições e preços” num item.`;
+      tela.aviso = `⚠ ${dados.loja} limitou as requisições e os detalhes automáticos pararam. Aguarde a contagem nos botões “Carregar todos os preços” e “Ver edições e preços” para tentar de novo.`;
       pausar(dados.pausa);
     }
     desenhar();
@@ -411,7 +411,10 @@ function blocoItem(r, it) {
   if (tela.carregando[it.url] || (d && d.estado === "carregando")) {
     direita = '<span class="info"><span class="girando"></span>carregando edições e preços…</span>';
   } else {
-    direita = `<span class="info"></span><button class="pedir" data-detalhes="${esc(k)}">Ver edições e preços</button>`;
+    const espera = segundosDePausa();  // mesma pausa do "Carregar todos os preços"
+    direita = espera
+      ? `<span class="info"></span><button class="pedir" disabled title="Uma loja limitou as requisições: espere um pouco para tentar de novo">Ver edições e preços · <span class="contagem">${espera}</span> s</button>`
+      : `<span class="info"></span><button class="pedir" data-detalhes="${esc(k)}">Ver edições e preços</button>`;
   }
   const msg = d && d.estado === "erro" ? `<div class="msg aviso">${esc(d.msg)}</div>` : "";
   return `<div class="item"><div class="item-cab" data-detalhes="${esc(k)}"><span class="seta">▸</span>
@@ -585,19 +588,23 @@ async function carregarDetalhes(k) {
   const t = tela;
   const sep = k.indexOf("|");  // a url da loja não tem "|"
   const lojaUrl = k.slice(0, sep), itemUrl = k.slice(sep + 1);
+  if (segundosDePausa()) return;  // pausa depois de um bloqueio: o botão mostra a contagem
   if (t.carregando[itemUrl] || (t.detalhes[k] && t.detalhes[k].estado === "carregando")) return;
   t.detalhes[k] = { estado: "carregando" };
   desenhar();
   const r = await api().detalhes(lojaUrl, itemUrl);
   const it = t.res[lojaUrl] && t.res[lojaUrl].itens.find((i) => i.url === itemUrl);
-  if (r.status === "ok" || r.status === "empty") {
+  if (r.espera || r.pausa) pausar(r.espera || r.pausa);  // começa (ou segue) a contagem em todos os botões
+  if (r.status === "espera") {
+    delete t.detalhes[k];
+  } else if (r.status === "ok" || r.status === "empty") {
     delete t.detalhes[k];
     if (it) it.ofertas = r.ofertas;
     t.abertos[k] = true;
   } else {
     const msgs = {
       unreadable: "⚠ A loja não entregou estoque e preço como texto nesta página. Use “Abrir ↗”.",
-      blocked: "⚠ A loja bloqueou a leitura. Use “Abrir ↗” ou tente novamente em alguns segundos.",
+      blocked: "⚠ A loja bloqueou a leitura. Use “Abrir ↗” ou aguarde a contagem e tente novamente.",
     };
     t.detalhes[k] = { estado: "erro", msg: msgs[r.status] || `⚠ Falha de conexão: ${r.msg || ""}` };
   }

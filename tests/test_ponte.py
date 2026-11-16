@@ -264,6 +264,20 @@ def test_carregar_precos_respeita_a_pausa_depois_de_um_bloqueio(ponte, lojas_fal
     assert "Faça a busca" in ponte.carregar_loja("https://loja-que-nao-buscou", [])["erro"]
 
 
+def test_ver_edicoes_segue_a_mesma_pausa(ponte, monkeypatch):
+    monkeypatch.setattr(ponte_mod, "fetch_product", lambda loja, url: {"status": "blocked", "msg": "429"})
+    r = ponte.detalhes("https://www.overrun.com.br", "https://produto/1")
+    assert r["status"] == "blocked" and r["pausa"] == ponte_mod.BLOCK_COOLDOWN  # bloqueio começa a pausa
+    pedidos = []
+    monkeypatch.setattr(ponte_mod, "fetch_product", lambda loja, url: pedidos.append(url) or {"status": "ok", "offers": []})
+    r = ponte.detalhes("https://www.overrun.com.br", "https://produto/2")
+    assert r["status"] == "espera" and 1 <= r["espera"] <= ponte_mod.BLOCK_COOLDOWN
+    assert pedidos == []  # durante a pausa, nenhuma requisição
+    ponte._bloqueio_em = time.monotonic() - ponte_mod.BLOCK_COOLDOWN - 1
+    assert ponte.detalhes("https://www.overrun.com.br", "https://produto/2")["status"] == "ok"
+    assert pedidos == ["https://produto/2"]
+
+
 def test_carregar_precos_depois_de_cancelar(ponte, lojas_falsas):
     ponte.buscar("Sol Ring", False, 0)
     ponte._janela.espera(lambda ev: any(e[0] == "result" for e in ev))

@@ -309,10 +309,10 @@ class Ponte:
                 # parado por bloqueio: depois da pausa, a pessoa pode tentar de novo (com um orçamento novo)
                 if self._bloqueio_em is None:
                     return {"erro": "Faça a busca de novo para carregar os preços."}
-                falta = BLOCK_COOLDOWN - (time.monotonic() - self._bloqueio_em)
-                if falta > 0:
-                    return {"erro": f"Uma loja limitou as requisições. Tente novamente em {int(falta) + 1} s.",
-                            "espera": int(falta) + 1}
+                falta = self._falta_pausa()
+                if falta:
+                    return {"erro": f"Uma loja limitou as requisições. Tente novamente em {falta} s.",
+                            "espera": falta}
                 self._ctl = ctl = AutoCtl(AUTO_TOTAL_CAP)  # nova busca ou cancelar param este também
                 self._bloqueio_em = None
             if loja_url in self._carregando:
@@ -364,14 +364,35 @@ class Ponte:
 
     # ---- detalhes de um produto (sob demanda) ---------------------------------------
     def detalhes(self, loja_url, item_url):
-        """Lê a página de um produto. Devolve {status, ofertas, msg}."""
+        """Lê a página de um produto ("Ver edições e preços"). Devolve {status, ofertas, msg}.
+
+        Segue a mesma pausa do "Carregar todos os preços": durante ela devolve status "espera" (com os
+        segundos que faltam), e um bloqueio aqui também começa a pausa (status "blocked", com "pausa").
+        """
+        with self._lock:
+            falta = self._falta_pausa()
+        if falta:
+            return {"status": "espera", "espera": falta, "msg": "", "ofertas": []}
         loja = next((s for s in self._lojas if s["url"] == loja_url), None) or {"name": "", "url": loja_url}
         data = fetch_product(loja, item_url)
+        resposta = {"status": data.get("status"), "msg": data.get("msg", ""),
+                    "ofertas": serializar.ofertas(data.get("offers") or [])}
         with self._lock:
             res = self._resultados.get(loja_url)
             if res and data.get("status") == "ok":
                 for it in res.items:
                     if it.url == item_url:
                         it.offers = data["offers"]
-        return {"status": data.get("status"), "msg": data.get("msg", ""),
-                "ofertas": serializar.ofertas(data.get("offers") or [])}
+            if data.get("status") == "blocked":  # a loja limitou: pausa tudo, como nos automáticos
+                if self._ctl:
+                    self._ctl.stop.set()
+                self._bloqueio_em = time.monotonic()
+                resposta["pausa"] = BLOCK_COOLDOWN
+        return resposta
+
+    def _falta_pausa(self):
+        """Segundos que faltam da pausa depois de um bloqueio (0 = liberado). Chamar com o _lock."""
+        if self._bloqueio_em is None:
+            return 0
+        falta = BLOCK_COOLDOWN - (time.monotonic() - self._bloqueio_em)
+        return int(falta) + 1 if falta > 0 else 0
