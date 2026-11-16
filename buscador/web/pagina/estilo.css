@@ -187,3 +187,7 @@ footer { display: flex; align-items: flex-start; gap: 12px; padding-top: 8px; co
 .erro { color: var(--vermelho); font-size: 13px; min-height: 18px; margin: 0 0 8px; }
 .botoes { display: flex; justify-content: flex-end; gap: 8px; }
 .botoes .btn { padding: 7px 16px; }
+
+/* arte da carta ao passar o mouse (Scryfall) */
+#arte { position: fixed; z-index: 50; width: 244px; height: auto; border-radius: 12px; pointer-events: none;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, .35); background: #222; }

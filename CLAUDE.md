@@ -31,8 +31,8 @@ As importações dentro do pacote são absolutas (`from buscador.config import .
 5. **`lojas/ligamagic.py`**: só leitura de HTML, **sem requisições**: `build_search_url`, `parse_results`, `product_from_page`, `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço, promoção e observação da loja), `theme_color` e `theme_logo` (cor principal e logo do site) e os marcadores de bloqueio/sem resultado. Uma loja de outro padrão ganha um módulo próprio em `lojas/`.
 6. **`rede.py`**: requisições: `search_store`, `safe_search`, `fetch_product` com cache curto, `fetch_store_look` (cor e logo, uma vez, ao adicionar uma loja), gravação em `debug/`.
 7. **`automatico.py`**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
-8. **`scryfall.py`**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara.
-9. **`web/`** (interface atual): **`ponte.py`**, classe `Ponte`, o lado Python que a página chama (buscar, detalhes, lojas, colar, abrir no navegador); **`serializar.py`** converte `Item`/`Offer`/`StoreResult` em dicionários; **`app.py`** abre a janela (`main()`); **`pagina/`** tem `index.html`, `estilo.css` e `app.js`, que só desenham a tela e guardam o estado dela (o que está aberto, histórico Voltar/Avançar).
+8. **`scryfall.py`**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara; `card_art` dá a imagem da carta (da edição, pelo nome ou pelo código do ícone) para a arte ao passar o mouse, com cache e uma consulta por vez.
+9. **`web/`** (interface atual): **`ponte.py`**, classe `Ponte`, o lado Python que a página chama (buscar, detalhes, arte da carta, lojas, colar, abrir no navegador); **`serializar.py`** converte `Item`/`Offer`/`StoreResult` em dicionários; **`app.py`** abre a janela (`main()`); **`pagina/`** tem `index.html`, `estilo.css` e `app.js`, que só desenham a tela e guardam o estado dela (o que está aberto, histórico Voltar/Avançar).
 10. **`interface/`** (reserva, Tkinter): a interface antiga, aberta só quando o pywebview não está instalado. Será removida depois que a nova for aprovada.
 
 Só `interface/` usa o Tkinter; só `web/` usa o pywebview.
@@ -63,7 +63,7 @@ Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller,
 - Os nomes podem vir como `Nome PT / Nome EN` e com sufixos entre parênteses (`Ilha (#266)`); `matches_exact` trata isso.
 - Página do produto: ofertas em `div.table-cards-row` (edição, idioma, qualidade, extras, estoque, preço). Linhas com "Avise quando chegar" não têm estoque e são ignoradas. **Promoção**: preço riscado vem antes do novo; o programa usa o último valor. **Observação da loja**: ícone `.icon-observacao` nos extras, com o texto no atributo `observacao` (`{{br}}` = quebra de linha) e um "Visualizar observação" escondido ao lado; vai para `Offer.note`, não para os extras.
 - Cores e logo: o site traz `--color-primary` no `:root` e a logo numa imagem `.../ecom/logo/...` (CDN `repositorio.sbrauble.com`). Para as lojas padrão, cores e logo ficam fixas em `DEFAULT_STORES` (cores tiradas da logo, que às vezes difere do site: a Jackpot usa vermelho no site e verde na logo).
-- Idioma: a bandeira é a imagem da própria loja (`lmcorp.com.br/images/bandeiras/xx.svg`; `pten.svg` = Português / Inglês), em `Offer.language_flag`. Endereços de imagem só entram na página se forem `https://` (`web_image`).
+- Idioma: a bandeira é a imagem da própria loja (`lmcorp.com.br/images/bandeiras/xx.svg`; `pten.svg` = Português / Inglês), em `Offer.language_flag`. O ícone da edição (`.../ed_mtg/LTC_U.gif`) traz o código dela, em `Offer.edition_code`; o nome da edição às vezes vem em português. Endereços de imagem só entram na página se forem `https://` (`web_image`).
 - As lojas podem mudar o HTML a qualquer momento: se a leitura quebrar, comparar com uma página nova (sanitizada) antes de mexer.
 
 ## Como trabalhar neste repositório

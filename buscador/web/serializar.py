@@ -11,6 +11,7 @@ def oferta(o):
         "edicao": o.edition, "idioma": o.language, "qualidade": o.quality, "extras": o.extras,
         "estoque": o.stock, "preco": o.price, "preco_original": o.original_price, "promo": promo,
         "pre": o.preorder, "pre_data": o.preorder_date, "obs": o.note, "bandeira": o.language_flag,
+        "edicao_cod": o.edition_code,
     }
 
 

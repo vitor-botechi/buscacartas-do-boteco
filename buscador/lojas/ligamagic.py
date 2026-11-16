@@ -169,6 +169,10 @@ def theme_color(html):
     return cor
 
 
+# ícone da edição: ".../arquivos/up/ed_mtg/AFC_U.gif" (código da edição e raridade)
+EDITION_CODE_RE = re.compile(r"/ed_mtg/([A-Za-z0-9]+)_[A-Za-z]+\.\w+")
+
+
 def offer_note(icon):
     """Texto da observação que a loja colocou numa oferta (atributo observacao do ícone)."""
     texto = (icon.get("observacao") or "").replace("{{br}}", "\n")
@@ -194,8 +198,11 @@ def parse_product_page(html):
         idx = cells.index(price_cell)
         stock_cell = cells[idx - 1]
 
-        img = cells[0].select_one("img.icon-edicao, img")
+        # o ícone da edição (antes dele pode vir uma foto do item que a loja colocou)
+        img = cells[0].select_one("img.icon-edicao") or cells[0].select_one("img")
         edition = (img.get("title") or img.get("alt") or "") if img else ""
+        m_cod = EDITION_CODE_RE.search((img.get("src") or "") if img else "")
+        edition_code = m_cod.group(1).lower() if m_cod else ""
         tip = cells[0].select_one(".tooltip")
         if tip and tip.get_text(strip=True):
             edition = tip.get_text(strip=True)
@@ -230,7 +237,8 @@ def parse_product_page(html):
         price = prices[-1] if prices else None
         original = prices[0] if len(prices) >= 2 and prices[0] > prices[-1] else None
 
-        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date, note, flag))
+        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date, note, flag,
+                            edition_code))
 
     if not offers or all(o.stock is None and o.price is None for o in offers):
         return [], "unreadable"  # existem linhas, mas os números não vieram como texto
