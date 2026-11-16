@@ -61,9 +61,10 @@ def main():
     try:
         import bs4  # noqa: F401
         import requests  # noqa: F401
+        import webview  # noqa: F401
     except ImportError:
-        # sem elas o .exe abriria com a busca desligada (ver rede.HAS_SCRAPING)
-        sys.exit("Faltam requests/beautifulsoup4. Rode: py -m pip install -r requirements.txt")
+        # sem elas o .exe abriria com a busca desligada (rede.HAS_SCRAPING) ou com a interface antiga
+        sys.exit("Faltam bibliotecas. Rode: py -m pip install -r requirements.txt")
 
     PyInstaller.__main__.run([
         os.path.join(RAIZ, "buscador_mtg.py"),
@@ -77,6 +78,9 @@ def main():
         "--specpath", BUILD,
         "--version-file", arquivo_de_versao(),
         "--paths", RAIZ,
+        # a página da interface (HTML, CSS e JS) vai dentro do .exe; ver web/app.py:pasta_da_pagina
+        "--add-data", os.pathsep.join([os.path.join(RAIZ, "buscador", "web", "pagina"),
+                                       os.path.join("buscador", "web", "pagina")]),
     ])
 
     exe = os.path.join(DIST, f"{NOME}.exe")

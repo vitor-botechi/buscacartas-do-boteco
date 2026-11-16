@@ -28,7 +28,8 @@ from buscador.lojas.ligamagic import (  # noqa: E402
 
 REMOVER_TAGS = ["script", "style", "noscript", "iframe", "link", "svg", "header", "footer", "nav", "button",
                 "select", "textarea", "video", "audio", "source", "picture"]
-ATRIBUTOS_MANTIDOS = {"class", "id", "href", "title", "alt", "name", "value", "type", "content", "property"}
+ATRIBUTOS_MANTIDOS = {"class", "id", "href", "title", "alt", "name", "value", "type", "content", "property",
+                      "observacao"}  # observacao: aviso público da loja numa oferta
 # links de conta, carrinho, contato e com identificadores (token, _ga, sessão)
 LINKS_REMOVIDOS = re.compile(r"carrinho|logar|wishlist|email-protection|whatsapp|mailto:|tel:|token|_ga=|sess", re.I)
 SUSPEITOS =re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+|sess(ion|ao)|token|csrf|cpf|senha|password|ol[aá],|minha conta|"

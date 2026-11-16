@@ -19,12 +19,32 @@ from buscador.lojas.ligamagic import (
     parse_product_page,
     parse_results,
     product_from_page,
+    theme_color,
+    theme_logo,
 )
 from buscador.modelos import Item, StoreResult
 
 
 # o app abre mesmo sem as bibliotecas; só a busca interna fica desativada
 HAS_SCRAPING = requests is not None and BeautifulSoup is not None
+
+
+def fetch_store_look(base):
+    """Abre a página inicial de uma loja nova (uma requisição só, ao adicionar).
+
+    Devolve (o site respondeu?, cor ou None, endereço da logo ou ""). Sem as bibliotecas, não confere.
+    """
+    if not HAS_SCRAPING:
+        return True, None, ""
+    try:
+        r = requests.get(base + "/", headers=HEADERS, timeout=TIMEOUT)
+    except requests.RequestException:
+        return False, None, ""
+    if r.status_code in (403, 429, 503):  # o site existe, mas barrou a leitura
+        return True, None, ""
+    if r.status_code != 200:
+        return False, None, ""
+    return True, theme_color(r.text), theme_logo(r.text)
 
 
 def save_debug(store, url, r):

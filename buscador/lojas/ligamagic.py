@@ -1,5 +1,6 @@
 """Leitura das páginas das lojas no padrão LigaMagic (só HTML, sem fazer requisições)."""
 
+import colorsys
 import re
 from urllib.parse import quote_plus, urljoin
 
@@ -132,6 +133,49 @@ def product_from_page(html, page_url):
     return name, url, offers, status
 
 
+COLOR_RE = re.compile(r"--color-primary\s*:\s*(#[0-9a-fA-F]{6})\b")
+
+
+LOGO_RE = re.compile(r"""src=["']((?:https?:)?//[^"']+/ecom/logo/[^"']+\.(?:jpe?g|png|gif|webp|svg))["']""", re.I)
+
+
+def web_image(src):
+    """Endereço completo (https) de uma imagem da loja, ou "" se não for uma imagem da web."""
+    src = (src or "").strip()
+    if src.startswith("//"):
+        src = "https:" + src
+    return src if re.match(r"https://[^\s\"'<>]+$", src) else ""
+
+
+def theme_logo(html):
+    """Logo da loja na página inicial (padrão LigaMagic: imagem em .../ecom/logo/...)."""
+    m = LOGO_RE.search(html or "")
+    return web_image(m.group(1)) if m else ""
+
+
+def theme_color(html):
+    """Cor principal do site da loja (variável --color-primary do padrão LigaMagic).
+
+    Devolve None se não houver ou se for cinza, quase branca ou quase preta (não serve de destaque).
+    """
+    m = COLOR_RE.search(html or "")
+    if not m:
+        return None
+    cor = m.group(1).lower()
+    r, g, b = (int(cor[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    _, luz, sat = colorsys.rgb_to_hls(r, g, b)
+    if sat < 0.25 or luz > 0.85 or luz < 0.08:
+        return None
+    return cor
+
+
+def offer_note(icon):
+    """Texto da observação que a loja colocou numa oferta (atributo observacao do ícone)."""
+    texto = (icon.get("observacao") or "").replace("{{br}}", "\n")
+    linhas = [" ".join(linha.split()) for linha in texto.splitlines()]
+    return "\n".join(linha for linha in linhas if linha)
+
+
 def parse_product_page(html):
     """Devolve (ofertas, status). status: ok | empty | unreadable."""
     soup = BeautifulSoup(html, "html.parser")
@@ -157,6 +201,7 @@ def parse_product_page(html):
             edition = tip.get_text(strip=True)
         lang_img = cells[1].select_one("img")
         language = (lang_img.get("title") or lang_img.get("alt") or "") if lang_img else ""
+        flag = web_image(lang_img.get("src")) if lang_img else ""
 
         q_cell = row.select_one(".quality")
         quality = ""
@@ -165,6 +210,14 @@ def parse_product_page(html):
                 t.decompose()
             quality = q_cell.get_text(" ", strip=True)
         e_cell = row.select_one(".card-extras")
+        note = ""
+        if e_cell:
+            # a observação da loja vem num ícone, com o texto "Visualizar observação" escondido ao lado
+            for icon in e_cell.select(".icon-observacao"):
+                note = note or offer_note(icon) or "A loja colocou uma observação nesta oferta."
+                icon.decompose()
+            for t in e_cell.select(".tooltip"):
+                t.decompose()
         extras = e_cell.get_text(" ", strip=True) if e_cell else ""
         extras = "" if extras in ("-", "–") else extras
 
@@ -177,7 +230,7 @@ def parse_product_page(html):
         price = prices[-1] if prices else None
         original = prices[0] if len(prices) >= 2 and prices[0] > prices[-1] else None
 
-        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date))
+        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date, note, flag))
 
     if not offers or all(o.stock is None and o.price is None for o in offers):
         return [], "unreadable"  # existem linhas, mas os números não vieram como texto

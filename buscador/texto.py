@@ -48,6 +48,8 @@ def offer_desc(o):
         parts.append(f"-{round((1 - o.price / o.original_price) * 100)}%")
     if o.preorder:
         parts.append(preorder_text(o.preorder_date))
+    if o.note:
+        parts.append("contém observação")
     return "    ·    ".join(parts)
 
 

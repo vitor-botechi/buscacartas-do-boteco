@@ -6,12 +6,12 @@ Feito para lojas que usam o padrão **LigaMagic**.
 
 ## Recursos
 
-- Lojas pré-cadastradas (marcadas por checkbox) e opção de **adicionar outras lojas** pelo link.
-- Resultados lado a lado, com link direto para a página do produto em cada loja.
-- Painel **Edições e preços** (estoque, qualidade, extras e promoções), carregado sob demanda ou automaticamente quando a loja tem poucos itens.
+- Lojas pré-cadastradas (liga e desliga em cada uma; arraste pela alça ⠿ para mudar a ordem dos resultados) e opção de **adicionar outras lojas** pelo link (o programa confere se o site responde antes de adicionar).
+- Resultados por loja, cada uma num cartão com a logo e as cores da loja (de uma loja nova, a logo e a cor são lidas do site dela), com link direto para a página do produto e para a busca na loja.
+- **Edições e preços** de cada item (idioma com a bandeira, qualidade, estoque, extras, promoção, pré-venda e observação da loja, com cores; um clique na edição abre a página na loja), carregados com um clique em "Ver edições e preços", automaticamente quando a loja tem poucos itens, ou de todos os itens de uma loja com "Carregar todos os preços" (um por vez, com calma; cada item mostra o menor preço e abre as edições com um clique).
 - Opção **Apenas nome exato**, que usa o [Scryfall](https://scryfall.com/) para reconhecer o nome da carta em inglês e português.
 - Botões **Voltar** e **Avançar** entre as buscas; buscas antigas (mais de 30 minutos) são refeitas.
-- Botão **Colar nome**, que limpa o campo e cola o texto copiado.
+- Botão **Colar nome**, que limpa o campo e cola o texto copiado. Ao voltar para a janela, basta apertar Enter duas vezes: o primeiro cola o nome, o segundo busca.
 
 ## Como instalar e rodar
 
@@ -34,8 +34,9 @@ Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mai
 
    (também funciona `python -m buscador`)
 
-   Em **Linux ou macOS**, o programa deve rodar do mesmo jeito pelo código-fonte (use `python3`; no Linux pode ser
-   preciso instalar o Tkinter, por exemplo `sudo apt install python3-tk`). Ainda não foi testado nesses sistemas.
+   Em **Linux ou macOS**, o programa deve rodar do mesmo jeito pelo código-fonte (use `python3`). A janela usa o
+   [pywebview](https://pywebview.flowrl.com/), que no Linux precisa de pacotes do sistema (GTK ou Qt com WebKit).
+   Sem o pywebview, o programa abre a interface antiga (Tkinter). Ainda não foi testado nesses sistemas.
    O `.exe` da página de versões é só para Windows.
 
 ## Gerar o programa para Windows
@@ -51,7 +52,9 @@ na página de versões do GitHub. Detalhes no início de `instalador/gerar_exe.p
 ## Organização do código
 
 O código fica no pacote `buscador/`: configuração, lojas salvas, leitura das páginas no padrão LigaMagic (`lojas/`),
-requisições (`rede.py`), detalhes automáticos, Scryfall e a interface (`interface/`). O `buscador_mtg.py` só inicia o programa.
+requisições (`rede.py`), detalhes automáticos, Scryfall e a interface. A interface é uma página HTML numa janela de
+programa (`web/`, com o pywebview); a interface antiga em Tkinter (`interface/`) fica como reserva. O `buscador_mtg.py`
+só inicia o programa.
 
 ## Testes
 
@@ -71,9 +74,10 @@ Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, 
 | --- | --- |
 | Enter (no campo) | Buscar |
 | Enter ou Espaço (no botão Colar nome) | Colar o nome copiado |
-| Enter (com um item selecionado) | Abrir Edições e preços |
+| Ctrl+V (no botão Colar nome) | Colar o nome copiado |
 | Alt+← / Alt+→ | Voltar / Avançar |
 | Ctrl+Backspace | Apagar a palavra anterior |
+| Clique numa edição | Abrir a página do produto na loja |
 
 ## Como funciona (e limites)
 

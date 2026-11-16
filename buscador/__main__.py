@@ -1,5 +1,5 @@
 """Permite rodar com: python -m buscador"""
 
-from buscador.interface.app import main
+from buscador.web.app import main
 
 main()
