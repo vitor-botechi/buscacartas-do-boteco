@@ -8,6 +8,7 @@
 <body>
 <aside>
   <h3>Lojas</h3>
+  <p class="dica-ordem">Arraste <span class="alca">⠿</span> para mudar a ordem</p>
   <div id="lojas"></div>
   <div class="todas">
     <button class="link" id="todas">Todas</button>
@@ -51,12 +52,13 @@
 <div class="fundo-modal" id="modal" hidden>
   <form class="modal" id="form-loja">
     <h2>Adicionar loja</h2>
-    <label>Link da loja<input id="loja-link" placeholder="www.minhaloja.com.br" autocomplete="off"></label>
+    <label><span class="rotulo-link">🔗 Link da loja</span>
+      <input id="loja-link" type="url" inputmode="url" placeholder="www.minhaloja.com.br" autocomplete="off" spellcheck="false"></label>
     <label>Nome (opcional)<input id="loja-nome" autocomplete="off"></label>
     <p class="erro" id="loja-erro"></p>
     <div class="botoes">
       <button type="button" class="btn" id="cancelar-loja">Cancelar</button>
-      <button type="submit" class="btn primario">Adicionar</button>
+      <button type="submit" class="btn primario" id="adicionar-loja" disabled>Adicionar</button>
     </div>
   </form>
 </div>

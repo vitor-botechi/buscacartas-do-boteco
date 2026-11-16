@@ -48,7 +48,7 @@ def ponte(monkeypatch, tmp_path):
     monkeypatch.setattr(automatico, "AUTO_DELAY", 0)
     monkeypatch.setattr(ponte_mod, "HAS_SCRAPING", True)
     monkeypatch.setattr(ponte_mod, "fetch_store_look",  # sem requisição
-                        lambda base: ("#123456", "https://cdn/logo.jpg"))
+                        lambda base: (True, "#123456", "https://cdn/logo.jpg"))
     p = Ponte(JanelaFalsa())
     # só a Overrun marcada, para os testes ficarem simples
     p.marcar_lojas({s["url"]: s["name"] == "Overrun" for s in p._lojas})
@@ -88,7 +88,8 @@ def test_iniciar_traz_lojas_e_preferencias(ponte):
 
 
 def test_adicionar_e_remover_loja(ponte):
-    assert ponte.adicionar_loja("nada") == {"erro": "Confira o link da loja."}
+    assert "não parece o link" in ponte.adicionar_loja("nada")["erro"]
+    assert "não parece o link" in ponte.adicionar_loja("minha loja.com")["erro"]
     assert ponte.adicionar_loja("overrun.com.br") == {"erro": "Essa loja já está na lista."}
     lojas = ponte.adicionar_loja("www.minhaloja.com.br", "")["lojas"]
     nova = lojas[-1]
@@ -204,3 +205,25 @@ def test_abrir_lojas_monta_a_busca_de_cada_loja_marcada(ponte, monkeypatch):
 def test_primeira_linha_do_texto_colado():
     assert primeira_linha_limpa("\n  Sol   Ring \nOutra linha") == "Sol Ring"
     assert primeira_linha_limpa("") == ""
+
+
+def test_ordem_arrastada_fica_salva(ponte):
+    urls = [l["url"] for l in ponte.iniciar()["lojas"]]
+    nova = urls[::-1]
+    assert [l["url"] for l in ponte.ordenar_lojas(nova)] == nova
+    assert [l["url"] for l in Ponte().iniciar()["lojas"]] == nova  # vale ao abrir de novo
+    ponte.marcar_lojas({nova[0]: False})  # marcar não desfaz a ordem
+    assert [l["url"] for l in Ponte().iniciar()["lojas"]] == nova
+
+
+def test_sem_arrastar_vale_a_ordem_padrao(ponte):
+    # lojas.json antigo (sem "manual_order"), salvo com outra ordem: a ordem padrão continua
+    armazenamento.save_stores(list(reversed(ponte._lojas)), manual_order=False)
+    assert [l["nome"] for l in Ponte().iniciar()["lojas"]][0] == "Deckmaster Games"
+
+
+def test_site_que_nao_responde_nao_entra(ponte, monkeypatch):
+    monkeypatch.setattr(ponte_mod, "fetch_store_look", lambda base: (False, None, ""))
+    r = ponte.adicionar_loja("www.lojaquenaoexiste.com.br")
+    assert "Confira se o link está certo" in r["erro"]
+    assert all("lojaquenaoexiste" not in l["url"] for l in ponte.iniciar()["lojas"])

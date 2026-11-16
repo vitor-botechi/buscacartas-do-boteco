@@ -36,7 +36,8 @@ function novaTela() {
 /* ---------------- lojas (coluna da esquerda) ---------------- */
 function desenharLojas() {
   $("lojas").innerHTML = lojas.map((l, i) => `
-    <div class="loja${l.marcada ? "" : " off"}" data-i="${i}" title="${esc(l.url)}">
+    <div class="loja${l.marcada ? "" : " off"}" data-i="${i}" title="${esc(l.url)}" draggable="true">
+      <span class="alca" title="Arraste para mudar a ordem">⠿</span>
       <span class="chave"></span><span class="nome">${esc(l.nome)}</span>
       ${l.padrao ? "" : `<button class="remover" data-remover="${i}" title="Remover esta loja">✕</button>`}
     </div>`).join("");
@@ -58,6 +59,52 @@ $("lojas").addEventListener("click", async (e) => {
   desenharLojas();
   lojas = await api().marcar_lojas({ [l.url]: l.marcada });
 });
+// arrastar uma loja para mudar a ordem (vale para as próximas buscas)
+let arrastando = null;
+$("lojas").addEventListener("dragstart", (e) => {
+  const el = e.target.closest(".loja");
+  if (!el) return;
+  arrastando = +el.dataset.i;
+  el.classList.add("arrastando");
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", "");
+});
+function limparMarcas() {
+  document.querySelectorAll(".loja.antes, .loja.depois").forEach((x) => x.classList.remove("antes", "depois"));
+}
+function destino(e) {
+  const el = e.target.closest(".loja");
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { el, i: +el.dataset.i, depois: e.clientY > r.top + r.height / 2 };
+}
+$("lojas").addEventListener("dragover", (e) => {
+  if (arrastando === null) return;
+  e.preventDefault();
+  const d = destino(e);
+  limparMarcas();
+  if (d && d.i !== arrastando) d.el.classList.add(d.depois ? "depois" : "antes");
+});
+$("lojas").addEventListener("drop", async (e) => {
+  e.preventDefault();
+  const d = destino(e);
+  limparMarcas();
+  if (arrastando === null || !d || d.i === arrastando) return;
+  const [loja] = lojas.splice(arrastando, 1);
+  let para = d.i + (d.depois ? 1 : 0);
+  if (arrastando < para) para -= 1;
+  lojas.splice(para, 0, loja);
+  arrastando = null;
+  desenharLojas();
+  lojas = await api().ordenar_lojas(lojas.map((l) => l.url));
+  desenharLojas();
+});
+$("lojas").addEventListener("dragend", () => {
+  arrastando = null;
+  limparMarcas();
+  document.querySelectorAll(".loja.arrastando").forEach((x) => x.classList.remove("arrastando"));
+});
+
 async function marcarTodas(valor) {
   const m = {};
   lojas.forEach((l) => { l.marcada = valor; m[l.url] = valor; });
@@ -88,8 +135,21 @@ $("pergunta-sim").onclick = () => responder(true);
 $("pergunta-nao").onclick = () => responder(false);
 $("pergunta").addEventListener("mousedown", (e) => { if (e.target === $("pergunta")) responder(false); });
 
+// confere, enquanto a pessoa digita, se parece o endereço de um site (o Python confere de novo e abre o site)
+function pareceLink(texto) {
+  const t = texto.trim().replace(/^https?:\/\//i, "").split(/[/?#]/)[0].toLowerCase();
+  return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(:\d+)?$/.test(t);
+}
+$("loja-link").addEventListener("input", () => {
+  const v = $("loja-link").value;
+  const ok = pareceLink(v);
+  $("adicionar-loja").disabled = !ok;
+  $("loja-erro").textContent = v.trim() && !ok ? "Isso ainda não parece o link de um site. Exemplo: www.minhaloja.com.br" : "";
+});
+
 function abrirModal() {
   $("loja-link").value = ""; $("loja-nome").value = ""; $("loja-erro").textContent = "";
+  $("adicionar-loja").disabled = true; $("adicionar-loja").textContent = "Adicionar";
   $("modal").hidden = false;
   $("loja-link").focus();
 }
@@ -99,7 +159,10 @@ $("cancelar-loja").onclick = fecharModal;
 $("modal").addEventListener("mousedown", (e) => { if (e.target === $("modal")) fecharModal(); });
 $("form-loja").addEventListener("submit", async (e) => {
   e.preventDefault();
+  if (!pareceLink($("loja-link").value)) return;
+  $("adicionar-loja").disabled = true; $("adicionar-loja").textContent = "Conferindo o site…";
   const r = await api().adicionar_loja($("loja-link").value, $("loja-nome").value);
+  $("adicionar-loja").disabled = false; $("adicionar-loja").textContent = "Adicionar";
   if (r.erro) { $("loja-erro").textContent = r.erro; return; }
   lojas = r.lojas; desenharLojas(); fecharModal();
 });
@@ -192,7 +255,7 @@ async function buscar(semHistorico = false) {
   tela.lojasTotal = tela.pendentes = r.lojas.length;
   for (const l of r.lojas) {
     tela.ordem.push(l.url);
-    tela.res[l.url] = { loja: { nome: l.nome, url: l.url, cor: l.cor, cor2: l.cor2, logo: l.logo }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
+    tela.res[l.url] = { loja: { nome: l.nome, url: l.url, cor: l.cor, cor2: l.cor2, logo: l.logo, padrao: l.padrao }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
   }
   $("carta").value = r.carta;
   textoRecolher(false);
@@ -281,8 +344,10 @@ function textoStatus(r) {
     case "soldout": return ["soldout", "Cadastrada, mas indisponível"];
     case "none": return ["none", "Não encontrada"];
     case "blocked": return ["blocked", "⚠ A loja bloqueou a leitura: abra no navegador"];
-    case "unknown": return ["unknown", "⚠ Não consegui ler: abra no navegador"];
-    default: return ["error", "⚠ Falha de conexão: abra no navegador" + (r.msg ? ` (${esc(r.msg.slice(0, 70))})` : "")];
+    case "unknown": return ["unknown", r.loja.padrao ? "⚠ Não consegui ler: abra no navegador"
+      : "⚠ Não consegui ler os resultados: confira se o link da loja está certo ou abra no navegador"];
+    default: return ["error", (r.loja.padrao ? "⚠ Não consegui acessar o site: abra no navegador"
+      : "⚠ Não consegui acessar o site: confira se o link da loja está certo") + (r.msg ? ` (${esc(r.msg.slice(0, 70))})` : "")];
   }
 }
 

@@ -25,7 +25,7 @@ Python 3.10 ou mais novo. Dependências: `requests`, `beautifulsoup4` (o app abr
 As importações dentro do pacote são absolutas (`from buscador.config import ...`).
 
 1. **`config.py`**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`), constantes de limites (`AUTO_*`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`) e `app_dir()` (pasta do programa, que é a pasta *acima* de `buscador/`, ou a do `.exe`).
-2. **`armazenamento.py`**: `lojas.json` (lojas e seleção) e `config.json` (preferências), na pasta de `app_dir()` (projeto pelo código-fonte; `%APPDATA%\BuscadorMTG` no `.exe`); `normalize_base`, `host_key`.
+2. **`armazenamento.py`**: `lojas.json` (lojas, seleção e, se a pessoa arrastou, a ordem: `manual_order`) e `config.json` (preferências), na pasta de `app_dir()` (projeto pelo código-fonte; `%APPDATA%\BuscadorMTG` no `.exe`); `normalize_base`, `host_key`.
 3. **`modelos.py`**: `Item`, `StoreResult`, `Offer`.
 4. **`texto.py`**: `norm`, `clean_card_name`, `strip_suffix`, `money`, `age_text`, `offer_desc`.
 5. **`lojas/ligamagic.py`**: só leitura de HTML, **sem requisições**: `build_search_url`, `parse_results`, `product_from_page`, `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço, promoção e observação da loja), `theme_color` e `theme_logo` (cor principal e logo do site) e os marcadores de bloqueio/sem resultado. Uma loja de outro padrão ganha um módulo próprio em `lojas/`.

@@ -38,7 +38,8 @@ def resultado(res, nomes=None):
 
 def aparencia(s):
     """Cores e logo da loja, para o cartão de resultados."""
-    return {"cor": s.get("color") or "", "cor2": s.get("color2") or "", "logo": s.get("logo") or ""}
+    return {"cor": s.get("color") or "", "cor2": s.get("color2") or "", "logo": s.get("logo") or "",
+            "padrao": bool(s.get("builtin"))}
 
 
 def loja(s):

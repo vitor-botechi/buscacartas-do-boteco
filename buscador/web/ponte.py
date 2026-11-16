@@ -135,14 +135,24 @@ class Ponte:
         save_stores(self._lojas)
         return [serializar.loja(s) for s in self._lojas]
 
+    def ordenar_lojas(self, urls):
+        """Nova ordem das lojas (arrastadas na lista), na mesma ordem das próximas buscas."""
+        pos = {u: i for i, u in enumerate(urls or [])}
+        with self._lock:
+            self._lojas.sort(key=lambda s: pos.get(s["url"], len(pos)))
+            save_stores(self._lojas, manual_order=True)
+            return [serializar.loja(s) for s in self._lojas]
+
     def adicionar_loja(self, link, nome=""):
         try:
             base = normalize_base(link or "")
         except ValueError:
-            return {"erro": "Confira o link da loja."}
+            return {"erro": "Isso não parece o link de um site. Exemplo: www.minhaloja.com.br"}
         if any(host_key(s["url"]) == host_key(base) for s in self._lojas):
             return {"erro": "Essa loja já está na lista."}
-        cor, logo = fetch_store_look(base)  # cor e logo do site, para o destaque do cartão
+        ok, cor, logo = fetch_store_look(base)  # confere o site e lê cor e logo, para o cartão
+        if not ok:
+            return {"erro": f"Não consegui acessar {base}. Confira se o link está certo."}
         with self._lock:
             if any(host_key(s["url"]) == host_key(base) for s in self._lojas):
                 return {"erro": "Essa loja já está na lista."}
