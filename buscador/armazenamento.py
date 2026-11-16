@@ -64,6 +64,7 @@ def load_stores():
                     "name": s.get("name") or default_name(s["url"]),
                     "url": s["url"],
                     "color": s.get("color") or "",
+                    "logo": s.get("logo") or "",
                     "builtin": False,
                     "enabled": bool(s.get("enabled", True)),
                 }

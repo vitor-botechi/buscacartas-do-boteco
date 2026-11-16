@@ -136,6 +136,23 @@ def product_from_page(html, page_url):
 COLOR_RE = re.compile(r"--color-primary\s*:\s*(#[0-9a-fA-F]{6})\b")
 
 
+LOGO_RE = re.compile(r"""src=["']((?:https?:)?//[^"']+/ecom/logo/[^"']+\.(?:jpe?g|png|gif|webp|svg))["']""", re.I)
+
+
+def web_image(src):
+    """Endereço completo (https) de uma imagem da loja, ou "" se não for uma imagem da web."""
+    src = (src or "").strip()
+    if src.startswith("//"):
+        src = "https:" + src
+    return src if re.match(r"https://[^\s\"'<>]+$", src) else ""
+
+
+def theme_logo(html):
+    """Logo da loja na página inicial (padrão LigaMagic: imagem em .../ecom/logo/...)."""
+    m = LOGO_RE.search(html or "")
+    return web_image(m.group(1)) if m else ""
+
+
 def theme_color(html):
     """Cor principal do site da loja (variável --color-primary do padrão LigaMagic).
 
@@ -184,6 +201,7 @@ def parse_product_page(html):
             edition = tip.get_text(strip=True)
         lang_img = cells[1].select_one("img")
         language = (lang_img.get("title") or lang_img.get("alt") or "") if lang_img else ""
+        flag = web_image(lang_img.get("src")) if lang_img else ""
 
         q_cell = row.select_one(".quality")
         quality = ""
@@ -212,7 +230,7 @@ def parse_product_page(html):
         price = prices[-1] if prices else None
         original = prices[0] if len(prices) >= 2 and prices[0] > prices[-1] else None
 
-        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date, note))
+        offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date, note, flag))
 
     if not offers or all(o.stock is None and o.price is None for o in offers):
         return [], "unreadable"  # existem linhas, mas os números não vieram como texto

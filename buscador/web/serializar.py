@@ -10,7 +10,7 @@ def oferta(o):
     return {
         "edicao": o.edition, "idioma": o.language, "qualidade": o.quality, "extras": o.extras,
         "estoque": o.stock, "preco": o.price, "preco_original": o.original_price, "promo": promo,
-        "pre": o.preorder, "pre_data": o.preorder_date, "obs": o.note,
+        "pre": o.preorder, "pre_data": o.preorder_date, "obs": o.note, "bandeira": o.language_flag,
     }
 
 
@@ -30,12 +30,16 @@ def item(it, nomes=None):
 
 def resultado(res, nomes=None):
     return {
-        "loja": {"nome": res.store["name"], "url": res.store["url"], "cor": res.store.get("color") or ""},
+        "loja": {**aparencia(res.store), "nome": res.store["name"], "url": res.store["url"]},
         "url_busca": res.search_url, "status": res.status, "msg": res.msg,
         "itens": [item(i, nomes) for i in res.items],
     }
 
 
+def aparencia(s):
+    """Cores e logo da loja, para o cartão de resultados."""
+    return {"cor": s.get("color") or "", "cor2": s.get("color2") or "", "logo": s.get("logo") or ""}
+
+
 def loja(s):
-    return {"nome": s["name"], "url": s["url"], "padrao": s["builtin"], "marcada": s["enabled"],
-            "cor": s.get("color") or ""}
+    return {"nome": s["name"], "url": s["url"], "padrao": s["builtin"], "marcada": s["enabled"], **aparencia(s)}

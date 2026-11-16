@@ -36,7 +36,7 @@ from buscador.config import (
     STALE_AFTER,
 )
 from buscador.lojas.ligamagic import build_search_url
-from buscador.rede import HAS_SCRAPING, fetch_product, fetch_store_color, safe_search
+from buscador.rede import HAS_SCRAPING, fetch_product, fetch_store_look, safe_search
 from buscador.scryfall import matches_exact, resolve_names
 from buscador.texto import clean_card_name, norm
 from buscador.web import serializar
@@ -142,12 +142,13 @@ class Ponte:
             return {"erro": "Confira o link da loja."}
         if any(host_key(s["url"]) == host_key(base) for s in self._lojas):
             return {"erro": "Essa loja já está na lista."}
-        cor = fetch_store_color(base) or ""  # cor do site, para o destaque do cartão
+        cor, logo = fetch_store_look(base)  # cor e logo do site, para o destaque do cartão
         with self._lock:
             if any(host_key(s["url"]) == host_key(base) for s in self._lojas):
                 return {"erro": "Essa loja já está na lista."}
             self._lojas.append({"name": (nome or "").strip() or default_name(base),
-                                "url": base, "builtin": False, "enabled": True, "color": cor})
+                                "url": base, "builtin": False, "enabled": True,
+                                "color": cor or "", "logo": logo or ""})
         save_stores(self._lojas)
         return {"lojas": [serializar.loja(s) for s in self._lojas]}
 
@@ -259,7 +260,7 @@ class Ponte:
             nomes_prontos.set()
         threading.Thread(target=trabalho, daemon=True).start()
         return {"sid": sid, "carta": carta,
-                "lojas": [{"nome": s["name"], "url": s["url"], "cor": s.get("color") or "",
+                "lojas": [{**serializar.aparencia(s), "nome": s["name"], "url": s["url"],
                            "url_busca": build_search_url(s["url"], carta)}
                           for s in lojas]}
 

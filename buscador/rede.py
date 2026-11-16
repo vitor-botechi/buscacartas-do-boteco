@@ -20,6 +20,7 @@ from buscador.lojas.ligamagic import (
     parse_results,
     product_from_page,
     theme_color,
+    theme_logo,
 )
 from buscador.modelos import Item, StoreResult
 
@@ -28,15 +29,20 @@ from buscador.modelos import Item, StoreResult
 HAS_SCRAPING = requests is not None and BeautifulSoup is not None
 
 
-def fetch_store_color(base):
-    """Cor principal de uma loja nova, lida da página inicial (uma requisição só, ao adicionar a loja)."""
+def fetch_store_look(base):
+    """Cor principal e logo de uma loja nova, lidas da página inicial (uma requisição só, ao adicionar).
+
+    Devolve (cor ou None, endereço da logo ou "").
+    """
     if not HAS_SCRAPING:
-        return None
+        return None, ""
     try:
         r = requests.get(base + "/", headers=HEADERS, timeout=TIMEOUT)
     except requests.RequestException:
-        return None
-    return theme_color(r.text) if r.status_code == 200 else None
+        return None, ""
+    if r.status_code != 200:
+        return None, ""
+    return theme_color(r.text), theme_logo(r.text)
 
 
 def save_debug(store, url, r):

@@ -1,6 +1,6 @@
 """Cor principal do site da loja e observação que a loja coloca numa oferta."""
 
-from buscador.lojas.ligamagic import product_from_page, theme_color
+from buscador.lojas.ligamagic import parse_product_page, product_from_page, theme_color, theme_logo, web_image
 from buscador.texto import offer_desc
 
 
@@ -24,3 +24,32 @@ def test_observacao_vira_campo_separado_dos_extras(pagina):
     assert "6x no cartão" in o.note and "{{br}}" not in o.note
     assert "contém observação" in offer_desc(o)
     assert all("observa" not in x.extras.lower() for x in ofertas)
+
+
+def test_logo_da_pagina_inicial():
+    html = '<a href="./"><img src="//repositorio.sbrauble.com/arquivos/up/ecom/logo/abc-123.jpg"/></a>'
+    assert theme_logo(html) == "https://repositorio.sbrauble.com/arquivos/up/ecom/logo/abc-123.jpg"
+    assert theme_logo("<img src='/imagens/banner.jpg'>") == ""
+
+
+def test_so_imagens_da_web():
+    assert web_image("//cdn.loja/x.svg") == "https://cdn.loja/x.svg"
+    assert web_image("https://cdn.loja/x.svg") == "https://cdn.loja/x.svg"
+    assert web_image("javascript:alert(1)") == ""
+    assert web_image('https://a/"onerror="x') == ""
+
+
+def test_bandeira_do_idioma():
+    linha = """
+    <div class="table-cards-row">
+      <div class="table-cards-body-cell"><img class="icon-edicao" title="Fallout"></div>
+      <div class="table-cards-body-cell"><img src='https://www.lmcorp.com.br/images/bandeiras/pten.svg'
+           title='Português / Inglês'></div>
+      <div class="table-cards-body-cell quality"><i>NM</i></div>
+      <div class="table-cards-body-cell card-extras">-</div>
+      <div class="table-cards-body-cell">2 unid.</div>
+      <div class="table-cards-body-cell card-preco">R$ 10,00</div>
+    </div>"""
+    ofertas, _ = parse_product_page(linha)
+    assert ofertas[0].language == "Português / Inglês"
+    assert ofertas[0].language_flag == "https://www.lmcorp.com.br/images/bandeiras/pten.svg"

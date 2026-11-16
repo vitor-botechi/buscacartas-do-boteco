@@ -47,7 +47,8 @@ def ponte(monkeypatch, tmp_path):
     monkeypatch.setattr(armazenamento, "SETTINGS_FILE", str(tmp_path / "config.json"))
     monkeypatch.setattr(automatico, "AUTO_DELAY", 0)
     monkeypatch.setattr(ponte_mod, "HAS_SCRAPING", True)
-    monkeypatch.setattr(ponte_mod, "fetch_store_color", lambda base: "#123456")  # sem requisição
+    monkeypatch.setattr(ponte_mod, "fetch_store_look",  # sem requisição
+                        lambda base: ("#123456", "https://cdn/logo.jpg"))
     p = Ponte(JanelaFalsa())
     # só a Overrun marcada, para os testes ficarem simples
     p.marcar_lojas({s["url"]: s["name"] == "Overrun" for s in p._lojas})
@@ -80,7 +81,7 @@ def lojas_falsas(monkeypatch, pagina):
 def test_iniciar_traz_lojas_e_preferencias(ponte):
     cfg = ponte.iniciar()
     assert [l["nome"] for l in cfg["lojas"]][:4] == ["Deckmaster Games", "Overrun", "Jackpot Jogos", "Legacy TCG"]
-    assert all(l["cor"].startswith("#") for l in cfg["lojas"][:4])  # cada loja padrão tem a sua cor
+    assert all(l["cor"].startswith("#") and l["logo"].startswith("https://") for l in cfg["lojas"][:4])
     assert cfg["auto_limite"] == 5 and cfg["auto_max"] == 10
     assert cfg["tem_bibliotecas"] is True
     assert "_janela" not in dir(type(ponte))  # estado interno não vira função da página
@@ -92,7 +93,7 @@ def test_adicionar_e_remover_loja(ponte):
     lojas = ponte.adicionar_loja("www.minhaloja.com.br", "")["lojas"]
     nova = lojas[-1]
     assert (nova["nome"], nova["url"], nova["padrao"]) == ("Minhaloja", "https://www.minhaloja.com.br", False)
-    assert nova["cor"] == "#123456"  # cor lida do site da loja
+    assert (nova["cor"], nova["logo"]) == ("#123456", "https://cdn/logo.jpg")  # lidas do site da loja
     salva = Ponte().iniciar()["lojas"][-1]
     assert (salva["url"], salva["cor"]) == (nova["url"], "#123456")  # ficou salva, com a cor
     lojas = ponte.remover_loja(nova["url"])
@@ -129,7 +130,7 @@ def test_buscar_manda_o_resultado_e_os_detalhes_automaticos(ponte, lojas_falsas)
     assert loja == "https://www.overrun.com.br"
     assert ofertas[0] == {"edicao": "Star Trek Commander", "idioma": "Inglês", "qualidade": "NM", "extras": "",
                           "estoque": 8, "preco": 6.9, "preco_original": None, "promo": 0,
-                          "pre": True, "pre_data": "13/11/2026", "obs": ""}
+                          "pre": True, "pre_data": "13/11/2026", "obs": "", "bandeira": ""}
     assert len(lojas_falsas) == 2  # uma página por item, nunca mais
 
 

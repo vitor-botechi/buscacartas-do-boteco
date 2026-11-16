@@ -61,10 +61,10 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
   background: #1f2937; color: #fff; font-size: 12.5px; padding: 6px 10px; border-radius: 8px; white-space: nowrap;
   opacity: 0; pointer-events: none; transition: opacity .15s;
 }
-.dica:hover::after, .dica:focus-visible::after, .dica.lembrar::after { opacity: 1; transition-delay: .35s; }
+.dica:hover::after, .dica:focus-visible::after { opacity: 1; transition-delay: .35s; }
 .dica-longa::after { white-space: pre; text-align: left; line-height: 1.5; padding: 8px 12px; }
-/* o foco volta sozinho para "Colar nome": a dica longa só aparece no lembrete e ao passar o mouse */
-.dica-longa:focus-visible:not(.lembrar):not(:hover)::after { opacity: 0; transition-delay: 0s; }
+/* o foco volta sozinho para "Colar nome": a dica longa só aparece ao passar o mouse */
+.dica-longa:focus-visible:not(:hover)::after { opacity: 0; transition-delay: 0s; }
 .link { border: 0; background: none; padding: 2px 0; color: var(--cinza); cursor: pointer; }
 .link:hover:not(:disabled) { color: var(--texto); text-decoration: underline; }
 .link:disabled { opacity: .45; cursor: default; }
@@ -84,11 +84,15 @@ main { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 18
 .cartao { background: var(--branco); border: 1px solid var(--linha); border-radius: 14px; margin-bottom: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(15, 23, 42, .05); }
 .cab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; cursor: pointer; user-select: none; background: #fbfcfd; }
 .cab .nome { font-weight: 700; font-size: 16px; }
-/* faixa e fundo bem claro na cor da loja (--cor-loja, definida em cada cartão) */
-.cartao > .cab { box-shadow: inset 4px 0 0 var(--cor-loja); background: color-mix(in srgb, var(--cor-loja) 7%, #fff); }
+/* faixa (nas duas cores da logo) e fundo bem claro na cor da loja (--cor-loja e --cor-loja2, de cada cartão) */
+.cartao > .cab { position: relative; background: color-mix(in srgb, var(--cor-loja2) 8%, #fff); }
+.cartao > .cab::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 5px; background: linear-gradient(var(--cor-loja2), var(--cor-loja)); }
+.cab .logo { height: 30px; max-width: 76px; object-fit: contain; border-radius: 6px; box-shadow: 0 0 0 1px rgba(0,0,0,.08); background: #fff; }
 .cartao:not(.fechado) > .cab { border-bottom: 1px solid var(--linha); }
 .cartao.apagada { background: #fcfcfd; box-shadow: none; }
-.cartao.apagada > .cab { box-shadow: inset 4px 0 0 color-mix(in srgb, var(--cor-loja) 35%, #fff); background: color-mix(in srgb, var(--cor-loja) 3%, #fff); }
+.cartao.apagada > .cab { background: color-mix(in srgb, var(--cor-loja2) 3%, #fff); }
+.cartao.apagada > .cab::before { opacity: .35; }
+.cartao.apagada > .cab .logo { opacity: .45; }
 .cartao.apagada > .cab .nome, .cartao.apagada > .cab .status { opacity: .5; }
 .seta { width: 14px; color: var(--cinza); transition: transform .15s; flex-shrink: 0; text-align: center; }
 .fechado > .cab .seta, .fechado > .item-cab .seta { transform: rotate(-90deg); }
@@ -119,7 +123,7 @@ td { padding: 6px 10px; border-top: 1px solid #f3f4f6; white-space: nowrap; over
 td.edicao { padding-left: 62px; white-space: normal; }
 td.extras, td.pt, td.en { white-space: normal; }  /* "Português/Inglês" quebra a linha em vez de cortar */
 td.extras .etq { margin: 1px 0; }
-tr.oferta { cursor: default; }
+tr.oferta { cursor: pointer; }  /* um clique abre a página na loja */
 tr.oferta:hover td { background: #f8fafb; }
 .etq { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 6px; font-weight: 500; white-space: nowrap; }
 .q-M { background: var(--q-m-claro); color: var(--q-m); }
@@ -134,6 +138,7 @@ tr.oferta:hover td { background: #f8fafb; }
 .promo { background: var(--rosa-claro); color: var(--rosa); }
 .obs { background: var(--azul-claro); color: var(--azul); cursor: help; }
 .pt { color: var(--azul); }
+.bandeira { width: 16px; height: 16px; vertical-align: -3px; margin-right: 6px; border-radius: 3px; }
 .en, .un { color: var(--cinza); }
 .preco { text-align: right; font-weight: 600; padding-right: 18px; }
 .riscado { color: var(--cinza); font-weight: 400; text-decoration: line-through; font-size: 12px; margin-right: 6px; }
@@ -154,6 +159,9 @@ footer { display: flex; align-items: flex-start; gap: 12px; padding-top: 8px; co
 .modal label { display: block; font-size: 13px; color: var(--cinza); margin-bottom: 10px; }
 .modal input { display: block; width: 100%; margin-top: 4px; padding: 8px 10px; border: 1px solid #d6dbe1; border-radius: 8px; color: var(--texto); }
 .modal input:focus { outline: 0; border-color: var(--verde); box-shadow: 0 0 0 3px var(--verde-claro); }
+.pergunta-texto { margin: 0 0 18px; color: var(--cinza); line-height: 1.5; }
+.btn.primario.perigo { background: var(--vermelho); border-color: var(--vermelho); }
+.btn.primario.perigo:hover:not(:disabled) { background: #7f1616; }
 .erro { color: var(--vermelho); font-size: 13px; min-height: 18px; margin: 0 0 8px; }
 .botoes { display: flex; justify-content: flex-end; gap: 8px; }
 .botoes .btn { padding: 7px 16px; }

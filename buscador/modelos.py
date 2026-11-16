@@ -35,3 +35,4 @@ class Offer:
     original_price: float | None = None  # preço riscado, quando a oferta está em promoção
     preorder_date: str = ""  # previsão de envio da pré-venda (ex.: "13/11/2026")
     note: str = ""  # observação que a loja colocou na oferta ("Visualizar observação")
+    language_flag: str = ""  # endereço da bandeira que a loja usa para o idioma

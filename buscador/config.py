@@ -6,12 +6,19 @@ import sys
 
 
 # Lojas que já vêm no programa. Para incluir mais por padrão, basta adicionar aqui.
-# color: cor principal da loja (do logotipo ou do site), usada no destaque do cartão de resultados
+# Aparência de cada loja no cartão de resultados, tirada da logo:
+# color = cor principal (faixa, fundo e botões; escura o bastante para texto),
+# color2 = segunda cor da logo (opcional), logo = endereço da logo no site da loja.
+_LOGO = "https://repositorio.sbrauble.com/arquivos/up/ecom/logo/"
 DEFAULT_STORES = [
-    {"name": "Deckmaster Games", "url": "https://www.deckmastergames.com.br", "color": "#00758f"},
-    {"name": "Overrun", "url": "https://www.overrun.com.br", "color": "#8b1418"},
-    {"name": "Jackpot Jogos", "url": "https://www.jackpotjogos.com.br", "color": "#00a443"},
-    {"name": "Legacy TCG", "url": "https://www.legacytcg.com.br", "color": "#0b3d63"},
+    {"name": "Deckmaster Games", "url": "https://www.deckmastergames.com.br", "color": "#9b1219", "color2": "#e3c902",
+     "logo": _LOGO + "631a2bcfac179-t24ac-2uvhb-1812612191631a2bcfac20d.jpg"},
+    {"name": "Overrun", "url": "https://www.overrun.com.br", "color": "#8b1418",
+     "logo": _LOGO + "628788f5e7069-ugon3-qys8u-1764028231628788f5e70b5.jpg"},
+    {"name": "Jackpot Jogos", "url": "https://www.jackpotjogos.com.br", "color": "#00a443",
+     "logo": _LOGO + "62bf4165a522e-ou4qf-qi9a6-94855302662bf4165a5272.jpg"},
+    {"name": "Legacy TCG", "url": "https://www.legacytcg.com.br", "color": "#0b3d63",
+     "logo": _LOGO + "6a24662356396-fw8kx-t1cuj-18574839646a2466235639d.jpg"},
 ]
 
 # Padrão de busca das lojas LigaMagic: só itens COM ESTOQUE, do menor para o maior

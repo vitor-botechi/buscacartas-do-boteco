@@ -45,7 +45,10 @@ $("lojas").addEventListener("click", async (e) => {
   const rem = e.target.closest("[data-remover]");
   if (rem) {
     const l = lojas[+rem.dataset.remover];
-    if (confirm(`Remover a loja “${l.nome}”?`)) { lojas = await api().remover_loja(l.url); desenharLojas(); }
+    const sim = await perguntar(`Remover a loja ${l.nome}?`,
+      "Ela sai da lista e deixa de ser pesquisada. Para voltar a usá-la, é só adicioná-la de novo em “+ Adicionar loja”.",
+      "Remover", true);
+    if (sim) { lojas = await api().remover_loja(l.url); desenharLojas(); }
     return;
   }
   const el = e.target.closest(".loja");
@@ -63,6 +66,27 @@ async function marcarTodas(valor) {
 }
 $("todas").onclick = () => marcarTodas(true);
 $("nenhuma").onclick = () => marcarTodas(false);
+
+/* janela de pergunta (no lugar do confirm() do navegador, que mostra "127.0.0.1 diz") */
+let respostaPergunta = null;
+function perguntar(titulo, texto, sim, perigo = false) {
+  $("pergunta-titulo").textContent = titulo;
+  $("pergunta-texto").textContent = texto;
+  $("pergunta-sim").textContent = sim;
+  $("pergunta-sim").classList.toggle("perigo", perigo);
+  $("pergunta").hidden = false;
+  $("pergunta-nao").focus();  // o padrão é não fazer nada
+  return new Promise((resolve) => { respostaPergunta = resolve; });
+}
+function responder(valor) {
+  if ($("pergunta").hidden) return;
+  $("pergunta").hidden = true;
+  const r = respostaPergunta; respostaPergunta = null;
+  if (r) r(valor);
+}
+$("pergunta-sim").onclick = () => responder(true);
+$("pergunta-nao").onclick = () => responder(false);
+$("pergunta").addEventListener("mousedown", (e) => { if (e.target === $("pergunta")) responder(false); });
 
 function abrirModal() {
   $("loja-link").value = ""; $("loja-nome").value = ""; $("loja-erro").textContent = "";
@@ -107,16 +131,11 @@ $("colar").addEventListener("keydown", (e) => {
   }
 });
 // ao voltar para o programa (Alt+Tab), o foco vai para "Colar nome": Enter cola, Enter de novo busca
-// e a dica do botão aparece por alguns segundos, para lembrar do atalho
-let lembrete;
+// (a dica que explica isso só aparece ao passar o mouse no botão)
 window.addEventListener("focus", () => {
-  if (!$("modal").hidden) return;
+  if (!$("modal").hidden || !$("pergunta").hidden) return;
   setTimeout(() => $("colar").focus(), 30);
-  $("colar").classList.add("lembrar");
-  clearTimeout(lembrete);
-  lembrete = setTimeout(() => $("colar").classList.remove("lembrar"), 3500);
 });
-$("colar").addEventListener("blur", () => $("colar").classList.remove("lembrar"));
 
 $("buscar").onclick = () => buscar();
 $("carta").addEventListener("keydown", (e) => { if (e.key === "Enter") buscar(); });
@@ -134,7 +153,8 @@ $("avancar").onclick = () => navegar(avancar, historico);
 document.addEventListener("keydown", (e) => {
   if (e.altKey && e.key === "ArrowLeft") { e.preventDefault(); navegar(historico, avancar); }
   if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navegar(avancar, historico); }
-  if (e.key === "Escape" && !$("modal").hidden) fecharModal();
+  if (e.key === "Escape" && !$("pergunta").hidden) responder(false);
+  else if (e.key === "Escape" && !$("modal").hidden) fecharModal();
 });
 $("abrir-achadas").onclick = () => {
   const urls = tela.ordem.map((u) => tela.res[u]).filter((r) => r && (temCarta(r) || ["blocked", "unknown", "error"].includes(r.status)))
@@ -157,7 +177,9 @@ async function buscar(semHistorico = false) {
   if (!semHistorico) guardarNoHistorico(carta.trim());
   const r = await api().buscar(carta, $("exato").checked, $("auto").value);
   if (r.erro === "sem_bibliotecas") {
-    if (confirm("Para ler os resultados é preciso instalar:\n\n  pip install requests beautifulsoup4\n\nQuer abrir as buscas no navegador por enquanto?")) {
+    if (await perguntar("Faltam bibliotecas",
+      "Para ler os resultados aqui dentro é preciso instalar: pip install requests beautifulsoup4. Quer abrir as buscas no navegador por enquanto?",
+      "Abrir no navegador")) {
       api().abrir_lojas(carta);
     }
     return;
@@ -170,7 +192,7 @@ async function buscar(semHistorico = false) {
   tela.lojasTotal = tela.pendentes = r.lojas.length;
   for (const l of r.lojas) {
     tela.ordem.push(l.url);
-    tela.res[l.url] = { loja: { nome: l.nome, url: l.url, cor: l.cor }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
+    tela.res[l.url] = { loja: { nome: l.nome, url: l.url, cor: l.cor, cor2: l.cor2, logo: l.logo }, url_busca: l.url_busca, status: "buscando", msg: "", itens: [] };
   }
   $("carta").value = r.carta;
   textoRecolher(false);
@@ -271,6 +293,12 @@ function qualidade(q) {
 
 const COLUNAS = '<colgroup><col class="c-edicao"><col class="c-idioma"><col class="c-qual"><col class="c-estoque"><col class="c-extras"><col class="c-preco"></colgroup>';
 
+// bandeira que a própria loja usa para o idioma (só imagens da web, nunca outro tipo de endereço)
+function bandeira(url, idioma) {
+  if (!/^https:\/\/[^\s"'<>]+\.(svg|png|gif|jpg)$/i.test(url || "")) return "";
+  return `<img class="bandeira" src="${esc(url)}" alt="" title="${esc(idioma)}" onerror="this.remove()">`;
+}
+
 function linhaOferta(o, itemUrl) {
   const extras = [];
   if (o.pre) {
@@ -286,9 +314,9 @@ function linhaOferta(o, itemUrl) {
 ${esc(o.obs)}">Contém obs.</span>`);
   const riscado = o.preco_original ? `<span class="riscado">${dinheiro(o.preco_original)}</span>` : "";
   const lang = o.idioma === "Português" ? "pt" : "en";
-  return `<tr class="oferta" data-abrir="${esc(itemUrl)}" title="Duplo clique abre a página na loja">
+  return `<tr class="oferta" data-abrir="${esc(itemUrl)}" title="Clique para abrir a página na loja">
     <td class="edicao">${esc(o.edicao)}</td>
-    <td class="${lang}">${esc(o.idioma || "—")}</td>
+    <td class="${lang}">${bandeira(o.bandeira, o.idioma)}${esc(o.idioma || "—")}</td>
     <td>${qualidade(o.qualidade)}</td>
     <td class="un">${o.estoque ?? "?"} un.</td>
     <td class="extras">${extras.join(" ")}</td>
@@ -339,10 +367,14 @@ function blocoLoja(url) {
   }
   const temItens = mostrar.length > 0;
   const apagada = ["none", "soldout", "exato"].includes(cls);  // sem a carta: fica mais clara que as outras
-  const cor = /^#[0-9a-f]{6}$/i.test(r.loja.cor || "") ? r.loja.cor : "#6b7280";  // cor da loja no destaque
-  return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}" style="--cor-loja:${cor}">
+  const corOk = (c) => /^#[0-9a-f]{6}$/i.test(c || "");
+  const cor = corOk(r.loja.cor) ? r.loja.cor : "#6b7280";  // cor da loja: faixa, fundo e botões
+  const cor2 = corOk(r.loja.cor2) ? r.loja.cor2 : cor;      // segunda cor da logo (Deckmaster: amarelo)
+  const logo = /^https:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(r.loja.logo || "")
+    ? `<img class="logo" src="${esc(r.loja.logo)}" alt="" onerror="this.remove()">` : "";
+  return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}" style="--cor-loja:${cor};--cor-loja2:${cor2}">
     <div class="cab" data-loja="${esc(url)}"><span class="seta">${temItens ? "▾" : ""}</span>
-      <span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
+      ${logo}<span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
       <button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>
     <div class="corpo">${corpo}</div></div>`;
 }
@@ -385,15 +417,23 @@ function resumir() {
   if (conferir) msg += ` ${plural(conferir, "loja não pôde ser lida", "lojas não puderam ser lidas")}: confira no navegador.`;
   const seg = (Date.now() - tela.tempo) / 1000;
   if (seg >= 120) msg += ` 🕒 Resultados ${idade(seg)}.`;
-  if (ok) msg += " Duplo clique numa edição abre a página na loja. Do menor para o maior preço.";
+  if (ok) msg += " Clique numa edição para abrir a página na loja. Do menor para o maior preço.";
   avisar(msg, Boolean(tela.aviso || conferir));
   $("abrir-achadas").disabled = !(ok || conferir);
 }
 
 /* ---------------- cliques nos resultados ---------------- */
+// abre a página uma vez só, mesmo com clique duplo (ou cliques seguidos) no mesmo link
+let ultimaAberta = { url: "", quando: 0 };
+function abrirUmaVez(url) {
+  const agora = Date.now();
+  if (url === ultimaAberta.url && agora - ultimaAberta.quando < 1500) return;
+  ultimaAberta = { url, quando: agora };
+  api().abrir(url);
+}
 $("resultados").addEventListener("click", (e) => {
-  const abrir = e.target.closest(".abrir");
-  if (abrir) { api().abrir(abrir.dataset.abrir); return; }
+  const abrir = e.target.closest(".abrir, tr.oferta");
+  if (abrir) { abrirUmaVez(abrir.dataset.abrir); return; }
   const mais = e.target.closest("[data-mais]");
   if (mais) {
     const url = mais.dataset.mais;
@@ -416,10 +456,6 @@ $("resultados").addEventListener("click", (e) => {
     tela.fechadas[url] = !tela.fechadas[url];
     desenhar();
   }
-});
-$("resultados").addEventListener("dblclick", (e) => {
-  const linha = e.target.closest("tr.oferta");
-  if (linha) api().abrir(linha.dataset.abrir);
 });
 
 async function carregarDetalhes(k) {
