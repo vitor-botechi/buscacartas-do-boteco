@@ -126,3 +126,11 @@ def test_pagina_sem_imagens():
     from buscador.lojas.ligamagic import parse_product_page
     ofertas, _ = parse_product_page(open("tests/fixtures/produto_promocao.html", encoding="utf-8").read())
     assert all(o.image == "" and o.photos == [] for o in ofertas)
+
+
+def test_tela_recebe_so_quantas_fotos_a_loja_tem():
+    from buscador.lojas.ligamagic import parse_product_page
+    from buscador.web import serializar
+    ofertas, _ = parse_product_page(open("tests/fixtures/produto_fotos_da_loja.html", encoding="utf-8").read())
+    o = serializar.oferta(ofertas[0])
+    assert o["fotos"] == 2 and o["imagem"].startswith("https://")

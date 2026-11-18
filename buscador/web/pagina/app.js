@@ -394,6 +394,8 @@ function linhaOferta(o, itemUrl, nomeDoItem) {
     extras.push(`<span class="etq ${foil ? "foil" : "q-outro"}">${esc(o.extras.replace(/\s*,\s*/g, ", "))}</span>`);
   }
   if (o.promo) extras.push(`<span class="etq promo">-${o.promo}%</span>`);
+  if (o.fotos) extras.push(`<span class="etq fotos" title="A loja tirou ${o.fotos === 1 ? "uma foto" : o.fotos + " fotos"} deste item.
+Clique na linha para abrir a página na loja e ver.">📷 Fotos</span>`);
   if (o.obs) extras.push(`<span class="etq obs" title="Observação da loja:
 ${esc(o.obs)}">Contém obs.</span>`);
   const riscado = o.preco_original ? `<span class="riscado">${dinheiro(o.preco_original)}</span>` : "";
