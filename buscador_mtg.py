@@ -1,5 +1,5 @@
 """
-Buscador de Cartas Magic: The Gathering
+BuscaCartas do Boteco: busca cartas de Magic: The Gathering nas lojas
 ---------------------------------------
 Digite o nome da carta, escolha as lojas e veja num só lugar quais têm a carta
 e por quanto. Funciona com lojas no padrão LigaMagic.

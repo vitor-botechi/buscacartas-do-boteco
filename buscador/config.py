@@ -51,17 +51,21 @@ MAX_ITEMS_PER_STORE = 8
 DATA_FILES = ("lojas.json", "config.json")
 
 
-def user_data_dir():
-    """Pasta de dados do usuário no Windows: %APPDATA%/BuscadorMTG."""
+DATA_DIR_NAME = "BuscaCartas"
+OLD_DATA_DIR_NAME = "BuscadorMTG"  # nome da pasta até a versão 1.0.0
+
+
+def user_data_dir(name=DATA_DIR_NAME):
+    """Pasta de dados do usuário no Windows: %APPDATA%/BuscaCartas."""
     base = os.environ.get("APPDATA") or os.path.expanduser("~")
-    return os.path.join(base, "BuscadorMTG")
+    return os.path.join(base, name)
 
 
 def app_dir():
     """Pasta onde o programa guarda lojas.json, config.json e debug/.
 
     - Pelo código-fonte: a pasta do projeto (a de cima de buscador/), como sempre foi.
-    - No .exe (PyInstaller): %APPDATA%/BuscadorMTG. Assim o .exe funciona de qualquer lugar
+    - No .exe (PyInstaller): %APPDATA%/BuscaCartas. Assim o .exe funciona de qualquer lugar
       (Downloads, Área de Trabalho, de dentro de um zip) e as lojas e preferências continuam
       ao trocar por uma versão nova."""
     if getattr(sys, "frozen", False):
@@ -71,8 +75,9 @@ def app_dir():
 
 
 def migrate_from_exe_folder(exe_dir, data_dir):
-    """Até a versão 0.3.0 o .exe guardava lojas.json e config.json ao lado dele. Se a pasta de
-    dados ainda não tem esses arquivos e a pasta do .exe tem, copia (não apaga os antigos)."""
+    """Copia lojas.json e config.json de uma pasta antiga para a pasta de dados, se a pasta de dados
+    ainda não tem esses arquivos (não apaga os antigos). Usada para %APPDATA%/BuscadorMTG (nome
+    antigo, até a 1.0.0) e para a pasta do .exe (até a 0.3.0 os arquivos ficavam ao lado dele)."""
     try:
         os.makedirs(data_dir, exist_ok=True)
         for name in DATA_FILES:
@@ -84,6 +89,7 @@ def migrate_from_exe_folder(exe_dir, data_dir):
 
 
 if getattr(sys, "frozen", False):
+    migrate_from_exe_folder(user_data_dir(OLD_DATA_DIR_NAME), app_dir())
     migrate_from_exe_folder(os.path.dirname(sys.executable), app_dir())
 
 CONFIG_FILE = os.path.join(app_dir(), "lojas.json")

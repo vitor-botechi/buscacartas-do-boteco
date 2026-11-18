@@ -12,7 +12,7 @@ except ImportError:  # sem a biblioteca a busca interna fica desligada (ver rede
 from buscador.texto import norm, strip_suffix
 
 
-SCRY_HEADERS = {"User-Agent": "BuscadorMTG/1.0", "Accept": "application/json;q=0.9,*/*;q=0.8"}
+SCRY_HEADERS = {"User-Agent": "BuscaCartas/1.0", "Accept": "application/json;q=0.9,*/*;q=0.8"}
 SCRY_API = "https://api.scryfall.com"
 
 

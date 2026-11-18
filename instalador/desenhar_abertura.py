@@ -68,9 +68,9 @@ def main():
 
     # textos
     x = 270 * ESCALA
-    d.text((x, 104 * ESCALA), "Buscador", font=fonte(30, True), fill=TEXTO)
-    d.text((x, 140 * ESCALA), "de Cartas MTG", font=fonte(30, True), fill=VERDE_ESCURO)
-    d.text((x, 188 * ESCALA), "Abrindo…", font=fonte(13), fill=CINZA)
+    d.text((x, 104 * ESCALA), "BuscaCartas", font=fonte(30, True), fill=TEXTO)
+    d.text((x, 140 * ESCALA), "do Boteco", font=fonte(30, True), fill=VERDE_ESCURO)
+    d.text((x, 188 * ESCALA), "Abrindo o boteco…", font=fonte(13), fill=CINZA)
 
     d.rectangle((0, 0, L * ESCALA - 1, A * ESCALA - 1), outline="#c9ced6", width=ESCALA)  # borda: a tela não tem moldura
     img = img.resize((L, A), Image.LANCZOS).convert("RGB")

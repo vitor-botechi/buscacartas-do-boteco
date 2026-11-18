@@ -1,17 +1,17 @@
-"""Gera o programa para Windows (BuscadorMTG.exe), um arquivo único para publicar nas versões do GitHub.
+"""Gera o programa para Windows (BuscaCartas.exe), um arquivo único para publicar nas versões do GitHub.
 
 Uso (na pasta do projeto):
     py -m pip install -r instalador/requirements.txt
     py instalador/gerar_exe.py
 
-Resultado: dist/BuscadorMTG.exe, o arquivo publicado na página de versões do GitHub.
+Resultado: dist/BuscaCartas.exe, o arquivo publicado na página de versões do GitHub.
 
 Arquivo único (--onefile): a pessoa baixa e abre, de qualquer lugar, sem descompactar nada.
 Custo: abre uns segundos mais devagar, porque se descompacta numa pasta temporária a cada uso.
 Até a versão 0.3.0 era uma pasta num .zip, e quem abria o .exe de dentro do zip (sem a pasta
 _internal) via só uma janela de erro.
 
-O .exe grava lojas.json, config.json e debug/ em %APPDATA%/BuscadorMTG (ver config.app_dir).
+O .exe grava lojas.json, config.json e debug/ em %APPDATA%/BuscaCartas (ver config.app_dir).
 """
 
 import os
@@ -22,7 +22,7 @@ sys.path.insert(0, RAIZ)
 
 from buscador import __version__  # noqa: E402
 
-NOME = "BuscadorMTG"
+NOME = "BuscaCartas"
 BUILD = os.path.join(RAIZ, "build")
 DIST = os.path.join(RAIZ, "dist")
 
@@ -36,8 +36,8 @@ def arquivo_de_versao():
                     fileType=0x1, subtype=0x0, date=(0, 0)),
   kids=[
     StringFileInfo([StringTable('041604B0', [
-      StringStruct('ProductName', 'Buscador de Cartas MTG'),
-      StringStruct('FileDescription', 'Buscador de Cartas MTG'),
+      StringStruct('ProductName', 'BuscaCartas do Boteco'),
+      StringStruct('FileDescription', 'BuscaCartas do Boteco'),
       StringStruct('ProductVersion', '{__version__}'),
       StringStruct('FileVersion', '{__version__}'),
       StringStruct('OriginalFilename', '{NOME}.exe'),

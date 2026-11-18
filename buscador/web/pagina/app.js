@@ -1,5 +1,5 @@
 "use strict";
-/* Tela do Buscador de Cartas MTG. O Python (buscador/web/ponte.py) faz as buscas; aqui só se
+/* Tela do BuscaCartas do Boteco. O Python (buscador/web/ponte.py) faz as buscas; aqui só se
    desenha a tela e se guarda o estado dela (o que está aberto, histórico Voltar/Avançar).
    Acontecimentos da busca chegam por app.evento(tipo, sid, dados); os de uma busca antiga
    (sid diferente) são ignorados. */
