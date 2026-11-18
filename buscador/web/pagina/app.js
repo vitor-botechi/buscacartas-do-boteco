@@ -491,11 +491,21 @@ function blocoLoja(url) {
     <div class="corpo">${corpo}</div></div>`;
 }
 
+// leque de cartas com a lupa, o mesmo desenho da tela de abertura do .exe (instalador/abertura.png).
+// Ao abrir o programa, as cartas se abrem e a lupa passa por elas, uma vez só.
+let lequeAnimado = false;
+function leque() {
+  const animar = lequeAnimado ? "" : " animar";
+  lequeAnimado = true;
+  const carta = (cls) => `<div class="carta ${cls}"><i class="titulo"></i><i class="arte"></i><i></i><i></i><i class="curta"></i></div>`;
+  return `<div class="leque${animar}" aria-hidden="true">${carta("c1")}${carta("c2")}${carta("c3")}<div class="lupa"></div></div>`;
+}
+
 function desenhar() {
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (!tela.ordem.length) {
-    area.innerHTML = `<div class="vazio"><div class="grande">🃏</div><p>Digite o nome de uma carta e clique em <b>Buscar</b>.<br>
+    area.innerHTML = `<div class="vazio">${leque()}<p>Digite o nome de uma carta e clique em <b>Buscar</b>.<br>
       Você vê em quais lojas marcadas há estoque, com edição, idioma, qualidade e preço.</p></div>`;
   } else {
     area.innerHTML = tela.ordem.map(blocoLoja).join("");

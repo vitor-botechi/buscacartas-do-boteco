@@ -36,7 +36,7 @@ As importações dentro do pacote são absolutas (`from buscador.config import .
 
 Só `web/` usa o pywebview (sem ele, o programa avisa e não abre).
 
-Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller, arquivo único) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
+Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller, arquivo único, com a tela de abertura `instalador/abertura.png`, que `instalador/desenhar_abertura.py` desenha; o `--splash` precisa do Tkinter no Python que gera o `.exe`) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
 
 ## Regras de funcionamento a preservar
 

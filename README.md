@@ -22,6 +22,7 @@ nem descompactar nada; o arquivo pode ficar em qualquer pasta. Para atualizar, b
 as lojas e preferências continuam.
 Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mais informações" e "Executar assim mesmo"
 (o programa não tem assinatura digital paga).
+Ao abrir, uma tela de abertura aparece enquanto o programa carrega (cerca de 2 segundos).
 
 **Pelo código-fonte:**
 

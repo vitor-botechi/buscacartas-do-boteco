@@ -63,7 +63,20 @@ def main():
         background_color="#f6f7f9", text_select=True,
     )
     ponte._janela = janela
+    janela.events.loaded += _fechar_abertura
     webview.start()
+
+
+def _fechar_abertura():
+    """Fecha a tela de abertura do .exe (só existe no .exe gerado com --splash; ver instalador/gerar_exe.py)."""
+    try:
+        import pyi_splash
+    except ImportError:
+        return
+    try:
+        pyi_splash.close()
+    except Exception:
+        pass  # já fechada
 
 
 if __name__ == "__main__":

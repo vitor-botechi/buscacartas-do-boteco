@@ -81,6 +81,9 @@ def main():
         # a página da interface (HTML, CSS e JS) vai dentro do .exe; ver web/app.py:pasta_da_pagina
         "--add-data", os.pathsep.join([os.path.join(RAIZ, "buscador", "web", "pagina"),
                                        os.path.join("buscador", "web", "pagina")]),
+        # tela de abertura: aparece logo no clique, enquanto o .exe se descompacta (~2 s); some quando a
+        # janela termina de carregar (web/app.py). A imagem sai de instalador/desenhar_abertura.py
+        "--splash", os.path.join(RAIZ, "instalador", "abertura.png"),
     ])
 
     exe = os.path.join(DIST, f"{NOME}.exe")
