@@ -84,6 +84,8 @@ def main():
         # tela de abertura: aparece logo no clique, enquanto o .exe se descompacta (~2 s); some quando a
         # janela termina de carregar (web/app.py). A imagem sai de instalador/desenhar_abertura.py
         "--splash", os.path.join(RAIZ, "instalador", "abertura.png"),
+        # ícone do arquivo e da janela (lousa com o leque e a lupa a giz); sai de instalador/desenhar_icone.py
+        "--icon", os.path.join(RAIZ, "instalador", "icone.ico"),
     ])
 
     exe = os.path.join(DIST, f"{NOME}.exe")
