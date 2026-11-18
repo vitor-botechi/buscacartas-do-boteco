@@ -53,3 +53,38 @@ def test_bandeira_do_idioma():
     ofertas, _ = parse_product_page(linha)
     assert ofertas[0].language == "Português / Inglês"
     assert ofertas[0].language_flag == "https://www.lmcorp.com.br/images/bandeiras/pten.svg"
+
+
+def test_codigo_da_edicao_no_icone():
+    linha = """
+    <div class="table-cards-row">
+      <div class="table-cards-body-cell"><img src='//repositorio.sbrauble.com/arquivos/up/ed_mtg/BRC_U.gif'
+           title="A Guerra dos Irm&atilde;os Commander" class='icon icon-edicao'></div>
+      <div class="table-cards-body-cell"><img title='Inglês'></div>
+      <div class="table-cards-body-cell quality"><i>NM</i></div>
+      <div class="table-cards-body-cell card-extras">-</div>
+      <div class="table-cards-body-cell">2 unid.</div>
+      <div class="table-cards-body-cell card-preco">R$ 10,00</div>
+    </div>"""
+    ofertas, _ = parse_product_page(linha)
+    assert ofertas[0].edition == "A Guerra dos Irmãos Commander"
+    assert ofertas[0].edition_code == "brc"
+    sem_icone, _ = parse_product_page(linha.replace("ed_mtg/BRC_U.gif", "outra.gif"))
+    assert sem_icone[0].edition_code == ""
+
+
+def test_icone_da_edicao_depois_da_foto_do_item():
+    linha = """
+    <div class="table-cards-row">
+      <div class="table-cards-body-cell"><div class="espaco-foto-personalizada"><img src="https://loja/foto.jpg"></div>
+        <img src='//repositorio.sbrauble.com/arquivos/up/ed_mtg/LTC_U.gif' title="Contos da Terra Média Commander"
+             class='icon icon-edicao'></div>
+      <div class="table-cards-body-cell"><img title='Inglês'></div>
+      <div class="table-cards-body-cell quality"><i>NM</i></div>
+      <div class="table-cards-body-cell card-extras">-</div>
+      <div class="table-cards-body-cell">2 unid.</div>
+      <div class="table-cards-body-cell card-preco">R$ 10,00</div>
+    </div>"""
+    ofertas, _ = parse_product_page(linha)
+    assert ofertas[0].edition == "Contos da Terra Média Commander"
+    assert ofertas[0].edition_code == "ltc"

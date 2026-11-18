@@ -1,6 +1,7 @@
 """Caixa "Apenas nome exato": usa o Scryfall para descobrir os nomes da carta em inglês e português."""
 
 import re
+import threading
 import time
 
 try:
@@ -79,3 +80,87 @@ def resolve_names(card):
         return names, True
     except (requests.RequestException, ValueError):
         return names, False
+
+
+# ---- arte da carta (ao passar o mouse) ---------------------------------------------------------
+# Para mostrar a arte da edição certa, a edição é procurada no Scryfall pelo nome ("Magic 2012"; com e
+# sem o que vem entre parênteses) e pelo código do ícone da loja ("afc"; também sem números no fim:
+# "sld107" -> "sld"). Algumas edições as lojas escrevem em português; aí vale o código. Se nada servir,
+# fica a arte da carta numa edição qualquer. Cada carta/edição é consultada uma vez por execução (fica
+# guardada aqui), e as consultas passam uma por vez (trava), no ritmo de scry_get.
+
+_arte_trava = threading.Lock()
+_artes = {}       # (nome, edição) normalizados -> endereço da imagem ("" = o Scryfall não tem)
+_edicoes = None   # nome normalizado da edição -> código ("m12"), lido uma vez de /sets
+_codigos = set()  # códigos de edição que o Scryfall conhece
+
+
+def card_query_name(item_name):
+    """Nome para o Scryfall a partir do nome na loja: 'Ilha / Island (#266)' -> 'Island'.
+
+    " / " separa o nome em português do nome em inglês; "A // B" (carta de duas faces) fica inteiro.
+    """
+    base = strip_suffix(item_name)
+    partes = [p.strip() for p in re.split(r"\s/\s", base) if p.strip()]
+    return partes[-1] if partes else base
+
+
+def card_image(card):
+    """Endereço da imagem "normal" (488×680) da carta; nas de duas faces, a da frente. "" se não houver."""
+    uris = card.get("image_uris") or ((card.get("card_faces") or [{}])[0] or {}).get("image_uris") or {}
+    url = uris.get("normal") or ""
+    return url if url.startswith("https://") else ""
+
+
+def set_codes(edition, code=""):
+    """Códigos do Scryfall que podem ser a edição (no máximo 2, do mais provável ao menos).
+    Lê a lista de edições uma vez."""
+    global _edicoes, _codigos
+    if not edition and not code:
+        return []
+    if _edicoes is None:
+        r = scry_get("/sets", {})
+        if r.status_code != 200:
+            return []  # tenta de novo na próxima vez
+        dados = [s for s in r.json().get("data", []) if s.get("code")]
+        _edicoes = {norm(s["name"]): s["code"] for s in dados if s.get("name")}
+        _codigos = {s["code"] for s in dados}
+    achados = [_edicoes.get(norm(edition or "")), _edicoes.get(norm(strip_suffix(edition or "")))]
+    code = (code or "").lower()
+    achados += [c for c in (code, re.sub(r"\d+$", "", code)) if c in _codigos]
+    return list(dict.fromkeys(c for c in achados if c))[:2]
+
+
+def _buscar_carta(nome, edicao, codigo=""):
+    for code in set_codes(edicao, codigo):
+        r = scry_get("/cards/named", {"exact": nome, "set": code})
+        if r.status_code == 200:
+            return r.json()
+    r = scry_get("/cards/named", {"fuzzy": nome})
+    if r.status_code == 200:
+        return r.json()
+    # nome só em português: descobre o nome em inglês e tenta de novo
+    r = scry_get("/cards/search", {"q": f'"{nome}" lang:pt', "include_multilingual": "true", "unique": "prints"})
+    english = english_for_portuguese(nome, r.json().get("data", [])) if r.status_code == 200 else None
+    if english and norm(english) != norm(nome):
+        return _buscar_carta(english, edicao, codigo)
+    return None
+
+
+def card_art(item_name, edition="", code=""):
+    """Endereço da imagem da carta (da edição, se o Scryfall a conhecer). "" se não houver.
+
+    Falha de rede não fica guardada: a pessoa pode passar o mouse de novo para tentar.
+    """
+    chave = (norm(item_name or ""), norm(edition or ""), (code or "").lower())
+    if not chave[0] or requests is None:
+        return ""
+    with _arte_trava:
+        if chave in _artes:
+            return _artes[chave]
+        try:
+            carta = _buscar_carta(card_query_name(item_name), edition, code)
+        except (requests.RequestException, ValueError):
+            return ""
+        _artes[chave] = card_image(carta) if carta else ""
+        return _artes[chave]

@@ -20,6 +20,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from buscador.lojas.ligamagic import (  # noqa: E402
     BLOCK_MARKERS,
+    ITEM_MOUSE_RE,
     NONE_PHRASES,
     parse_product_page,
     parse_results,
@@ -30,6 +31,8 @@ REMOVER_TAGS = ["script", "style", "noscript", "iframe", "link", "svg", "header"
                 "select", "textarea", "video", "audio", "source", "picture"]
 ATRIBUTOS_MANTIDOS = {"class", "id", "href", "title", "alt", "name", "value", "type", "content", "property",
                       "observacao"}  # observacao: aviso público da loja numa oferta
+IMAGENS_PUBLICAS = re.compile(r"^(https:)?//(repositorio\.sbrauble\.com/arquivos/(in/magic|up/ed_mtg|up/ecom/tcg/fotos)/"
+                              r"|www\.lmcorp\.com\.br/images/bandeiras/)")
 # links de conta, carrinho, contato e com identificadores (token, _ga, sessão)
 LINKS_REMOVIDOS = re.compile(r"carrinho|logar|wishlist|email-protection|whatsapp|mailto:|tel:|token|_ga=|sess", re.I)
 SUSPEITOS =re.compile(r"[\w.+-]+@[\w-]+\.[\w.]+|sess(ion|ao)|token|csrf|cpf|senha|password|ol[aá],|minha conta|"
@@ -56,7 +59,13 @@ def sanitizar(html):
         if inp.get("type") == "hidden" and not str(inp.get("name", "")).startswith(("txt_", "view")):
             inp.decompose()
     for tag in soup.find_all(True):
-        tag.attrs = {k: v for k, v in tag.attrs.items() if k in ATRIBUTOS_MANTIDOS}
+        attrs = {k: v for k, v in tag.attrs.items() if k in ATRIBUTOS_MANTIDOS}
+        # imagens públicas do padrão LigaMagic (carta na edição, ícone da edição, fotos do item, bandeira)
+        if tag.name == "img" and IMAGENS_PUBLICAS.search(tag.get("src") or ""):
+            attrs["src"] = tag["src"]
+        if ITEM_MOUSE_RE.fullmatch(str(tag.get("onmouseover") or "").strip().rstrip(";")):
+            attrs["onmouseover"] = tag["onmouseover"]  # liga a linha da oferta à imagem dela
+        tag.attrs = attrs
     texto = str(soup)
     return re.sub(r"\n\s*\n+", "\n", texto)
 

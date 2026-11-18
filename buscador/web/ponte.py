@@ -39,7 +39,7 @@ from buscador.config import (
 )
 from buscador.lojas.ligamagic import build_search_url
 from buscador.rede import HAS_SCRAPING, fetch_product, fetch_store_look, safe_search
-from buscador.scryfall import matches_exact, resolve_names
+from buscador.scryfall import card_art, matches_exact, resolve_names
 from buscador.texto import clean_card_name, norm
 from buscador.web import serializar
 
@@ -361,6 +361,12 @@ class Ponte:
                 self._nomes = nomes  # resultados que ainda chegarem desta busca já vêm marcados
         marcas = {url: [matches_exact(n, nomes) for n in itens] for url, itens in (lojas or {}).items()}
         return {"nomes": sorted(nomes), "ok": ok, "marcas": marcas}
+
+    def arte(self, nome, edicao="", codigo=""):
+        """Imagem da carta para mostrar ao passar o mouse (Scryfall). Devolve {url} ("" se não houver)."""
+        if not HAS_SCRAPING:
+            return {"url": ""}
+        return {"url": card_art(nome, edicao, codigo)}
 
     # ---- detalhes de um produto (sob demanda) ---------------------------------------
     def detalhes(self, loja_url, item_url):

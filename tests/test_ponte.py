@@ -130,7 +130,7 @@ def test_buscar_manda_o_resultado_e_os_detalhes_automaticos(ponte, lojas_falsas)
     assert loja == "https://www.overrun.com.br"
     assert ofertas[0] == {"edicao": "Star Trek Commander", "idioma": "Inglês", "qualidade": "NM", "extras": "",
                           "estoque": 8, "preco": 6.9, "preco_original": None, "promo": 0,
-                          "pre": True, "pre_data": "13/11/2026", "obs": "", "bandeira": ""}
+                          "pre": True, "pre_data": "13/11/2026", "obs": "", "bandeira": "", "edicao_cod": "", "imagem": "", "fotos": 0}
     assert len(lojas_falsas) == 2  # uma página por item, nunca mais
 
 
@@ -285,3 +285,10 @@ def test_carregar_precos_depois_de_cancelar(ponte, lojas_falsas):
     ponte.cancelar()
     assert "Faça a busca" in ponte.carregar_loja(loja, itens)["erro"]
     assert lojas_falsas == []
+
+
+def test_arte_da_carta(ponte, monkeypatch):
+    monkeypatch.setattr(ponte_mod, "card_art", lambda nome, edicao="", codigo="": f"https://cards.scryfall.io/{nome}-{edicao}-{codigo}.jpg")
+    assert ponte.arte("Sol Ring", "Magic 2012", "m12") == {"url": "https://cards.scryfall.io/Sol Ring-Magic 2012-m12.jpg"}
+    monkeypatch.setattr(ponte_mod, "HAS_SCRAPING", False)
+    assert ponte.arte("Sol Ring") == {"url": ""}

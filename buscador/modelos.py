@@ -36,3 +36,6 @@ class Offer:
     preorder_date: str = ""  # previsão de envio da pré-venda (ex.: "13/11/2026")
     note: str = ""  # observação que a loja colocou na oferta ("Visualizar observação")
     language_flag: str = ""  # endereço da bandeira que a loja usa para o idioma
+    edition_code: str = ""  # código da edição no ícone da loja (".../ed_mtg/AFC_U.gif" -> "afc")
+    image: str = ""  # imagem da carta nesta edição (a que o site mostra ao passar o mouse na linha)
+    photos: list = field(default_factory=list)  # fotos do próprio item que a loja colocou
