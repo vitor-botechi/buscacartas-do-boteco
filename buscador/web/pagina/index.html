@@ -6,7 +6,12 @@
 <link rel="stylesheet" href="estilo.css">
 </head>
 <body>
-<aside>
+<header class="balcao">
+  <span class="nome-app">BuscaCartas do Boteco</span>
+  <span class="sub-app">busca suas cartas de Magic nas lojas</span>
+</header>
+<div class="area">
+<aside class="lousa">
   <h3>Lojas</h3>
   <p class="dica-ordem">Arraste <span class="alca">⠿</span> para mudar a ordem</p>
   <div id="lojas"></div>
@@ -15,6 +20,10 @@
     <button class="link" id="nenhuma">Nenhuma</button>
   </div>
   <button class="adicionar" id="adicionar">+ Adicionar loja</button>
+  <div class="recado" aria-hidden="true">
+    <span class="recado-titulo">Boteco de Pedidos</span>
+    <span>as cartas que você procura,<br>direto das lojas</span>
+  </div>
 </aside>
 
 <main>
@@ -48,6 +57,7 @@
     <button class="btn pequeno" id="abrir-achadas" disabled>Abrir só as lojas com a carta</button>
   </footer>
 </main>
+</div>
 
 <div class="fundo-modal" id="modal" hidden>
   <form class="modal" id="form-loja">
@@ -75,6 +85,11 @@
 </div>
 
 <img id="arte" alt="" hidden>
+
+<!-- traço de giz: deixa as bordas do desenho da tela inicial um pouco irregulares -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="giz">
+  <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="ruido"/>
+  <feDisplacementMap in="SourceGraphic" in2="ruido" scale="2.4"/></filter></svg>
 
 <script src="app.js"></script>
 </body>

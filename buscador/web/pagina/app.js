@@ -448,7 +448,7 @@ function blocoItem(r, it) {
     ${nomeItem(it)}${direita}${abrir}</div>${msg}</div>`;
 }
 
-function blocoLoja(url) {
+function blocoLoja(url, i) {
   const r = tela.res[url];
   const [cls, texto] = textoStatus(r);
   const itens = visiveis(r);
@@ -486,7 +486,7 @@ function blocoLoja(url) {
     ? `<img class="logo" src="${esc(r.loja.logo)}" alt="" onerror="this.remove()">` : "";
   return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}" style="--cor-loja:${cor};--cor-loja2:${cor2}">
     <div class="cab" data-loja="${esc(url)}"><span class="seta">${temItens ? "▾" : ""}</span>
-      ${logo}<span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
+      ${logo}<span class="nome">${esc(r.loja.nome)}</span><span class="pedido" title="Pedido nº ${i + 1} desta busca">nº ${i + 1}</span><span class="status st-${cls}">${texto}</span>
       ${lote}<button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>
     <div class="corpo">${corpo}</div></div>`;
 }
@@ -505,8 +505,9 @@ function desenhar() {
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (!tela.ordem.length) {
-    area.innerHTML = `<div class="vazio">${leque()}<p>Digite o nome de uma carta e clique em <b>Buscar</b>.<br>
-      Você vê em quais lojas marcadas há estoque, com edição, idioma, qualidade e preço.</p></div>`;
+    area.innerHTML = `<div class="vazio lousa-inicio">${leque()}<p class="titulo-giz">O que vai ser hoje?</p>
+      <p class="texto-giz">Escreve o nome da carta ali em cima e clica em Buscar:<br>
+      a gente passa nas lojas marcadas e traz o que tiver, com edição, idioma, qualidade e preço.</p></div>`;
   } else {
     area.innerHTML = tela.ordem.map(blocoLoja).join("");
   }

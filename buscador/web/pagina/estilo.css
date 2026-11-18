@@ -15,9 +15,10 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; }
 body {
-  margin: 0; display: flex; overflow: hidden; background: var(--fundo); color: var(--texto);
+  margin: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--fundo); color: var(--texto);
   font: 14px/1.4 "Segoe UI", system-ui, sans-serif;
 }
+.area { flex: 1; min-height: 0; display: flex; }
 button { font: inherit; color: inherit; }
 input { font: inherit; }
 
@@ -223,3 +224,80 @@ footer { display: flex; align-items: flex-start; gap: 12px; padding-top: 8px; co
 /* arte da carta ao passar o mouse (Scryfall) */
 #arte { position: fixed; z-index: 50; width: 244px; height: auto; border-radius: 12px; pointer-events: none;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .35); background: #222; }
+
+/* ==== tema do boteco: balcão de madeira, lousa e comandas de caderno ==== */
+/* letra de giz: Caveat (licença SIL OFL, em fontes/OFL.txt), embutida para funcionar sem internet */
+@font-face { font-family: "Caveat"; src: url("fontes/caveat.woff2") format("woff2"); font-weight: 400 700; }
+:root {
+  --madeira: #6b3f22; --madeira-escura: #4a2a15; --lousa: #22362b; --giz: #f1f0e8; --giz-apagado: #9fb0a5;
+  --papel: #fffdf8; --creme: #f5efe2; --tijolo: #a1361f; --tinta: #1f3a6b; --pauta: #e3e9f1; --margem: #ecb5ab;
+}
+body { background: var(--creme); }
+
+/* balcão: faixa de madeira no alto com o nome */
+.balcao { flex-shrink: 0; display: flex; flex-direction: column; justify-content: center; height: 58px; padding: 0 22px; color: #fbf3dd;
+  background: repeating-linear-gradient(180deg, #6b3f22 0 7px, #74462a 7px 9px, #6b3f22 9px 15px, #633a1f 15px 16px);
+  border-bottom: 4px solid var(--madeira-escura); user-select: none; }
+.nome-app { font: 700 30px/1 "Caveat", cursive; }
+.sub-app { font-size: 12.5px; opacity: .85; margin-top: 3px; }
+
+/* lousa: a lista de lojas, com moldura de madeira */
+aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px 22px 20px; border-right: 0; color: var(--giz);
+  background: radial-gradient(ellipse at 30% 20%, rgba(255, 255, 255, .06), transparent 50%),
+              radial-gradient(ellipse at 70% 80%, rgba(255, 255, 255, .05), transparent 45%), var(--lousa);
+  box-shadow: inset 0 0 0 8px var(--madeira), inset 0 0 0 10px var(--madeira-escura); }
+.lousa h3 { align-self: flex-start; margin: 0 6px 10px; padding-bottom: 1px; border-bottom: 2px solid rgba(241, 240, 232, .55);
+  font: 700 23px/1.1 "Caveat", cursive; color: var(--giz); text-transform: none; letter-spacing: 0; }
+.lousa .dica-ordem { color: var(--giz-apagado); }
+.lousa .alca { color: #6f8578; }
+.lousa .loja:hover { background: rgba(255, 255, 255, .06); }
+.lousa .loja:hover .alca { color: var(--giz-apagado); }
+.lousa .chave { background: #e9e4d0; }
+.lousa .chave::after { background: var(--lousa); }
+.lousa .loja.off .chave { background: #4b5d52; }
+.lousa .loja.off .chave::after { background: var(--giz-apagado); }
+.lousa .loja.off .nome { color: var(--giz-apagado); }
+.lousa .loja.antes::before, .lousa .loja.depois::after { background: var(--giz); }
+.lousa .remover { color: var(--giz-apagado); }
+.lousa .remover:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+.lousa .link { color: #c9d3cc; }
+.lousa .link:hover:not(:disabled) { color: #fff; }
+.lousa .adicionar { border-color: #6f8578; color: #c9d3cc; }
+.lousa .adicionar:hover { color: #fff; border-color: var(--giz); }
+.recado { margin-top: auto; padding-top: 24px; display: flex; flex-direction: column; align-items: center; text-align: center;
+  font: 600 15px/1.2 "Caveat", cursive; color: rgba(241, 240, 232, .62); user-select: none; }
+.recado-titulo { font-size: 21px; font-weight: 700; color: rgba(241, 240, 232, .88); }
+
+/* busca */
+.campo, .btn { border-color: #d8cdb4; }
+.btn.primario { background: var(--tijolo); border-color: var(--tijolo); }
+.btn.primario:hover:not(:disabled) { background: #872c18; }
+
+/* cada loja é uma comanda: folha de caderno com pauta, margem vermelha e o número do pedido */
+.cartao { background: var(--papel); border-color: #e6dcc6; border-radius: 8px; box-shadow: 0 2px 6px rgba(80, 50, 20, .1); }
+.cartao.apagada { background: #fcfaf4; }
+.cartao > .corpo { background: linear-gradient(90deg, transparent 27px, var(--margem) 27px 28px, transparent 28px); }
+.pedido { font: 700 20px/1 "Caveat", cursive; color: var(--tijolo); margin: 0 2px 0 -2px; white-space: nowrap; }
+.cartao.apagada .pedido { opacity: .5; }
+.item + .item, .mais, td { border-top-color: var(--pauta); }
+.cartao:not(.fechado) > .cab { border-bottom-color: var(--pauta); }
+.item-cab:hover, tr.oferta:hover td { background: rgba(120, 90, 40, .05); }
+.mais:hover { background: rgba(30, 79, 138, .07); }
+.preco, .info b { color: var(--tinta); font-size: 15px; }
+
+/* tela inicial: uma lousa com o leque desenhado em giz colorido */
+.vazio.lousa-inicio { max-width: 540px; margin: 44px auto 0; padding: 24px 32px 28px; border-radius: 4px; color: var(--giz);
+  background: radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, .07), transparent 55%), var(--lousa);
+  box-shadow: 0 0 0 10px var(--madeira), 0 0 0 12px var(--madeira-escura), 0 12px 26px rgba(60, 35, 15, .3); }
+.lousa-inicio .titulo-giz { font: 700 40px/1.1 "Caveat", cursive; margin: 0; }
+.lousa-inicio .texto-giz { font: 600 21px/1.35 "Caveat", cursive; opacity: .88; margin: 8px 0 0; }
+.lousa-inicio .leque { filter: url(#giz); zoom: 1.3; margin-bottom: 6px; }
+.lousa-inicio .leque .carta { background: #25392e; border-width: 3px; box-shadow: none; }
+.lousa-inicio .leque .carta i { background: rgba(241, 240, 232, .55); }
+.lousa-inicio .leque .carta i.titulo { background: rgba(241, 240, 232, .8); }
+.lousa-inicio .leque .carta i.arte { background: repeating-linear-gradient(-55deg, var(--cor) 0 2px, transparent 2px 4px); opacity: .8; }
+.lousa-inicio .leque .c1 { --cor: #7fb2e8; }
+.lousa-inicio .leque .c2 { --cor: #f2a36b; }
+.lousa-inicio .leque .c3 { --cor: #86d6a6; }
+.lousa-inicio .leque .lupa { border-color: var(--giz); background: rgba(34, 54, 43, .55); }
+.lousa-inicio .leque .lupa::after { background: var(--giz); }

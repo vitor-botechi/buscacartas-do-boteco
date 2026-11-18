@@ -4,7 +4,7 @@ Programa de computador (Windows) para buscar cartas de **Magic: The Gathering** 
 Digite o nome da carta, escolha as lojas e veja em quais há estoque, com edições, idioma, qualidade e preço.
 Feito para lojas que usam o padrão **LigaMagic**.
 
-O nome vem do "Boteco de Pedidos", o aviso de pedidos da comunidade. Até a versão 1.0.0, o programa se chamava "Buscador de Cartas MTG".
+O nome vem do "Boteco de Pedidos", o aviso de pedidos da comunidade, e a tela segue o tema: balcão de madeira, lousa com as lojas e cada loja numa comanda. Até a versão 1.0.0, o programa se chamava "Buscador de Cartas MTG".
 
 ## Recursos
 
@@ -101,3 +101,6 @@ Use com moderação: o programa foi feito para consultas pontuais de um usuário
 
 [MIT](LICENSE): qualquer pessoa pode usar, copiar, modificar e redistribuir o programa, desde que mantenha
 o aviso de autoria e da licença. O programa é oferecido sem garantia.
+
+A letra de giz é a [Caveat](https://github.com/googlefonts/caveat), sob a licença SIL Open Font License
+(`buscador/web/pagina/fontes/OFL.txt`).
