@@ -1,7 +1,4 @@
-"""Abre a janela do programa com a interface em HTML (pywebview).
-
-Sem o pywebview instalado, abre a interface antiga (Tkinter), que continua no pacote como reserva.
-"""
+"""Abre a janela do programa com a interface em HTML (pywebview)."""
 
 import os
 import sys
@@ -56,10 +53,7 @@ def main():
     try:
         import webview
     except ImportError:
-        from buscador.interface.app import main as main_tkinter
-
-        main_tkinter()
-        return
+        sys.exit("Falta o pywebview, que abre a janela do programa. Rode: py -m pip install -r requirements.txt")
 
     ponte = Ponte()
     largura, altura, x, y = _janela_na_tela(webview)

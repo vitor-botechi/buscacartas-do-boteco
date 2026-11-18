@@ -5,19 +5,8 @@ import json
 import pytest
 
 from buscador import armazenamento
-from buscador.modelos import Offer
 from buscador.scryfall import add_names, matches_exact
-from buscador.texto import age_text, clean_card_name, money, norm, offer_desc, strip_suffix
-
-
-@pytest.mark.parametrize("valor, texto", [(1234.5, "R$ 1.234,50"), (6.75, "R$ 6,75"), (None, "")])
-def test_money(valor, texto):
-    assert money(valor) == texto
-
-
-@pytest.mark.parametrize("segundos, texto", [(120, "há 2 min"), (3600, "há 1 h"), (4000, "há 1 h 6 min")])
-def test_age_text(segundos, texto):
-    assert age_text(segundos) == texto
+from buscador.texto import clean_card_name, norm, strip_suffix
 
 
 def test_clean_card_name_tira_espacos_e_caracteres_invisiveis():
@@ -33,11 +22,6 @@ def test_norm_tira_acentos_e_padroniza_apostrofos():
                                         ("Island", "Island")])
 def test_strip_suffix(nome, base):
     assert strip_suffix(nome) == base
-
-
-def test_offer_desc_com_extras_e_promocao():
-    oferta = Offer("Fallout", "Inglês", "NM", "Foil", 2, 6.75, original_price=7.5)
-    assert offer_desc(oferta) == "Inglês    ·    NM    ·    2 un.    ·    Foil    ·    -10%"
 
 
 # ---- nome exato ----
@@ -104,14 +88,3 @@ def test_sem_arquivo_de_lojas_usa_as_padrao(monkeypatch, tmp_path):
     assert all(s["enabled"] for s in lojas)
 
 
-def test_texto_da_pre_venda():
-    from buscador.texto import preorder_text
-    assert preorder_text("13/11/2026") == "pré-venda, envio 13/11/2026"
-    assert preorder_text("") == "pré-venda"
-
-
-def test_resumo_da_oferta_em_pre_venda():
-    from buscador.modelos import Offer
-    from buscador.texto import offer_desc
-    o = Offer("Star Trek Commander", "Inglês", "NM", "", 8, 6.9, True, None, "13/11/2026")
-    assert offer_desc(o) == "Inglês    ·    NM    ·    8 un.    ·    pré-venda, envio 13/11/2026"

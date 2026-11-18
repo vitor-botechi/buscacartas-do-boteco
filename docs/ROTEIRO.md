@@ -18,7 +18,7 @@
 
 | Decisão | Motivo |
 | --- | --- |
-| App de computador em Python/Tkinter, e não um site | Cada pessoa usa o próprio IP, o que reduz o risco de bloqueio pelas lojas; um servidor central teria endereço de datacenter. |
+| App de computador em Python (começou em Tkinter; hoje HTML numa janela do pywebview), e não um site | Cada pessoa usa o próprio IP, o que reduz o risco de bloqueio pelas lojas; um servidor central teria endereço de datacenter. |
 | Não ler preço/estoque da lista de busca | As lojas desenham esses números com imagens para impedir leitura automática. Não vamos contornar (sem OCR). |
 | Detalhes só sob demanda ou para poucos itens | Evita sobrecarregar as lojas e ser bloqueado. |
 | Não automatizar o botão Comprar | Abrir a página do produto para a pessoa adicionar ao carrinho já basta. |
@@ -66,7 +66,7 @@
     - **Tela de abertura animada** enquanto o `.exe` abre (~2 s, tempo que ele leva para se descompactar): algo amigável, talvez um desenho de Magic ou uma animação "procurando cartas" (o protótipo HTML tinha uma). A tela de abertura do PyInstaller (`--splash`, imagem parada) aparece antes de o Python carregar; a animação em HTML só quando a janela já abriu. Talvez combinar as duas.
     - Ícone próprio para o `.exe` e para a janela.
     - Lojas adicionadas antes da leitura de cor e logo ficam cinza e sem logo; para ganhar as duas, remova e adicione de novo.
-    - Remover a interface Tkinter (`buscador/interface/`) depois da aprovação.
+  - **Interface antiga removida** (Tkinter, `buscador/interface/`), depois da aprovação da nova; saíram também as funções de texto que só ela usava (`money`, `age_text`, `preorder_text`, `offer_desc`) e `DETAIL_W`. Sem o pywebview, o programa avisa o que instalar e não abre.
 - **Imagem de apresentação**: montar uma imagem (ou algumas) simulando uma busca, com as funções principais e as etiquetas indicadas (qualidades, Foil, promoção, pré-venda, observação, bandeiras, cores das lojas), para mostrar à comunidade como o programa funciona. Pode servir também no README e na página de versões.
 - **Nome do aplicativo**: escolher um nome melhor que "Buscador de Cartas MTG". Ideias de partida: um trocadilho com "Botechi" ou com o "Boteco de Pedidos" (o esquema de pedidos da comunidade). Ao trocar, atualizar título da janela, nome do `.exe` (`NOME` em `instalador/gerar_exe.py`), pasta em `%APPDATA%` (migrar a antiga), README e repositório.
 - Busca inteligente que tolere erro de digitação: avisar que o nome parece errado, sugerir o certo (como o Google) e pesquisar mesmo assim. Incluir o caso de nome ambíguo em "Apenas nome exato" (ex.: "Thalia"): avisar que há várias cartas e sugerir os nomes completos (o Scryfall já informa a ambiguidade).

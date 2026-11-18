@@ -37,7 +37,7 @@ Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mai
 
    Em **Linux ou macOS**, o programa deve rodar do mesmo jeito pelo código-fonte (use `python3`). A janela usa o
    [pywebview](https://pywebview.flowrl.com/), que no Linux precisa de pacotes do sistema (GTK ou Qt com WebKit).
-   Sem o pywebview, o programa abre a interface antiga (Tkinter). Ainda não foi testado nesses sistemas.
+   Ainda não foi testado nesses sistemas.
    O `.exe` da página de versões é só para Windows.
 
 ## Gerar o programa para Windows
@@ -54,7 +54,7 @@ na página de versões do GitHub. Detalhes no início de `instalador/gerar_exe.p
 
 O código fica no pacote `buscador/`: configuração, lojas salvas, leitura das páginas no padrão LigaMagic (`lojas/`),
 requisições (`rede.py`), detalhes automáticos, Scryfall e a interface. A interface é uma página HTML numa janela de
-programa (`web/`, com o pywebview); a interface antiga em Tkinter (`interface/`) fica como reserva. O `buscador_mtg.py`
+programa (`web/`, com o pywebview). O `buscador_mtg.py`
 só inicia o programa.
 
 ## Testes

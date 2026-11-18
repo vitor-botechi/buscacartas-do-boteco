@@ -27,15 +27,14 @@ As importações dentro do pacote são absolutas (`from buscador.config import .
 1. **`config.py`**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`), constantes de limites (`AUTO_*`, `BLOCK_COOLDOWN`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`) e `app_dir()` (pasta do programa, que é a pasta *acima* de `buscador/`, ou a do `.exe`).
 2. **`armazenamento.py`**: `lojas.json` (lojas, seleção e, se a pessoa arrastou, a ordem: `manual_order`) e `config.json` (preferências), na pasta de `app_dir()` (projeto pelo código-fonte; `%APPDATA%\BuscadorMTG` no `.exe`); `normalize_base`, `host_key`.
 3. **`modelos.py`**: `Item`, `StoreResult`, `Offer`.
-4. **`texto.py`**: `norm`, `clean_card_name`, `strip_suffix`, `money`, `age_text`, `offer_desc`.
+4. **`texto.py`**: `norm`, `clean_card_name`, `strip_suffix`.
 5. **`lojas/ligamagic.py`**: só leitura de HTML, **sem requisições**: `build_search_url`, `parse_results`, `product_from_page`, `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço, promoção e observação da loja), `theme_color` e `theme_logo` (cor principal e logo do site) e os marcadores de bloqueio/sem resultado. Uma loja de outro padrão ganha um módulo próprio em `lojas/`.
 6. **`rede.py`**: requisições: `search_store`, `safe_search`, `fetch_product` com cache curto, `fetch_store_look` (cor e logo, uma vez, ao adicionar uma loja), gravação em `debug/`.
 7. **`automatico.py`**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
 8. **`scryfall.py`**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara; `card_art` dá a imagem da carta (da edição, pelo nome ou pelo código do ícone) para a arte ao passar o mouse, com cache e uma consulta por vez.
 9. **`web/`** (interface atual): **`ponte.py`**, classe `Ponte`, o lado Python que a página chama (buscar, detalhes, arte da carta, lojas, colar, abrir no navegador); **`serializar.py`** converte `Item`/`Offer`/`StoreResult` em dicionários; **`app.py`** abre a janela (`main()`); **`pagina/`** tem `index.html`, `estilo.css` e `app.js`, que só desenham a tela e guardam o estado dela (o que está aberto, histórico Voltar/Avançar).
-10. **`interface/`** (reserva, Tkinter): a interface antiga, aberta só quando o pywebview não está instalado. Será removida depois que a nova for aprovada.
 
-Só `interface/` usa o Tkinter; só `web/` usa o pywebview.
+Só `web/` usa o pywebview (sem ele, o programa avisa e não abre).
 
 Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller, arquivo único) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
 

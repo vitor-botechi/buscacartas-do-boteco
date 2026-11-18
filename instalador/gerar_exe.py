@@ -63,7 +63,7 @@ def main():
         import requests  # noqa: F401
         import webview  # noqa: F401
     except ImportError:
-        # sem elas o .exe abriria com a busca desligada (rede.HAS_SCRAPING) ou com a interface antiga
+        # sem elas o .exe abriria com a busca desligada (rede.HAS_SCRAPING) ou nem abriria (sem o pywebview)
         sys.exit("Faltam bibliotecas. Rode: py -m pip install -r requirements.txt")
 
     PyInstaller.__main__.run([
