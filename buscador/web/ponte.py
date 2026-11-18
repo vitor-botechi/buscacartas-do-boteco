@@ -1,6 +1,6 @@
 """Lado Python da interface HTML: a página chama os métodos públicos da Ponte.
 
-Regras (as mesmas da interface Tkinter):
+Regras:
 - Cada busca recebe um search_id (sid). Ao iniciar outra busca, ou ao cancelar, o sid aumenta e o
   AutoCtl da busca anterior é parado; a página ignora acontecimentos com sid antigo.
 - Acontecimentos da busca vão para a página por app.evento(tipo, sid, dados). Tipos: result, names,

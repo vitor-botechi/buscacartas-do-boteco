@@ -36,7 +36,6 @@ BLOCK_COOLDOWN = 8          # segundos de espera, depois de uma loja limitar as 
 CACHE_TTL = 300             # segundos que uma página de produto lida fica guardada
 HISTORY_MAX = 10            # quantas buscas o Voltar/Avançar lembram
 STALE_AFTER = 30 * 60       # resultados guardados mais velhos que isto (30 min) são refeitos ao voltar/avançar
-DETAIL_W = 560              # largura do painel de edições e preços (a janela cresce isso ao abri-lo)
 
 HEADERS = {
     "User-Agent": (

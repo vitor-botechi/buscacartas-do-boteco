@@ -1,7 +1,4 @@
-"""Abre a janela do programa com a interface em HTML (pywebview).
-
-Sem o pywebview instalado, abre a interface antiga (Tkinter), que continua no pacote como reserva.
-"""
+"""Abre a janela do programa com a interface em HTML (pywebview)."""
 
 import os
 import sys
@@ -56,10 +53,7 @@ def main():
     try:
         import webview
     except ImportError:
-        from buscador.interface.app import main as main_tkinter
-
-        main_tkinter()
-        return
+        sys.exit("Falta o pywebview, que abre a janela do programa. Rode: py -m pip install -r requirements.txt")
 
     ponte = Ponte()
     largura, altura, x, y = _janela_na_tela(webview)
@@ -69,7 +63,20 @@ def main():
         background_color="#f6f7f9", text_select=True,
     )
     ponte._janela = janela
+    janela.events.loaded += _fechar_abertura
     webview.start()
+
+
+def _fechar_abertura():
+    """Fecha a tela de abertura do .exe (só existe no .exe gerado com --splash; ver instalador/gerar_exe.py)."""
+    try:
+        import pyi_splash
+    except ImportError:
+        return
+    try:
+        pyi_splash.close()
+    except Exception:
+        pass  # já fechada
 
 
 if __name__ == "__main__":

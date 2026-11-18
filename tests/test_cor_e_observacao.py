@@ -1,7 +1,6 @@
 """Cor principal do site da loja e observação que a loja coloca numa oferta."""
 
 from buscador.lojas.ligamagic import parse_product_page, product_from_page, theme_color, theme_logo, web_image
-from buscador.texto import offer_desc
 
 
 def test_cor_principal_do_site():
@@ -22,7 +21,6 @@ def test_observacao_vira_campo_separado_dos_extras(pagina):
     o = com_obs[0]
     assert o.extras == "Foil"  # sem o "Visualizar observação" grudado
     assert "6x no cartão" in o.note and "{{br}}" not in o.note
-    assert "contém observação" in offer_desc(o)
     assert all("observa" not in x.extras.lower() for x in ofertas)
 
 
