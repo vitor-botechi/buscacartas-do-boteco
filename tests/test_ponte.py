@@ -130,7 +130,7 @@ def test_buscar_manda_o_resultado_e_os_detalhes_automaticos(ponte, lojas_falsas)
     assert loja == "https://www.overrun.com.br"
     assert ofertas[0] == {"edicao": "Star Trek Commander", "idioma": "Inglês", "qualidade": "NM", "extras": "",
                           "estoque": 8, "preco": 6.9, "preco_original": None, "promo": 0,
-                          "pre": True, "pre_data": "13/11/2026", "obs": "", "bandeira": "", "edicao_cod": ""}
+                          "pre": True, "pre_data": "13/11/2026", "obs": "", "bandeira": "", "edicao_cod": "", "imagem": "", "fotos": []}
     assert len(lojas_falsas) == 2  # uma página por item, nunca mais
 
 

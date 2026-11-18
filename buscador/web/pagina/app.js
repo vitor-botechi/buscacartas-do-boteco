@@ -383,7 +383,7 @@ function bandeira(url, idioma) {
   return `<img class="bandeira" src="${esc(url)}" alt="" title="${esc(idioma)}" onerror="this.remove()">`;
 }
 
-function linhaOferta(o, itemUrl, nomeItem) {
+function linhaOferta(o, itemUrl, nomeDoItem) {
   const extras = [];
   if (o.pre) {
     const dica = o.pre_data ? `Pré-venda: envio previsto para ${esc(o.pre_data)}` : "Pré-venda";
@@ -398,13 +398,21 @@ function linhaOferta(o, itemUrl, nomeItem) {
 ${esc(o.obs)}">Contém obs.</span>`);
   const riscado = o.preco_original ? `<span class="riscado">${dinheiro(o.preco_original)}</span>` : "";
   const lang = o.idioma === "Português" ? "pt" : "en";
-  return `<tr class="oferta" data-abrir="${esc(itemUrl)}" data-arte="${esc(nomeItem)}" data-edicao="${esc(o.edicao)}" data-codigo="${esc(o.edicao_cod || "")}" title="Clique para abrir a página na loja">
-    <td class="edicao">${esc(o.edicao)}</td>
+  // a arte aparece só com o mouse em cima do nome da edição (imagem da própria loja; senão, Scryfall)
+  const nomeEdicao = `<span class="nome-arte" data-arte="${esc(nomeDoItem)}" data-edicao="${esc(o.edicao)}" data-codigo="${esc(o.edicao_cod || "")}" data-imagem="${esc(o.imagem || "")}">${esc(o.edicao)}</span>`;
+  return `<tr class="oferta" data-abrir="${esc(itemUrl)}" title="Clique para abrir a página na loja">
+    <td class="edicao">${nomeEdicao}</td>
     <td class="${lang}">${bandeira(o.bandeira, o.idioma)}${esc(o.idioma || "—")}</td>
     <td>${qualidade(o.qualidade)}</td>
     <td class="un">${o.estoque ?? "?"} un.</td>
     <td class="extras">${extras.join(" ")}</td>
     <td class="preco">${riscado}${dinheiro(o.preco)}</td></tr>`;
+}
+
+// nome do item; com o mouse em cima, a arte da carta (da edição mais barata, se as ofertas já foram lidas)
+function nomeItem(it) {
+  const img = (it.ofertas || []).map((o) => o.imagem).find(Boolean) || "";
+  return `<span class="item-nome nome-arte" data-arte="${esc(it.nome)}" data-imagem="${esc(img)}">${esc(it.nome)}</span>`;
 }
 
 function blocoItem(r, it) {
@@ -413,13 +421,13 @@ function blocoItem(r, it) {
   if (it.ofertas) {
     const aberto = tela.abertos[k] ?? !tela.recolhido;
     if (!it.ofertas.length) {
-      return `<div class="item"><div class="item-cab"><span class="seta"></span><span class="item-nome" data-arte="${esc(it.nome)}">${esc(it.nome)}</span>
+      return `<div class="item"><div class="item-cab"><span class="seta"></span>${nomeItem(it)}
         <span class="info">sem ofertas em estoque no momento</span>${abrir}</div></div>`;
     }
     const precos = it.ofertas.map((o) => o.preco).filter((p) => p != null);
     const menor = precos.length ? `a partir de <b>${dinheiro(Math.min(...precos))}</b>` : "";
     return `<div class="item${aberto ? "" : " fechado"}"><div class="item-cab" data-alternar="${esc(k)}">
-        <span class="seta">▾</span><span class="item-nome" data-arte="${esc(it.nome)}">${esc(it.nome)}</span>
+        <span class="seta">▾</span>${nomeItem(it)}
         <span class="info">${plural(it.ofertas.length, "oferta", "ofertas")} · ${menor}</span>${abrir}</div>
       <div class="corpo"><table>${COLUNAS}${it.ofertas.map((o) => linhaOferta(o, it.url, it.nome)).join("")}</table></div></div>`;
   }
@@ -435,7 +443,7 @@ function blocoItem(r, it) {
   }
   const msg = d && d.estado === "erro" ? `<div class="msg aviso">${esc(d.msg)}</div>` : "";
   return `<div class="item"><div class="item-cab" data-detalhes="${esc(k)}"><span class="seta">▸</span>
-    <span class="item-nome" data-arte="${esc(it.nome)}">${esc(it.nome)}</span>${direita}${abrir}</div>${msg}</div>`;
+    ${nomeItem(it)}${direita}${abrir}</div>${msg}</div>`;
 }
 
 function blocoLoja(url) {
@@ -695,30 +703,41 @@ async function navegar(origem, destino) {
 setInterval(atualizarNavegacao, 60000);  // as dicas dizem quando uma busca guardada ficou velha
 
 /* ---------------- arte da carta ao passar o mouse ---------------- */
-// No nome do item: a arte da carta. Numa edição: a arte daquela edição. O endereço vem do Scryfall
-// (pelo Python, uma consulta por carta/edição) e fica guardado aqui; a imagem aparece depois de uma
-// pequena espera, para não consultar nada quando o mouse só está passando por cima.
-const artes = new Map();  // "nome|edição" -> Promise do endereço
-let arteAlvo = null, arteEspera = null;
-const ARTE_ESPERA = 250;  // ms parado em cima antes de buscar
+// Só com o mouse em cima do texto do nome (do item ou da edição). A imagem vem da própria página da loja
+// (a carta naquela edição, data-imagem); sem ela, o Python consulta o Scryfall (uma vez por carta/edição).
+// Para aparecer na hora, ao entrar num item as imagens dele já começam a carregar.
+const artes = new Map();  // "nome|edição|código" -> Promise do endereço (Scryfall)
+const preCarregadas = new Set();
+let arteAlvo = null;
 
-function alvoDaArte(el) {
-  const linha = el.closest && el.closest("tr.oferta[data-arte]");
-  if (linha) return linha;
-  const nome = el.closest && el.closest(".item-nome[data-arte]");
-  return nome || null;
-}
-function enderecoDaArte(nome, edicao, codigo) {
-  const k = [nome, edicao, codigo].join("|");
+const ehImagem = (url) => /^https:\/\/[^\s"'<>]+$/.test(url || "");
+
+function enderecoDaArte(el) {
+  const d = el.dataset;
+  if (ehImagem(d.imagem)) return Promise.resolve(d.imagem);
+  const k = [d.arte, d.edicao || "", d.codigo || ""].join("|");
   if (!artes.has(k)) {
-    const p = api().arte(nome, edicao, codigo).then((r) => r.url || "").catch(() => "");
+    const p = api().arte(d.arte, d.edicao || "", d.codigo || "").then((r) => r.url || "").catch(() => "");
     p.then((url) => { if (!url) artes.delete(k); });  // sem arte (ou falha): tenta de novo numa próxima vez
     artes.set(k, p);
   }
   return artes.get(k);
 }
+function preCarregar(url) {
+  if (!ehImagem(url) || preCarregadas.has(url)) return;
+  preCarregadas.add(url);
+  new Image().src = url;  // fica no cache do navegador: ao passar o mouse, aparece na hora
+}
+// entrou num item: prepara a arte do nome e das edições dele
+function prepararItem(item) {
+  if (!item || item.dataset.arteOk) return;
+  item.dataset.arteOk = "1";
+  item.querySelectorAll(".nome-arte").forEach((el) => {
+    if (ehImagem(el.dataset.imagem)) preCarregar(el.dataset.imagem);
+    else if (el.classList.contains("item-nome")) enderecoDaArte(el).then(preCarregar);
+  });
+}
 function esconderArte() {
-  clearTimeout(arteEspera);
   arteAlvo = null;
   $("arte").hidden = true;
 }
@@ -736,20 +755,20 @@ $("resultados").addEventListener("mousemove", (e) => {
   mouseX = e.clientX; mouseY = e.clientY;
   if (!$("arte").hidden) posicionarArte(mouseX, mouseY);
 });
-$("resultados").addEventListener("mouseover", (e) => {
-  const alvo = alvoDaArte(e.target);
+$("resultados").addEventListener("mouseover", async (e) => {
+  prepararItem(e.target.closest(".item"));
+  const alvo = e.target.closest(".nome-arte");
   if (alvo === arteAlvo) return;
   esconderArte();
   if (!alvo) return;
   arteAlvo = alvo;
-  arteEspera = setTimeout(async () => {
-    const url = await enderecoDaArte(alvo.dataset.arte, alvo.dataset.edicao || "", alvo.dataset.codigo || "");
-    if (arteAlvo !== alvo || !/^https:\/\//.test(url)) return;  // o mouse já saiu, ou não há arte
-    const img = $("arte");
-    img.onload = () => { if (arteAlvo === alvo) { img.hidden = false; posicionarArte(mouseX, mouseY); } };
-    img.src = url;
-    if (img.complete && img.naturalWidth) img.onload();
-  }, ARTE_ESPERA);
+  const url = await enderecoDaArte(alvo);
+  if (arteAlvo !== alvo || !ehImagem(url)) return;  // o mouse já saiu, ou não há arte
+  const img = $("arte");
+  const mostrar = () => { if (arteAlvo === alvo) { img.hidden = false; posicionarArte(mouseX, mouseY); } };
+  if (img.getAttribute("src") === url && img.complete) { mostrar(); return; }
+  img.onload = mostrar;
+  img.src = url;
 });
 $("resultados").addEventListener("mouseleave", esconderArte);
 $("resultados").addEventListener("scroll", esconderArte, true);

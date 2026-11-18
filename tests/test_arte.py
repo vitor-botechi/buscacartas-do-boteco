@@ -107,3 +107,22 @@ def test_edicao_em_portugues_pelo_codigo_do_icone(scry):
     pedidos, respostas = scry
     respostas[("/cards/named", (("exact", "Sol Ring"), ("set", "brc")))] = Resposta(200, carta("https://cards.scryfall.io/brc.jpg"))
     assert scryfall.card_art("Anel Solar / Sol Ring", "A Guerra dos Irmãos Commander", "brc") == "https://cards.scryfall.io/brc.jpg"
+
+
+def test_imagem_da_edicao_e_fotos_da_loja_na_pagina_do_produto():
+    from buscador.lojas.ligamagic import parse_product_page
+    html = open("tests/fixtures/produto_fotos_da_loja.html", encoding="utf-8").read()
+    ofertas, status = parse_product_page(html)
+    assert status == "ok" and len(ofertas) == 1
+    o = ofertas[0]
+    assert o.edition == "Contos da Terra Média Commander" and o.edition_code == "ltc"
+    # a carta naquela edição (a imagem que o site mostra ao passar o mouse na linha)
+    assert o.image.startswith("https://repositorio.sbrauble.com/arquivos/in/magic/480238/")
+    # duas fotos do próprio item, sem repetir
+    assert len(o.photos) == 2 and all(f.startswith("https://repositorio.sbrauble.com/arquivos/up/ecom/tcg/fotos/") for f in o.photos)
+
+
+def test_pagina_sem_imagens():
+    from buscador.lojas.ligamagic import parse_product_page
+    ofertas, _ = parse_product_page(open("tests/fixtures/produto_promocao.html", encoding="utf-8").read())
+    assert all(o.image == "" and o.photos == [] for o in ofertas)

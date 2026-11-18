@@ -173,6 +173,27 @@ def theme_color(html):
 EDITION_CODE_RE = re.compile(r"/ed_mtg/([A-Za-z0-9]+)_[A-Za-z]+\.\w+")
 
 
+# cada linha de oferta chama itemMouseOver(N) ao passar o mouse, e o site mostra a imagem de #stickyN
+# (a carta naquela edição) e, se a loja colocou fotos do próprio item, as de #stickyN_2, #stickyN_3...
+ITEM_MOUSE_RE = re.compile(r"itemMouseOver\((\d+)\)")
+
+
+def offer_images(soup, row):
+    """(imagem da edição, [fotos da loja]) de uma linha de oferta; ("", []) se a página não tiver."""
+    m = ITEM_MOUSE_RE.search(row.get("onmouseover") or "")
+    if not m:
+        return "", []
+    n = m.group(1)
+    img = soup.find(id=f"sticky{n}")
+    image = web_image(img.img.get("src")) if img and img.img else ""
+    photos = []
+    for div in soup.find_all(id=re.compile(rf"^sticky{n}_\d+$")):
+        foto = web_image(div.img.get("src")) if div.img else ""
+        if foto and foto not in photos:
+            photos.append(foto)
+    return image, photos
+
+
 def offer_note(icon):
     """Texto da observação que a loja colocou numa oferta (atributo observacao do ícone)."""
     texto = (icon.get("observacao") or "").replace("{{br}}", "\n")
@@ -191,6 +212,7 @@ def parse_product_page(html):
 
     offers = []
     for row in rows:
+        image, photos = offer_images(soup, row)
         cells = row.find_all("div", class_="table-cards-body-cell", recursive=False)
         price_cell = row.select_one(".card-preco")
         if len(cells) < 4 or price_cell is None:
@@ -238,7 +260,7 @@ def parse_product_page(html):
         original = prices[0] if len(prices) >= 2 and prices[0] > prices[-1] else None
 
         offers.append(Offer(edition, language, quality, extras, stock, price, preorder, original, preorder_date, note, flag,
-                            edition_code))
+                            edition_code, image, photos))
 
     if not offers or all(o.stock is None and o.price is None for o in offers):
         return [], "unreadable"  # existem linhas, mas os números não vieram como texto
