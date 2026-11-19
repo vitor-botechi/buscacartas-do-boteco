@@ -12,7 +12,7 @@
 - Caixa "Apenas nome exato" (Scryfall para nomes em inglês e português).
 - Botão "Colar nome", Voltar e Avançar (resultados com mais de 30 min são refeitos), Ctrl+Backspace, janela centralizada e adaptada à tela.
 - Aviso na tela para itens com detalhes sob demanda; "Recolher/Expandir listas".
-- Versão na tela: "versão X.Y.Z" embaixo da lousa e no título da janela, para saber a versão de quem manda um print (nov/2026, ramificação `versao-na-tela`). As imagens do README ainda não mostram essa linha; refazer na próxima vez que forem atualizadas.
+- Versão na tela: "versão X.Y.Z" embaixo da lousa e no título da janela, para saber a versão de quem manda um print (nov/2026, ramificação `versao-na-tela`). As imagens do README foram refeitas na ramificação `ligamagic`, já com a versão e o botão "LigaMagic ↗".
 - Pré-venda: as lojas marcam com um "P" verde, com a previsão de envio no `title` ("Data de previsão de envio do item: 13/11/2026"). O programa lê o "P" na lista de busca (item com alguma oferta em pré-venda) e em cada oferta da página do produto, e mostra em verde: "(P)" no nome e "pré-venda, envio DD/MM/AAAA" na coluna Situação (no painel, "(pré-venda)" na edição e a data em Extras) (nov/2026, fixtures `produto_pre_venda` e `busca_lista_pre_venda`, Anel Solar da Star Trek Commander na Overrun).
 
 ## Decisões tomadas
