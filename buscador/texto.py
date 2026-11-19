@@ -19,6 +19,10 @@ def clean_card_name(text):
     return " ".join(text.translate(INVISIBLE_CHARS).split())
 
 
+def is_art_card(name):
+    """Art Card (carta de arte, sem efeito no jogo): 'Thalia, Guardiã de Thraben (Art Card)'."""
+    return bool(re.search(r"\bart (card|series)\b", norm(name)))
+
 def strip_suffix(name):
     """'Sol Ring (Human)' -> 'Sol Ring'; 'Ilha (#266)' -> 'Ilha'."""
     prev = None

@@ -1,5 +1,5 @@
 "use strict";
-/* Tela do Buscador de Cartas MTG. O Python (buscador/web/ponte.py) faz as buscas; aqui só se
+/* Tela do BuscaCartas do Boteco. O Python (buscador/web/ponte.py) faz as buscas; aqui só se
    desenha a tela e se guarda o estado dela (o que está aberto, histórico Voltar/Avançar).
    Acontecimentos da busca chegam por app.evento(tipo, sid, dados); os de uma busca antiga
    (sid diferente) são ignorados. */
@@ -448,7 +448,7 @@ function blocoItem(r, it) {
     ${nomeItem(it)}${direita}${abrir}</div>${msg}</div>`;
 }
 
-function blocoLoja(url) {
+function blocoLoja(url, i) {
   const r = tela.res[url];
   const [cls, texto] = textoStatus(r);
   const itens = visiveis(r);
@@ -456,7 +456,7 @@ function blocoLoja(url) {
   const grande = itens.length > n;
   const tudo = grande && tela.expandidas[url];
   const mostrar = tudo || !grande ? itens : itens.slice(0, n);
-  const fechada = tela.fechadas[url] ?? false;
+  const fechada = tela.fechadas[url] ?? tela.recolhido;  // "Recolher tudo" fecha também as lojas
   let corpo = mostrar.map((it) => blocoItem(r, it)).join("");
   if (grande) {
     corpo += tudo ? `<button class="mais" data-mais="${esc(url)}">▲ Mostrar menos</button>`
@@ -486,7 +486,7 @@ function blocoLoja(url) {
     ? `<img class="logo" src="${esc(r.loja.logo)}" alt="" onerror="this.remove()">` : "";
   return `<div class="cartao${fechada || !temItens ? " fechado" : ""}${apagada ? " apagada" : ""}" style="--cor-loja:${cor};--cor-loja2:${cor2}">
     <div class="cab" data-loja="${esc(url)}"><span class="seta">${temItens ? "▾" : ""}</span>
-      ${logo}<span class="nome">${esc(r.loja.nome)}</span><span class="status st-${cls}">${texto}</span>
+      ${logo}<span class="nome">${esc(r.loja.nome)}</span><span class="pedido" title="Pedido nº ${i + 1} desta busca">nº ${i + 1}</span><span class="status st-${cls}">${texto}</span>
       ${lote}<button class="abrir" data-abrir="${esc(r.url_busca)}" title="Abrir esta busca no navegador">Abrir no navegador ↗</button></div>
     <div class="corpo">${corpo}</div></div>`;
 }
@@ -505,8 +505,9 @@ function desenhar() {
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (!tela.ordem.length) {
-    area.innerHTML = `<div class="vazio">${leque()}<p>Digite o nome de uma carta e clique em <b>Buscar</b>.<br>
-      Você vê em quais lojas marcadas há estoque, com edição, idioma, qualidade e preço.</p></div>`;
+    area.innerHTML = `<div class="vazio lousa-inicio">${leque()}<p class="titulo-giz">O que vai ser hoje?</p>
+      <p class="texto-giz">Escreve o nome da carta ali em cima e clica em Buscar:<br>
+      a gente passa nas lojas marcadas e traz o que tiver, com edição, idioma, qualidade e preço.</p></div>`;
   } else {
     area.innerHTML = tela.ordem.map(blocoLoja).join("");
   }
@@ -589,7 +590,7 @@ $("resultados").addEventListener("click", (e) => {
   const loja = e.target.closest("[data-loja]");
   if (loja) {
     const url = loja.dataset.loja;
-    tela.fechadas[url] = !tela.fechadas[url];
+    tela.fechadas[url] = !(tela.fechadas[url] ?? tela.recolhido);
     desenhar();
   }
 });
@@ -665,10 +666,12 @@ function textoRecolher(recolhido) {
   $("recolher").textContent = recolhido ? "▼ Expandir tudo" : "▲ Recolher tudo";
 }
 
+// Recolher: fecha as lojas e os itens. Expandir: abre as lojas e os itens que já têm edições e preços
+// (não carrega nada: os itens sem preço continuam com "Ver edições e preços").
 function alternarRecolher() {
   tela.recolhido = !tela.recolhido;
   tela.abertos = {};
-  if (tela.recolhido) tela.expandidas = {};
+  tela.fechadas = {};
   textoRecolher(tela.recolhido);
   desenhar();
 }

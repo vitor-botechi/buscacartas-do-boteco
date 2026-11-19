@@ -1,9 +1,11 @@
-# Buscador de Cartas MTG: guia para o Claude Code
+# BuscaCartas do Boteco: guia para o Claude Code
 
 Este arquivo é lido no início de cada sessão. Explica o projeto, as decisões já tomadas e as regras de trabalho.
 O roteiro de melhorias e o histórico de decisões estão em `docs/ROTEIRO.md`.
 
 ## O que é
+
+O nome **BuscaCartas do Boteco** (curto: BuscaCartas) vem do "Boteco de Pedidos", o aviso de pedidos da comunidade; até a 1.0.0 era "Buscador de Cartas MTG". O pacote continua `buscador/` e o ponto de entrada `buscador_mtg.py`. "Magic" e "MTG" (marcas da Wizards) ficam fora do nome, só em subtítulos e descrições.
 
 Programa de computador (Windows, Python, com a tela em HTML numa janela do pywebview) que busca cartas de **Magic: The Gathering** em várias lojas ao mesmo tempo.
 A pessoa digita o nome da carta, marca as lojas e vê em quais há estoque, com edições, idioma, qualidade e preço.
@@ -25,18 +27,18 @@ Python 3.10 ou mais novo. Dependências: `requests`, `beautifulsoup4` (o app abr
 As importações dentro do pacote são absolutas (`from buscador.config import ...`).
 
 1. **`config.py`**: lojas padrão (`DEFAULT_STORES`), modelo da URL de busca (`SEARCH_PATH`), constantes de limites (`AUTO_*`, `BLOCK_COOLDOWN`, `CACHE_TTL`, `HISTORY_MAX`, `STALE_AFTER`) e `app_dir()` (pasta do programa, que é a pasta *acima* de `buscador/`, ou a do `.exe`).
-2. **`armazenamento.py`**: `lojas.json` (lojas, seleção e, se a pessoa arrastou, a ordem: `manual_order`) e `config.json` (preferências), na pasta de `app_dir()` (projeto pelo código-fonte; `%APPDATA%\BuscadorMTG` no `.exe`); `normalize_base`, `host_key`.
+2. **`armazenamento.py`**: `lojas.json` (lojas, seleção e, se a pessoa arrastou, a ordem: `manual_order`) e `config.json` (preferências), na pasta de `app_dir()` (projeto pelo código-fonte; `%APPDATA%\BuscaCartas` no `.exe`, com cópia automática da pasta antiga `%APPDATA%\BuscadorMTG`); `normalize_base`, `host_key`.
 3. **`modelos.py`**: `Item`, `StoreResult`, `Offer`.
 4. **`texto.py`**: `norm`, `clean_card_name`, `strip_suffix`.
 5. **`lojas/ligamagic.py`**: só leitura de HTML, **sem requisições**: `build_search_url`, `parse_results`, `product_from_page`, `parse_product_page` (edição, idioma, qualidade, extras, estoque, preço, promoção e observação da loja), `theme_color` e `theme_logo` (cor principal e logo do site) e os marcadores de bloqueio/sem resultado. Uma loja de outro padrão ganha um módulo próprio em `lojas/`.
 6. **`rede.py`**: requisições: `search_store`, `safe_search`, `fetch_product` com cache curto, `fetch_store_look` (cor e logo, uma vez, ao adicionar uma loja), gravação em `debug/`.
 7. **`automatico.py`**: `auto_details` e `AutoCtl` (orçamento total e freio de emergência).
 8. **`scryfall.py`**: `resolve_names` consulta o Scryfall para nomes em inglês e português; `matches_exact` compara; `card_art` dá a imagem da carta (da edição, pelo nome ou pelo código do ícone) para a arte ao passar o mouse, com cache e uma consulta por vez.
-9. **`web/`** (interface atual): **`ponte.py`**, classe `Ponte`, o lado Python que a página chama (buscar, detalhes, arte da carta, lojas, colar, abrir no navegador); **`serializar.py`** converte `Item`/`Offer`/`StoreResult` em dicionários; **`app.py`** abre a janela (`main()`); **`pagina/`** tem `index.html`, `estilo.css` e `app.js`, que só desenham a tela e guardam o estado dela (o que está aberto, histórico Voltar/Avançar).
+9. **`web/`** (interface atual): **`ponte.py`**, classe `Ponte`, o lado Python que a página chama (buscar, detalhes, arte da carta, lojas, colar, abrir no navegador); **`serializar.py`** converte `Item`/`Offer`/`StoreResult` em dicionários; **`app.py`** abre a janela (`main()`); **`pagina/`** tem `index.html`, `estilo.css` e `app.js`, que só desenham a tela e guardam o estado dela (o que está aberto, histórico Voltar/Avançar), e `fontes/` (letra de giz Caveat, licença OFL, embutida para funcionar sem internet). Tema de boteco: balcão de madeira no alto, lousa com as lojas, cada loja numa comanda de caderno com "nº N"; a letra de giz fica só em nomes, títulos e textos da lousa (preços e dados na letra normal, para ler bem).
 
 Só `web/` usa o pywebview (sem ele, o programa avisa e não abre).
 
-Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller, arquivo único, com a tela de abertura `instalador/abertura.png`, que `instalador/desenhar_abertura.py` desenha; o `--splash` precisa do Tkinter no Python que gera o `.exe`) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
+Fora do pacote: `instalador/gerar_exe.py` gera o `BuscaCartas.exe` (PyInstaller, arquivo único, com a tela de abertura `instalador/abertura.png`, que `instalador/desenhar_abertura.py` desenha, e o ícone `instalador/icone.ico`, que `instalador/desenhar_icone.py` desenha; o `--splash` precisa do Tkinter no Python que gera o `.exe`) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
 
 ## Regras de funcionamento a preservar
 
@@ -56,7 +58,7 @@ Fora do pacote: `instalador/gerar_exe.py` gera o `BuscadorMTG.exe` (PyInstaller,
 
 ## Particularidades das lojas (padrão LigaMagic)
 
-- Busca: `/?view=ecom/itens&busca=NOME&txt_estoque=1&txt_order=3&txt_limit=120&page=1` (`txt_estoque=1` = só com estoque, `txt_order=3` = menor preço).
+- Busca: `/?view=ecom/itens&busca=NOME&txt_estoque=1&txt_order=3&txt_limit=120&page=1` (`txt_estoque=1` = só com estoque, `txt_order=3` = menor preço). O programa mantém essa ordem, mas põe os **Art Cards** ("(Art Card)" no nome) no fim (`parse_results`, `texto.is_art_card`).
 - Quando a busca tem **um único resultado**, a loja devolve direto a **página do produto** (`#product--list`). Por isso `product_from_page` existe.
 - Resultados da lista estão em `.cards:not(.cards-hint) .card-item`. O bloco **"Cards Associados"** (`.cards-hint`) não faz parte da busca e deve ser ignorado.
 - Os nomes podem vir como `Nome PT / Nome EN` e com sufixos entre parênteses (`Ilha (#266)`); `matches_exact` trata isso.

@@ -1,13 +1,16 @@
-# Buscador de Cartas MTG
+# BuscaCartas do Boteco
 
 Programa de computador (Windows) para buscar cartas de **Magic: The Gathering** em várias lojas ao mesmo tempo.
 Digite o nome da carta, escolha as lojas e veja em quais há estoque, com edições, idioma, qualidade e preço.
 Feito para lojas que usam o padrão **LigaMagic**.
 
+O nome vem do "Boteco de Pedidos", o aviso de pedidos da comunidade, e a tela segue o tema: balcão de madeira, lousa com as lojas e cada loja numa comanda. Até a versão 1.0.0, o programa se chamava "Buscador de Cartas MTG".
+
 ## Recursos
 
 - Lojas pré-cadastradas (liga e desliga em cada uma; arraste pela alça ⠿ para mudar a ordem dos resultados) e opção de **adicionar outras lojas** pelo link (o programa confere se o site responde antes de adicionar).
 - Resultados por loja, cada uma num cartão com a logo e as cores da loja (de uma loja nova, a logo e a cor são lidas do site dela), com link direto para a página do produto e para a busca na loja.
+- **Lista do mais barato para o mais caro**, na ordem da loja, com os Art Cards no fim.
 - **Edições e preços** de cada item (idioma com a bandeira, qualidade, estoque, extras, promoção, pré-venda, observação da loja e aviso de que a loja tirou fotos do item, com cores; um clique na edição abre a página na loja), carregados com um clique em "Ver edições e preços", automaticamente quando a loja tem poucos itens, ou de todos os itens de uma loja com "Carregar todos os preços" (um por vez, com calma; cada item mostra o menor preço e abre as edições com um clique).
 - **Arte da carta** com o mouse em cima do nome do item ou de uma edição (a imagem daquela edição, a mesma que a loja mostra; antes de ler as edições, a do [Scryfall](https://scryfall.com/)).
 - Opção **Apenas nome exato**, que usa o [Scryfall](https://scryfall.com/) para reconhecer o nome da carta em inglês e português.
@@ -16,8 +19,8 @@ Feito para lojas que usam o padrão **LigaMagic**.
 
 ## Como instalar e rodar
 
-**Jeito fácil (Windows):** baixe o `BuscadorMTG.exe` na página de
-[versões (Releases)](https://github.com/vitor-botechi/buscador-mtg/releases) e abra. Não precisa instalar o Python
+**Jeito fácil (Windows):** baixe o `BuscaCartas.exe` na página de
+[versões (Releases)](https://github.com/vitor-botechi/buscacartas-do-boteco/releases) e abra. Não precisa instalar o Python
 nem descompactar nada; o arquivo pode ficar em qualquer pasta. Para atualizar, basta baixar o novo `.exe`:
 as lojas e preferências continuam.
 Na primeira vez, o Windows pode avisar que protegeu o computador: clique em "Mais informações" e "Executar assim mesmo"
@@ -48,7 +51,7 @@ py -m pip install -r instalador/requirements.txt
 py instalador/gerar_exe.py
 ```
 
-O resultado é `dist/BuscadorMTG.exe`, um arquivo único, que é o publicado
+O resultado é `dist/BuscaCartas.exe`, um arquivo único, que é o publicado
 na página de versões do GitHub. Detalhes no início de `instalador/gerar_exe.py`.
 
 ## Organização do código
@@ -87,7 +90,7 @@ Os testes usam páginas reais das lojas, **sanitizadas**, em `tests/fixtures/`, 
 - Lê as páginas públicas de busca das lojas, uma requisição por loja e por busca.
 - As páginas de produto são lidas só sob demanda, ou automaticamente para poucos itens, com pausa entre as requisições e um teto por busca. Se alguma loja sinalizar bloqueio, a leitura automática é pausada.
 - Algumas lojas não entregam o preço e o estoque da lista de busca como texto; por isso eles aparecem ao abrir os detalhes do item.
-- Arquivos locais: `lojas.json` (lojas, seleção e ordem), `config.json` (preferências) e a pasta `debug/` (páginas recebidas, para diagnóstico). No `.exe`, ficam em `%APPDATA%\BuscadorMTG` (cole esse endereço na barra do Explorador de Arquivos para abrir); rodando pelo código-fonte, ficam na pasta do projeto. Nenhum deles vai para o repositório.
+- Arquivos locais: `lojas.json` (lojas, seleção e ordem), `config.json` (preferências) e a pasta `debug/` (páginas recebidas, para diagnóstico). No `.exe`, ficam em `%APPDATA%\BuscaCartas` (cole esse endereço na barra do Explorador de Arquivos para abrir; quem usava a versão 1.0.0 ou anterior tem as lojas e preferências copiadas automaticamente de `%APPDATA%\BuscadorMTG`); rodando pelo código-fonte, ficam na pasta do projeto. Nenhum deles vai para o repositório.
 
 ## Aviso
 
@@ -99,3 +102,6 @@ Use com moderação: o programa foi feito para consultas pontuais de um usuário
 
 [MIT](LICENSE): qualquer pessoa pode usar, copiar, modificar e redistribuir o programa, desde que mantenha
 o aviso de autoria e da licença. O programa é oferecido sem garantia.
+
+A letra de giz é a [Caveat](https://github.com/googlefonts/caveat), sob a licença SIL Open Font License
+(`buscador/web/pagina/fontes/OFL.txt`).

@@ -5,7 +5,7 @@ import sys
 
 from buscador.web.ponte import Ponte
 
-TITULO = "Buscador de Cartas MTG"
+TITULO = "BuscaCartas do Boteco"
 
 
 def pasta_da_pagina():
