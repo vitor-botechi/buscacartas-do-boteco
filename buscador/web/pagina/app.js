@@ -420,7 +420,9 @@ function nomeItem(it) {
 
 function blocoItem(r, it) {
   const k = chave(r.loja.url, it.url);
-  const abrir = `<button class="abrir" data-abrir="${esc(it.url)}" title="Abrir a página do produto na loja">Abrir ↗</button>`;
+  // LigaMagic: abre a página da carta no navegador, para comparar preços (o programa não lê esse site)
+  const liga = it.liga ? `<button class="abrir liga" data-abrir="${esc(it.liga)}" title="Ver esta carta na LigaMagic, no navegador, para comparar preços">LigaMagic ↗</button>` : "";
+  const abrir = `${liga}<button class="abrir" data-abrir="${esc(it.url)}" title="Abrir a página do produto na loja">Abrir ↗</button>`;
   if (it.ofertas) {
     const aberto = tela.abertos[k] ?? !tela.recolhido;
     if (!it.ofertas.length) {

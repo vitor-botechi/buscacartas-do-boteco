@@ -18,13 +18,13 @@ function resultadosDeExemplo() {
   const comCarta = {
     loja: loja("Loja de exemplo", "https://exemplo.invalid/a", "#a1361f"), url_busca: "", status: "found", msg: "",
     itens: [
-      { nome: "Anel Solar / Sol Ring", url: "https://exemplo.invalid/a/1", exato: true, ofertas: [
+      { nome: "Anel Solar / Sol Ring", url: "https://exemplo.invalid/a/1", liga: "https://www.ligamagic.com.br/?view=cards/card&card=Sol%20Ring", exato: true, ofertas: [
         oferta("Commander 2014", "Inglês", "SP", 1, 8.4),
         oferta("Commander 2016", "Português", "NM", 3, 12),
         oferta("Commander Masters", "Inglês", "NM", 2, 14.9, { preco_original: 19.9, promo: 25 }),
         oferta("Foundations (Promos)", "Inglês", "NM", 1, 21.89, { extras: "Foil" }),
       ] },
-      { nome: "Sol Ring (Human)", url: "https://exemplo.invalid/a/2", exato: false, ofertas: null },
+      { nome: "Sol Ring (Human)", url: "https://exemplo.invalid/a/2", liga: "https://www.ligamagic.com.br/?view=cards/card&card=Sol%20Ring", exato: false, ofertas: null },
     ],
   };
   const semCarta = { loja: loja("Outra loja", "https://exemplo.invalid/b", "#1e4f8a"), url_busca: "", status: "none", msg: "", itens: [] };
@@ -52,6 +52,8 @@ const PASSOS = [
     titulo: "Uma comanda por loja", texto: "Verde: a loja tem a carta. Clique no nome da loja para abrir ou fechar." },
   { alvo: no("#resultados .item:not(.fechado) .corpo"),
     titulo: "Edições e preços", texto: "Do mais barato ao mais caro. Clique numa linha para abrir na loja e comprar. Pare o mouse no nome para ver a arte da carta." },
+  { alvo: no("#resultados .item-cab .liga"),
+    titulo: "Compare com a LigaMagic", texto: "Abre a carta na LigaMagic, no seu navegador, para comparar os preços." },
   { alvo: no("#resultados .item-cab .pedir"),
     titulo: "Muitos resultados?", texto: "Aí o preço vem quando você pede: clique aqui, ou em “Carregar todos os preços” na loja." },
   { alvo: () => $("exato").closest("label"), titulo: "Só a carta certa", texto: "Marque para esconder as cartas de nome parecido." },

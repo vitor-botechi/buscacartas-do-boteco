@@ -34,6 +34,7 @@ Dá para rever quando quiser.
 - **Arte da carta:** pare o mouse no nome para ver a carta daquela edição.
 - **Etiquetas:** Foil, promoção, pré-venda com data de envio, observação da loja e fotos do item.
 - **Colar nome:** copiou o nome em outro lugar? Volte para a janela e aperte **Enter** duas vezes: o primeiro cola, o segundo busca.
+- **LigaMagic:** o botão **LigaMagic ↗** abre a carta na LigaMagic, no seu navegador, para comparar os preços.
 - **Apenas nome exato:** mostra só a carta com aquele nome, em português ou inglês, sem as parecidas.
 - **Carregar todos os preços:** quando a loja tem muitos resultados, mostra o menor preço de cada um.
 - **Adicionar loja:** cole o link de outra loja que use o mesmo sistema (o da LigaMagic).
