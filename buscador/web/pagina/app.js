@@ -23,6 +23,7 @@ let lojas = [];
 let historico = [];
 let avancar = [];
 let tela = novaTela();
+let tutorialAtivo = false;  // o tutorial (tutorial.js) está mostrando a busca de exemplo
 
 function novaTela() {
   return {
@@ -502,6 +503,7 @@ function leque() {
 }
 
 function desenhar() {
+  if (tutorialAtivo) return;  // a tela de verdade volta a ser desenhada ao fechar o tutorial
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (!tela.ordem.length) {
@@ -801,4 +803,5 @@ window.addEventListener("pywebviewready", async () => {
     avisar("Para ver os resultados aqui dentro, instale: pip install requests beautifulsoup4 (enquanto isso, o botão 🌐 abre as lojas no navegador).");
   }
   $("colar").focus();
+  prepararTutorial(cfg.tutorial_visto);
 });
