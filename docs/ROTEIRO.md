@@ -53,6 +53,10 @@
     2. **Comparar entre as lojas buscadas**, por estado: com as edições já carregadas, marcar a oferta mais barata de cada estado (ex.: "menor NM", "menor SP") entre todas as lojas da busca. Sem requisições novas; não diz se o preço é "justo" no mercado, mas mostra onde está mais barato.
     3. **Preço de referência do Scryfall** (que o programa já consulta para nomes e arte): o Scryfall traz um preço de mercado por edição (dólar e euro, normal e Foil), sem estado (vale como NM). Precisaria converter para real (uma cotação por dia, de outro serviço) e seria uma referência aproximada, só para NM. Avaliar se vale.
     4. Pedir à LigaMagic uma forma autorizada (API ou parceria). Fora do alcance do programa por enquanto.
+  - Escolha do dono (19/11/2026):
+    - **Fazer o link "Ver na LigaMagic ↗"** (caminho 1). O dono gostou da ideia.
+    - **Marcar a oferta mais barata entre as lojas buscadas com uma etiqueta pequena** (caminho 2). Antes de implementar, mostrar ao dono como ficaria.
+    - **Preço do Scryfall: não compensa** (caminho 3 descartado).
   - Achado de passagem: as lojas (padrão LigaMagic) usam o mesmo `robots.txt`, com `Crawl-delay: 360` para robôs e as páginas de busca e produto liberadas. O programa não é um robô que varre o site (só faz o que a pessoa pede, uma busca por loja e as páginas de produto com pausa), mas vale lembrar disso antes de qualquer função que faça mais requisições (como a busca de lista inteira).
 - **Design (etapa 1 publicada na versão 0.5.0, PR #9)**: cores diferentes para idioma, qualidade (NM/SP), unidades e preço; linhas separadoras mais suaves.
   - Decisão (nov/2026): a tabela do Tkinter só pinta a linha inteira. Comparamos dois protótipos com a mesma busca: Tkinter com ttkbootstrap + tksheet (cor por célula, visual de planilha; o tksheet parou de ser desenvolvido) e **HTML numa janela de programa (pywebview)**, que foi o escolhido: visual mais agradável e facilita arte da carta, animações e tutorial. Também consideradas: CustomTkinter (sem tabela), Qt/PySide6 (`.exe` bem maior), Flet e NiceGUI (mais pesadas).
