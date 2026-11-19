@@ -456,7 +456,7 @@ function blocoLoja(url, i) {
   const grande = itens.length > n;
   const tudo = grande && tela.expandidas[url];
   const mostrar = tudo || !grande ? itens : itens.slice(0, n);
-  const fechada = tela.fechadas[url] ?? false;
+  const fechada = tela.fechadas[url] ?? tela.recolhido;  // "Recolher tudo" fecha também as lojas
   let corpo = mostrar.map((it) => blocoItem(r, it)).join("");
   if (grande) {
     corpo += tudo ? `<button class="mais" data-mais="${esc(url)}">▲ Mostrar menos</button>`
@@ -590,7 +590,7 @@ $("resultados").addEventListener("click", (e) => {
   const loja = e.target.closest("[data-loja]");
   if (loja) {
     const url = loja.dataset.loja;
-    tela.fechadas[url] = !tela.fechadas[url];
+    tela.fechadas[url] = !(tela.fechadas[url] ?? tela.recolhido);
     desenhar();
   }
 });
@@ -666,10 +666,12 @@ function textoRecolher(recolhido) {
   $("recolher").textContent = recolhido ? "▼ Expandir tudo" : "▲ Recolher tudo";
 }
 
+// Recolher: fecha as lojas e os itens. Expandir: abre as lojas e os itens que já têm edições e preços
+// (não carrega nada: os itens sem preço continuam com "Ver edições e preços").
 function alternarRecolher() {
   tela.recolhido = !tela.recolhido;
   tela.abertos = {};
-  if (tela.recolhido) tela.expandidas = {};
+  tela.fechadas = {};
   textoRecolher(tela.recolhido);
   desenhar();
 }
