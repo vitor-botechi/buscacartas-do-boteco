@@ -17,7 +17,7 @@ import time
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 
-from buscador import __version__
+from buscador import __version__, atualizacao
 from buscador.armazenamento import (
     default_name,
     host_key,
@@ -121,6 +121,19 @@ class Ponte:
         data = load_settings()
         data["tutorial_visto"] = True
         save_settings(data)
+        return True
+
+    # ---- aviso de versão nova --------------------------------------------------------
+    def versao_nova(self):
+        """{"versao", "pagina", "download"} se saiu versão mais nova no GitHub; senão None.
+
+        A página chama ao abrir; o pywebview roda numa thread própria, então a consulta não atrasa a tela.
+        """
+        return atualizacao.verificar()
+
+    def adiar_versao(self, versao):
+        """"Agora não" no aviso de versão nova."""
+        atualizacao.adiar(versao)
         return True
 
     @staticmethod

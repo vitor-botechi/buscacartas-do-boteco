@@ -807,4 +807,22 @@ window.addEventListener("pywebviewready", async () => {
   }
   $("colar").focus();
   prepararTutorial(cfg.tutorial_visto);
+  api().versao_nova().then(mostrarVersaoNova).catch(() => {});  // consulta o GitHub sem atrasar a tela
 });
+
+/* ---- aviso de versão nova (atualizacao.py): um recado no alto, com o botão para baixar ---- */
+function mostrarVersaoNova(nova) {
+  if (!nova || !nova.versao) return;
+  const aviso = $("versao-nova");
+  $("vn-numero").textContent = nova.versao;
+  $("vn-baixar").textContent = `⬇ Baixar a versão ${nova.versao}`;
+  $("vn-baixar").onclick = () => {
+    api().abrir(nova.download || nova.pagina);
+    $("vn-texto").textContent = nova.download
+      ? "O download começou no navegador. Quando terminar, feche este programa e abra o novo BuscaCartas.exe."
+      : "Na página que abriu, baixe o BuscaCartas.exe. Depois, feche este programa e abra o novo.";
+  };
+  $("vn-novidades").onclick = () => api().abrir(nova.pagina);
+  $("vn-adiar").onclick = () => { aviso.hidden = true; api().adiar_versao(nova.versao); };
+  aviso.hidden = false;
+}
