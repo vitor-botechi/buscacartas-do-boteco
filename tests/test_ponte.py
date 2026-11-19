@@ -7,7 +7,7 @@ import time
 
 import pytest
 
-from buscador import armazenamento, automatico
+from buscador import __version__, armazenamento, automatico
 from buscador.lojas.ligamagic import parse_results, product_from_page
 from buscador.modelos import StoreResult
 from buscador.web import ponte as ponte_mod
@@ -84,6 +84,7 @@ def test_iniciar_traz_lojas_e_preferencias(ponte):
     assert all(l["cor"].startswith("#") and l["logo"].startswith("https://") for l in cfg["lojas"][:4])
     assert cfg["auto_limite"] == 5 and cfg["auto_max"] == 10
     assert cfg["tem_bibliotecas"] is True
+    assert cfg["versao"] == __version__  # aparece embaixo da lousa e no título, para reconhecer num print
     assert "_janela" not in dir(type(ponte))  # estado interno não vira função da página
 
 

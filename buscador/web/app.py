@@ -3,9 +3,11 @@
 import os
 import sys
 
+from buscador import __version__
 from buscador.web.ponte import Ponte
 
-TITULO = "BuscaCartas do Boteco"
+# a versão também fica no título: num print da tela, dá para saber qual versão a pessoa usa
+TITULO = f"BuscaCartas do Boteco {__version__}"
 
 
 def pasta_da_pagina():
