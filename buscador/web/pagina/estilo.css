@@ -267,6 +267,9 @@ aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px
 .recado { margin-top: auto; padding-top: 24px; display: flex; flex-direction: column; align-items: center; text-align: center;
   font: 600 15px/1.2 "Caveat", cursive; color: rgba(241, 240, 232, .62); user-select: none; }
 .recado-titulo { font-size: 21px; font-weight: 700; color: rgba(241, 240, 232, .88); }
+/* versão do programa, para reconhecer num print da tela (letra normal, para ler bem) */
+.recado .versao { margin-top: 10px; font: 11.5px/1 system-ui, sans-serif; color: rgba(241, 240, 232, .5); }
+.recado .versao:empty { display: none; }
 
 /* busca */
 .campo, .btn { border-color: #d8cdb4; }
