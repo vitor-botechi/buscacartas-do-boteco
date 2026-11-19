@@ -13,13 +13,14 @@ def test_url_de_busca_so_com_estoque_e_menor_preco():
 
 # ---- lista de busca com vários resultados ----
 
-def test_lista_traz_os_4_resultados(pagina):
+def test_lista_traz_os_4_resultados_com_o_art_card_no_fim(pagina):
+    # na página, o Art Card vem primeiro (é o mais barato); o programa o põe por último
     itens, _ = parse_results(pagina("busca_lista"), OVERRUN)
     assert [i.name for i in itens] == [
-        "Thalia, Guardiã de Thraben (Art Card)",
         "Thalia, the Survivor",
         "Tenente de Thalia",
         "Thalia, Guardiã de Thraben",
+        "Thalia, Guardiã de Thraben (Art Card)",
     ]
 
 

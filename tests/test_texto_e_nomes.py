@@ -88,3 +88,11 @@ def test_sem_arquivo_de_lojas_usa_as_padrao(monkeypatch, tmp_path):
     assert all(s["enabled"] for s in lojas)
 
 
+
+
+def test_reconhece_art_card():
+    from buscador.texto import is_art_card
+    assert is_art_card("Thalia, Guardiã de Thraben (Art Card)")
+    assert is_art_card("Sol Ring - Art Series")
+    assert not is_art_card("Thalia, Guardiã de Thraben")
+    assert not is_art_card("Heart Card")  # só a expressão inteira

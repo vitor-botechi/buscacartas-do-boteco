@@ -58,7 +58,7 @@ Fora do pacote: `instalador/gerar_exe.py` gera o `BuscaCartas.exe` (PyInstaller,
 
 ## Particularidades das lojas (padrão LigaMagic)
 
-- Busca: `/?view=ecom/itens&busca=NOME&txt_estoque=1&txt_order=3&txt_limit=120&page=1` (`txt_estoque=1` = só com estoque, `txt_order=3` = menor preço).
+- Busca: `/?view=ecom/itens&busca=NOME&txt_estoque=1&txt_order=3&txt_limit=120&page=1` (`txt_estoque=1` = só com estoque, `txt_order=3` = menor preço). O programa mantém essa ordem, mas põe os **Art Cards** ("(Art Card)" no nome) no fim (`parse_results`, `texto.is_art_card`).
 - Quando a busca tem **um único resultado**, a loja devolve direto a **página do produto** (`#product--list`). Por isso `product_from_page` existe.
 - Resultados da lista estão em `.cards:not(.cards-hint) .card-item`. O bloco **"Cards Associados"** (`.cards-hint`) não faz parte da busca e deve ser ignorado.
 - Os nomes podem vir como `Nome PT / Nome EN` e com sufixos entre parênteses (`Ilha (#266)`); `matches_exact` trata isso.

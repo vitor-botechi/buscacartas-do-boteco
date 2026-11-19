@@ -11,7 +11,7 @@ except ImportError:  # sem a biblioteca a busca interna fica desligada (ver rede
 
 from buscador.config import SEARCH_PATH
 from buscador.modelos import Item, Offer
-from buscador.texto import norm
+from buscador.texto import is_art_card, norm
 
 
 def build_search_url(base, card, page=1):
@@ -115,6 +115,8 @@ def parse_results(html, base_url):
         )
         for href, e in products.items()
     ]
+    # a loja já manda do mais barato para o mais caro; os Art Cards vão para o fim, sem mudar o resto
+    items.sort(key=lambda i: is_art_card(i.name))
     return items, page_text
 
 

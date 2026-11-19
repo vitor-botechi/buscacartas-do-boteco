@@ -10,6 +10,7 @@ O nome vem do "Boteco de Pedidos", o aviso de pedidos da comunidade, e a tela se
 
 - Lojas pré-cadastradas (liga e desliga em cada uma; arraste pela alça ⠿ para mudar a ordem dos resultados) e opção de **adicionar outras lojas** pelo link (o programa confere se o site responde antes de adicionar).
 - Resultados por loja, cada uma num cartão com a logo e as cores da loja (de uma loja nova, a logo e a cor são lidas do site dela), com link direto para a página do produto e para a busca na loja.
+- **Lista do mais barato para o mais caro**, na ordem da loja, com os Art Cards no fim.
 - **Edições e preços** de cada item (idioma com a bandeira, qualidade, estoque, extras, promoção, pré-venda, observação da loja e aviso de que a loja tirou fotos do item, com cores; um clique na edição abre a página na loja), carregados com um clique em "Ver edições e preços", automaticamente quando a loja tem poucos itens, ou de todos os itens de uma loja com "Carregar todos os preços" (um por vez, com calma; cada item mostra o menor preço e abre as edições com um clique).
 - **Arte da carta** com o mouse em cima do nome do item ou de uma edição (a imagem daquela edição, a mesma que a loja mostra; antes de ler as edições, a do [Scryfall](https://scryfall.com/)).
 - Opção **Apenas nome exato**, que usa o [Scryfall](https://scryfall.com/) para reconhecer o nome da carta em inglês e português.
