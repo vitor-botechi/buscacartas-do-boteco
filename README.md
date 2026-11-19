@@ -24,6 +24,11 @@ Para atualizar, baixe o `.exe` novo. Suas lojas e preferências continuam.
 4. **Escolha a edição.** Cada linha mostra idioma, qualidade, estoque e preço, do mais barato para o mais caro.
    Clique na linha para abrir a página na loja e comprar por lá.
 
+Na primeira vez, o botão **❓ Como funciona?**, no alto à direita, chama você para um passeio rápido pela tela.
+Dá para rever quando quiser.
+
+![Tutorial mostrando as edições e preços](docs/imagens/tutorial.png)
+
 ## O que mais ele faz
 
 - **Arte da carta:** pare o mouse no nome para ver a carta daquela edição.
