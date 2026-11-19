@@ -793,6 +793,7 @@ document.addEventListener("mousedown", esconderArte, true);
 window.addEventListener("pywebviewready", async () => {
   cfg = await api().iniciar();
   lojas = cfg.lojas;
+  $("versao").textContent = `versão ${cfg.versao}`;
   $("auto").max = cfg.auto_max;
   $("auto").value = cfg.auto_limite;
   desenharLojas();
