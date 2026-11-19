@@ -23,6 +23,7 @@ let lojas = [];
 let historico = [];
 let avancar = [];
 let tela = novaTela();
+let tutorialAtivo = false;  // o tutorial (tutorial.js) está mostrando a busca de exemplo
 
 function novaTela() {
   return {
@@ -419,7 +420,9 @@ function nomeItem(it) {
 
 function blocoItem(r, it) {
   const k = chave(r.loja.url, it.url);
-  const abrir = `<button class="abrir" data-abrir="${esc(it.url)}" title="Abrir a página do produto na loja">Abrir ↗</button>`;
+  // LigaMagic: abre a página da carta no navegador, para comparar preços (o programa não lê esse site)
+  const liga = it.liga ? `<button class="abrir liga" data-abrir="${esc(it.liga)}" title="Ver esta carta na LigaMagic, no navegador, para comparar preços">LigaMagic ↗</button>` : "";
+  const abrir = `${liga}<button class="abrir" data-abrir="${esc(it.url)}" title="Abrir a página do produto na loja">Abrir ↗</button>`;
   if (it.ofertas) {
     const aberto = tela.abertos[k] ?? !tela.recolhido;
     if (!it.ofertas.length) {
@@ -502,6 +505,7 @@ function leque() {
 }
 
 function desenhar() {
+  if (tutorialAtivo) return;  // a tela de verdade volta a ser desenhada ao fechar o tutorial
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (!tela.ordem.length) {
@@ -802,4 +806,5 @@ window.addEventListener("pywebviewready", async () => {
     avisar("Para ver os resultados aqui dentro, instale: pip install requests beautifulsoup4 (enquanto isso, o botão 🌐 abre as lojas no navegador).");
   }
   $("colar").focus();
+  prepararTutorial(cfg.tutorial_visto);
 });

@@ -304,3 +304,48 @@ aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px
 .lousa-inicio .leque .c3 { --cor: #86d6a6; }
 .lousa-inicio .leque .lupa { border-color: var(--giz); background: rgba(34, 54, 43, .55); }
 .lousa-inicio .leque .lupa::after { background: var(--giz); }
+
+/* ==== tutorial "Como funciona?" (tutorial.js) ==== */
+.balcao { position: relative; }
+.canto { position: absolute; right: 22px; top: 50%; transform: translateY(-50%); display: flex; align-items: center; gap: 16px; }
+.ajuda { padding: 3px 14px 4px; border-radius: 8px;
+  font: 700 19px/1.2 "Caveat", cursive; color: var(--giz); background: var(--lousa); border: 2px solid #c9b48a; cursor: pointer; }
+.ajuda:hover { background: #2c4537; border-color: var(--giz); }
+.ajuda:focus-visible { outline: 2px solid var(--giz); outline-offset: 2px; }
+/* primeira vez: o botão pulsa e um convite a giz aparece ao lado dele */
+.ajuda.chamando { animation: chamar 1.6s ease-in-out infinite; }
+@keyframes chamar {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 214, 120, .75); }
+  50% { box-shadow: 0 0 0 9px rgba(255, 214, 120, 0); }
+}
+.convite { position: relative; display: flex; align-items: center; gap: 6px;
+  padding: 5px 8px 5px 14px; border-radius: 10px; font: 600 19px/1.15 "Caveat", cursive; color: var(--giz); cursor: pointer;
+  background: var(--lousa); box-shadow: 0 0 0 2px #c9b48a, 0 4px 12px rgba(40, 20, 5, .35); animation: balancar 2.4s ease-in-out infinite; }
+.convite[hidden] { display: none; }
+.convite b { color: #ffd678; }
+.convite::after { content: ""; position: absolute; right: -10px; top: 50%; margin-top: -8px; border: 8px solid transparent;
+  border-right: 0; border-left-color: #c9b48a; }
+.convite-fechar { border: 0; background: none; color: var(--giz-apagado); font: 20px/1 sans-serif; padding: 0 4px; cursor: pointer; border-radius: 4px; }
+.convite-fechar:hover { color: #fff; background: rgba(255, 255, 255, .12); }
+@keyframes balancar { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(-5px); } }
+
+.tour { position: fixed; inset: 0; z-index: 60; }
+.tour[hidden] { display: none; }
+.tour-foco { position: fixed; border-radius: 10px; pointer-events: none; transition: all .3s ease;
+  box-shadow: 0 0 0 3px rgba(255, 214, 120, .95), 0 0 0 9999px rgba(30, 18, 8, .58); }
+.tour-foco.sem-alvo { box-shadow: 0 0 0 9999px rgba(30, 18, 8, .58); }
+.tour-balao { position: fixed; width: 340px; padding: 14px 18px 12px; border-radius: 10px; background: var(--papel);
+  border-top: 5px solid var(--tijolo); box-shadow: 0 14px 34px rgba(0, 0, 0, .35); transition: left .3s ease, top .3s ease; }
+.tour-balao h2 { margin: 0 0 4px; font: 700 26px/1.1 "Caveat", cursive; color: var(--tijolo); }
+.tour-balao p { margin: 0 0 14px; line-height: 1.45; font-size: 14.5px; }
+.tour-pe { display: flex; align-items: center; gap: 12px; }
+.tour-pe .btn { padding: 6px 16px; }
+.tour-pe .link { white-space: nowrap; }
+.tour-pe .link[hidden] { display: none; }
+.tour-pontos { margin-right: auto; display: flex; gap: 5px; }
+.tour-pontos i { width: 7px; height: 7px; border-radius: 50%; background: #e0d6c0; }
+.tour-pontos i.atual { background: var(--tijolo); }
+@media (prefers-reduced-motion: reduce) {
+  .ajuda.chamando, .convite { animation: none; }
+  .tour-foco, .tour-balao { transition: none; }
+}

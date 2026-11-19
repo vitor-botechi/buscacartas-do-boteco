@@ -149,3 +149,14 @@ def test_texto_da_pagina_ignora_o_resumo_do_carrinho(pagina):
 
 def test_pagina_sem_linhas_de_oferta_e_vazia():
     assert parse_product_page("<html><body><p>nada</p></body></html>") == ([], "empty")
+
+
+def test_link_da_carta_na_ligamagic():
+    from buscador.lojas.ligamagic import liga_card_url
+    base = "https://www.ligamagic.com.br/?view=cards/card&card="
+    assert liga_card_url("Anel Solar / Sol Ring") == base + "Sol%20Ring"  # nome em inglês, quando a loja traz
+    assert liga_card_url("Anel Solar") == base + "Anel%20Solar"
+    assert liga_card_url("Ilha (#266)") == base + "Ilha"
+    assert liga_card_url("Lim-Dûl's Vault") == base + "Lim-D%C3%BBl%27s%20Vault"
+    assert liga_card_url("Thalia, Guardiã de Thraben (Art Card)") == ""  # Art Card não é a carta do jogo
+    assert liga_card_url("") == ""

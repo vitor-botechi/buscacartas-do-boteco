@@ -2,7 +2,7 @@
 
 import colorsys
 import re
-from urllib.parse import quote_plus, urljoin
+from urllib.parse import quote, quote_plus, urljoin
 
 try:
     from bs4 import BeautifulSoup
@@ -11,11 +11,26 @@ except ImportError:  # sem a biblioteca a busca interna fica desligada (ver rede
 
 from buscador.config import SEARCH_PATH
 from buscador.modelos import Item, Offer
-from buscador.texto import is_art_card, norm
+from buscador.texto import is_art_card, norm, strip_suffix
 
 
 def build_search_url(base, card, page=1):
     return base.rstrip("/") + SEARCH_PATH.format(query=quote_plus(card), page=page)
+
+
+LIGA_CARD_URL = "https://www.ligamagic.com.br/?view=cards/card&card={}"
+
+
+def liga_card_url(item_name):
+    """Página da carta no site da LigaMagic, para comparar preços no navegador da pessoa (botão "LigaMagic ↗").
+
+    O programa nunca lê essa página: ela tem verificação contra robôs (ver docs/ROTEIRO.md).
+    'Anel Solar / Sol Ring' usa o nome em inglês; 'Ilha (#266)' vira 'Ilha'. Art Card fica sem link.
+    """
+    if not item_name or is_art_card(item_name):
+        return ""
+    nome = strip_suffix(item_name.split(" / ")[-1])
+    return LIGA_CARD_URL.format(quote(nome)) if nome else ""
 
 
 PRICE_RE = re.compile(r"R\$\s*([\d.]+,\d{2})")

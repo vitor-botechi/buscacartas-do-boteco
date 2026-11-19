@@ -110,6 +110,14 @@ def test_auto_limite_fica_entre_0_e_10(ponte):
     assert Ponte().iniciar()["auto_limite"] == 0
 
 
+def test_tutorial_chama_atencao_so_ate_ser_visto(ponte):
+    assert ponte.iniciar()["tutorial_visto"] is False
+    ponte.salvar_auto_limite(3)  # outras preferências não apagam a marca, nem ela apaga as outras
+    assert ponte.marcar_tutorial_visto() is True
+    cfg = Ponte().iniciar()
+    assert cfg["tutorial_visto"] is True and cfg["auto_limite"] == 3
+
+
 def test_buscar_sem_nome_ou_sem_loja(ponte):
     assert ponte.buscar("   ", False, 5) == {"erro": "Digite o nome da carta."}
     ponte.marcar_lojas({s["url"]: False for s in ponte._lojas})

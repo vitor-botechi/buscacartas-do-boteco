@@ -9,6 +9,13 @@
 <header class="balcao">
   <span class="nome-app">BuscaCartas do Boteco</span>
   <span class="sub-app">busca suas cartas de Magic nas lojas</span>
+  <div class="canto">
+    <div class="convite" id="convite" role="button" hidden>
+      Primeira vez aqui? <b>Clique</b> que eu te mostro!
+      <button class="convite-fechar" id="convite-fechar" aria-label="Dispensar o convite" title="Dispensar">×</button>
+    </div>
+    <button class="ajuda" id="ajuda" aria-label="Como funciona? Ver o tutorial">❓ Como funciona?</button>
+  </div>
 </header>
 <div class="area">
 <aside class="lousa">
@@ -87,11 +94,27 @@
 
 <img id="arte" alt="" hidden>
 
+<!-- tutorial "Como funciona?" (tutorial.js): destaque em volta de um botão e um balão com a explicação -->
+<div class="tour" id="tour" hidden>
+  <div class="tour-foco" id="tour-foco"></div>
+  <div class="tour-balao" id="tour-balao" role="dialog" aria-modal="true" aria-labelledby="tour-titulo">
+    <h2 id="tour-titulo"></h2>
+    <p id="tour-texto"></p>
+    <div class="tour-pe">
+      <span class="tour-pontos" id="tour-pontos"></span>
+      <button class="link" id="tour-pular">Pular</button>
+      <button class="link" id="tour-voltar">◀ Voltar</button>
+      <button class="btn primario" id="tour-proximo">Próximo</button>
+    </div>
+  </div>
+</div>
+
 <!-- traço de giz: deixa as bordas do desenho da tela inicial um pouco irregulares -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><filter id="giz">
   <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="3" result="ruido"/>
   <feDisplacementMap in="SourceGraphic" in2="ruido" scale="2.4"/></filter></svg>
 
 <script src="app.js"></script>
+<script src="tutorial.js"></script>
 </body>
 </html>

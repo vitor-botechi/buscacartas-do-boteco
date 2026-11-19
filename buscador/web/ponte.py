@@ -113,7 +113,15 @@ class Ponte:
             "velho_depois": STALE_AFTER,
             "tem_bibliotecas": HAS_SCRAPING,
             "pausa_bloqueio": BLOCK_COOLDOWN,
+            "tutorial_visto": bool(load_settings().get("tutorial_visto")),
         }
+
+    def marcar_tutorial_visto(self):
+        """A pessoa abriu o tutorial (ou dispensou o convite): o botão "Como funciona?" para de chamar atenção."""
+        data = load_settings()
+        data["tutorial_visto"] = True
+        save_settings(data)
+        return True
 
     @staticmethod
     def _auto_limite_salvo():

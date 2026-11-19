@@ -1,5 +1,6 @@
 """Converte os resultados da busca em dicionários simples (JSON) para a página."""
 
+from buscador.lojas.ligamagic import liga_card_url
 from buscador.scryfall import matches_exact
 
 
@@ -23,7 +24,7 @@ def ofertas(lista):
 def item(it, nomes=None):
     """nomes: nomes aceitos pelo "Apenas nome exato" (None = ainda não se sabe)."""
     return {
-        "nome": it.name, "url": it.url,
+        "nome": it.name, "url": it.url, "liga": liga_card_url(it.name),
         "ofertas": ofertas(it.offers),
         "exato": None if nomes is None else matches_exact(it.name, nomes),
     }
