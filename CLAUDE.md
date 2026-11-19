@@ -39,6 +39,7 @@ As importações dentro do pacote são absolutas (`from buscador.config import .
 Só `web/` usa o pywebview (sem ele, o programa avisa e não abre).
 
 Fora do pacote: `instalador/gerar_exe.py` gera o `BuscaCartas.exe` (PyInstaller, arquivo único, com a tela de abertura `instalador/abertura.png`, que `instalador/desenhar_abertura.py` desenha, e o ícone `instalador/icone.ico`, que `instalador/desenhar_icone.py` desenha; o `--splash` precisa do Tkinter no Python que gera o `.exe`) publicado nas versões do GitHub (`py instalador/gerar_exe.py`, resultado em `dist/`, que não é versionado). Licença MIT (`LICENSE`).
+O `README.md` é para quem vai usar: curto, com as imagens de `docs/imagens/` (busca simulada com as fixtures; ver o roteiro); a parte técnica fica recolhida no fim. Ao mudar a tela de forma visível, refazer as imagens.
 
 ## Regras de funcionamento a preservar
 
