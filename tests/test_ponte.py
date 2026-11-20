@@ -334,6 +334,10 @@ def test_buscar_lista_manda_carta_por_carta(ponte, lista_rapida):
     assert [c["nome"] for c in r["cartas"]] == ["Sol Ring", "Ilha"]  # repetida sai
     assert [l["nome"] for l in r["lojas"]] == ["Overrun"]
     janela = ponte._janela
+    time.sleep(0.2)
+    assert janela.eventos == []  # nada chega antes de a página dizer que está pronta
+    assert ponte.comecar_lista(r["sid"]) is True
+    assert ponte.comecar_lista(r["sid"]) is False  # uma vez só
     janela.espera(lambda ev: "listafim" in [e[0] for e in ev])
     cartas = [e[2] for e in janela.eventos if e[0] == "lista"]
     assert [c["i"] for c in cartas] == [0, 1]
@@ -353,7 +357,8 @@ def test_buscar_lista_valida(ponte, monkeypatch):
 
 def test_cancelar_para_a_lista(ponte, lista_rapida, monkeypatch):
     monkeypatch.setattr(lista_mod, "LISTA_PAUSA", 0.3)
-    ponte.buscar_lista([{"qtd": 1, "nome": n} for n in ("A", "B", "C", "D", "E", "F")])
+    r = ponte.buscar_lista([{"qtd": 1, "nome": n} for n in ("A", "B", "C", "D", "E", "F")])
+    ponte.comecar_lista(r["sid"])
     ponte._janela.espera(lambda ev: any(e[0] == "lista" for e in ev))
     ponte.cancelar()
     time.sleep(0.8)

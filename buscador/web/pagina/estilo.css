@@ -341,7 +341,7 @@ aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px
 .tour-foco { position: fixed; border-radius: 10px; pointer-events: none; transition: all .3s ease;
   box-shadow: 0 0 0 3px rgba(255, 214, 120, .95), 0 0 0 9999px rgba(30, 18, 8, .58); }
 .tour-foco.sem-alvo { box-shadow: 0 0 0 9999px rgba(30, 18, 8, .58); }
-.tour-balao { position: fixed; width: 340px; padding: 14px 18px 12px; border-radius: 10px; background: var(--papel);
+.tour-balao { position: fixed; width: 380px; padding: 14px 18px 12px; border-radius: 10px; background: var(--papel);
   border-top: 5px solid var(--tijolo); box-shadow: 0 14px 34px rgba(0, 0, 0, .35); transition: left .3s ease, top .3s ease; }
 .tour-balao h2 { margin: 0 0 4px; font: 700 26px/1.1 "Caveat", cursive; color: var(--tijolo); }
 .tour-balao p { margin: 0 0 14px; line-height: 1.45; font-size: 14.5px; }
@@ -366,3 +366,77 @@ aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px
 .vn-texto { flex: 1; min-width: 220px; font-size: 13px; color: #d6ddd8; }
 .versao-nova .link { color: #c9d3cc; font-size: 13px; }
 .versao-nova .link:hover { color: #fff; }
+
+/* ==== busca de uma lista inteira (lista.js) ==== */
+.modal.modal-lista { width: min(820px, 94vw); }
+.lista-explica { margin: -6px 0 10px; font-size: 13px; color: var(--cinza); }
+.lista-colunas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; height: 300px; }
+#lista-texto { width: 100%; height: 100%; resize: none; padding: 8px 10px; border: 1px solid #d8cdb4; border-radius: 8px;
+  font: 13px/1.5 Consolas, "Cascadia Mono", monospace; color: var(--texto); background: #fff; }
+#lista-texto:focus { outline: 0; border-color: var(--verde); box-shadow: 0 0 0 3px var(--verde-claro); }
+.lista-previa { overflow: auto; padding: 8px 12px; border-radius: 8px; background: var(--creme); font-size: 13px; line-height: 1.6; }
+.lista-previa .fora { color: #a29a88; text-decoration: line-through; }
+.lista-previa .fora i { text-decoration: none; font-style: normal; }
+.lista-previa .nao-entendi { color: var(--ambar); }
+.lista-previa .vazia { margin: 0; color: var(--cinza); }
+.modal label.lista-basicos { display: flex; margin: 10px 0 4px; color: var(--texto); font-size: 13px; }
+.modal label.lista-basicos[hidden] { display: none; }
+.lista-basicos input { width: auto; display: inline; margin: 0; }
+.lista-info { margin: 2px 0; font-size: 13px; color: var(--cinza); }
+.lista-info:empty { display: none; }
+
+.lista-andamento { margin-bottom: 10px; padding: 10px 14px; border-radius: 8px; background: var(--papel); border: 1px solid #e6dcc6; }
+.la-linha { display: flex; justify-content: space-between; gap: 12px; font-size: 13.5px; }
+.la-resta { color: var(--cinza); white-space: nowrap; }
+.la-barra { height: 6px; margin: 8px 0; border-radius: 3px; background: #ece5d4; overflow: hidden; }
+.la-barra div { height: 100%; background: var(--verde); transition: width .3s; }
+.la-lojas { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-loja { font-size: 12px; padding: 2px 9px; border-radius: 12px; background: #fff; border: 1px solid #e6dcc6;
+  border-left: 4px solid var(--cor-loja); color: var(--texto); font-variant-numeric: tabular-nums; }
+.chip-loja.ok { color: var(--verde); }
+.chip-loja.pausa { color: var(--ambar); background: var(--ambar-claro); }
+.chip-loja.parou { color: var(--cinza); }
+
+.lista-abas { display: flex; align-items: center; gap: 4px; margin-bottom: 10px; }
+.aba { border: 1px solid #d8cdb4; background: var(--papel); padding: 4px 14px; border-radius: 8px; cursor: pointer; color: var(--cinza); }
+.aba.ativa { background: var(--tinta); border-color: var(--tinta); color: #fff; font-weight: 600; }
+.lista-acoes { margin-left: auto; display: flex; align-items: center; gap: 14px; font-size: 13px; }
+
+.tabela-lista { background: var(--papel); border: 1px solid #e6dcc6; border-radius: 8px; border-collapse: separate; border-spacing: 0; }
+.tabela-lista col.c-carta { width: 30%; }
+.tabela-lista th { cursor: default; padding: 8px 10px 6px; font-size: 12px; }
+.tabela-lista th:hover { text-decoration: none; color: var(--cinza); }
+.tabela-lista th.th-loja { color: var(--texto); font-weight: 600; border-top: 4px solid var(--cor-loja); }
+.tabela-lista td { padding: 5px 10px; border-top: 1px solid var(--pauta); vertical-align: middle; }
+.carta-lista { cursor: pointer; }
+.carta-lista:hover { background: rgba(120, 90, 40, .06); }
+.carta-lista .qtd { color: var(--cinza); font-variant-numeric: tabular-nums; }
+.carta-lista .nome-arte { font-weight: 500; }
+tr.ninguem .carta-lista .nome-arte { color: var(--vermelho); }
+.cel { font-size: 12.5px; }
+.cel .preco { padding: 0; font-size: 14px; text-align: left; margin-right: 6px; }
+.cel .un { font-size: 12px; }
+.cel .falta, .partes .falta { color: var(--ambar); background: var(--ambar-claro); border-radius: 5px; padding: 0 5px; font-size: 12px; font-weight: 600; }
+.cel.completa { background: color-mix(in srgb, var(--verde-claro) 70%, transparent); }
+.cel.melhor { box-shadow: inset 0 0 0 2px var(--verde); }
+.cel.melhor .preco::after { content: " ★"; color: var(--verde); font-size: 12px; }
+.cel.parcial { background: color-mix(in srgb, var(--ambar-claro) 70%, transparent); }
+.cel.nao-tem, .cel.nao-verif, .cel.pendente { color: #a29a88; }
+.cel.erro, .cel.sem-preco { color: var(--ambar); }
+.tabela-lista tfoot td { border-top: 2px solid #e6dcc6; padding: 8px 10px; }
+.tabela-lista .total { white-space: normal; }
+.tabela-lista .total b { display: block; color: var(--tinta); font-size: 15px; }
+.tabela-lista .total span, .total-rotulo { font-size: 12px; color: var(--cinza); }
+
+.loja-lista .cab { cursor: default; flex-wrap: wrap; }
+.loja-lista .cab .abrir { margin-left: 0; }
+.loja-lista .cab .status { margin-right: auto; }
+.tabela-loja td { padding: 6px 12px; }
+.tabela-loja td:first-child { padding-left: 38px; width: 42%; }
+.tabela-loja .partes { white-space: normal; color: var(--cinza); font-size: 13px; }
+.tabela-loja .preco { width: 16%; }
+.tabela-loja td:last-child { width: 12%; text-align: right; }
+.nota-loja { padding: 10px 16px 10px 38px; color: var(--cinza); font-size: 13px; }
+.faltam { padding: 8px 16px 10px 38px; border-top: 1px solid var(--pauta); font-size: 12.5px; color: var(--ambar); }
+.lista.rodando .carta-lista { cursor: progress; }
+.lista.rodando .carta-lista:hover { background: none; }

@@ -33,6 +33,7 @@ Dá para rever quando quiser.
 ## O que mais ele faz
 
 - **Arte da carta:** pare o mouse no nome para ver a carta daquela edição.
+- **Buscar uma lista:** clique em **📝 Lista** e cole um deck inteiro (do Moxfield, do Arena ou escrito à mão: `4 Lightning Bolt`, `4x Counterspell`...). O programa procura carta por carta, com calma, e mostra **por carta** (o preço em cada loja, avisando quando a loja não tem a quantidade toda) e **por loja** (o que comprar em cada uma, com o total). Uma lista de 60 cartas leva alguns minutos.
 - **Ordenar as edições:** clique no título de uma coluna (Estado, Unid., Extras, Preço...) para ordenar; outro clique inverte, e o terceiro volta ao normal (do menor para o maior preço).
 - **Etiquetas:** Foil, promoção, pré-venda com data de envio, observação da loja e fotos do item.
 - **Colar nome:** copiou o nome em outro lugar? Volte para a janela e aperte **Enter** duas vezes: o primeiro cola, o segundo busca.
@@ -55,8 +56,8 @@ Dá para rever quando quiser.
 ## Respeito às lojas
 
 O programa lê as mesmas páginas que você veria no navegador, com calma: uma busca por loja, e a página de
-cada produto só quando você pede (ou sozinho, quando a loja tem poucos itens). Se uma loja pedir para ir
-devagar, ele pausa. Não faz varreduras em massa e não compra nada por você. Fora as lojas, ele só consulta o Scryfall
+cada produto só quando você pede (ou sozinho, quando a loja tem poucos itens). Na busca de uma lista, vai
+carta por carta, ainda mais devagar. Se uma loja pedir para ir devagar, ele pausa. Não faz varreduras em massa e não compra nada por você. Fora as lojas, ele só consulta o Scryfall
 (nomes e arte das cartas) e, uma vez por dia, a página de versões do GitHub, para saber se saiu versão nova.
 
 ## Para quem desenvolve

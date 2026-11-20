@@ -31,6 +31,7 @@ function novaTela() {
     ordem: [], res: {}, pendentes: 0, lojasTotal: 0, lojasFeitas: 0,
     autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", liberaEm: 0, bloqueio: "",
     abertos: {}, fechadas: {}, expandidas: {}, recolhido: false, detalhes: {},
+    lista: null,  // busca de uma lista inteira (lista.js)
   };
 }
 
@@ -215,7 +216,7 @@ $("colar").addEventListener("keydown", (e) => {
 // (a dica que explica isso só aparece ao passar o mouse no botão). O foco muda já na SAÍDA da janela:
 // assim, ao voltar, ele aparece direto no botão, sem passar pelo campo. Clicar no campo ao voltar foca o campo.
 window.addEventListener("blur", () => {
-  if (!$("modal").hidden || !$("pergunta").hidden) return;
+  if (!$("modal").hidden || !$("pergunta").hidden || !$("janela-lista").hidden) return;
   if (document.activeElement !== $("colar")) $("colar").focus({ preventScroll: true });
 });
 
@@ -237,6 +238,7 @@ document.addEventListener("keydown", (e) => {
   if (e.altKey && e.key === "ArrowRight") { e.preventDefault(); navegar(avancar, historico); }
   if (e.key === "Escape" && !$("pergunta").hidden) responder(false);
   else if (e.key === "Escape" && !$("modal").hidden) fecharModal();
+  else if (e.key === "Escape" && !$("janela-lista").hidden) fecharJanelaLista();
 });
 $("abrir-achadas").onclick = () => {
   const urls = tela.ordem.map((u) => tela.res[u]).filter((r) => r && (temCarta(r) || ["blocked", "unknown", "error"].includes(r.status)))
@@ -291,7 +293,9 @@ function itemDe(lojaUrl, itemUrl) {
 const app = {
   evento(tipo, sid, dados) {
     if (sid !== tela.sid) return;
-    if (tipo === "result") {
+    if (tipo.startsWith("lista")) {
+      eventoLista(tipo, dados);
+    } else if (tipo === "result") {
       tela.res[dados.loja.url] = dados;
       tela.pendentes = Math.max(0, tela.pendentes - 1);
       tela.lojasFeitas += 1;
@@ -561,6 +565,14 @@ function desenhar() {
   if (tutorialAtivo) return;  // a tela de verdade volta a ser desenhada ao fechar o tutorial
   const area = $("resultados");
   const rolagem = area.scrollTop;
+  if (tela.lista) {
+    area.innerHTML = desenharLista();
+    area.scrollTop = rolagem;
+    desenharProgresso();
+    if (tela.pendentes === 0) resumirLista();
+    else avisarLinhas([{ texto: "As cartas aparecem conforme cada loja responde; quando terminar, clique numa carta para ver as edições. Cancelar guarda o que já chegou.", tipo: "dica" }]);
+    return;
+  }
   if (!tela.ordem.length) {
     area.innerHTML = `<div class="vazio lousa-inicio">${leque()}<p class="titulo-giz">O que vai ser hoje?</p>
       <p class="texto-giz">Escreve o nome da carta ali em cima e clica em Buscar:<br>
@@ -574,6 +586,13 @@ function desenhar() {
 }
 
 function desenharProgresso() {
+  if (tela.lista) {
+    const L = tela.lista;
+    const feito = L.lojas.reduce((s, l) => s + (lojaTerminou(L.estado[l.url]) ? L.cartas.length : L.estado[l.url].feitas), 0);
+    $("progresso").classList.toggle("ativo", tela.pendentes > 0);
+    $("barra").style.width = tela.pendentes > 0 ? `${(feito / (L.cartas.length * L.lojas.length)) * 100}%` : "0";
+    return;
+  }
   const total = Math.max(1, tela.lojasTotal + tela.autoTotal);
   const feito = Math.min(total, tela.lojasFeitas + tela.autoFeito);
   const ativo = tela.pendentes > 0 || tela.autoAtivo > 0;
@@ -628,6 +647,7 @@ function abrirUmaVez(url) {
   api().abrir(url);
 }
 $("resultados").addEventListener("click", (e) => {
+  if (cliqueNaLista(e)) return;
   const col = e.target.closest("[data-ordenar]");
   if (col) { if (!tutorialAtivo) { ordenarPor(col.dataset.ordenar); } return; }
   const abrir = e.target.closest(".abrir, tr.oferta");
@@ -760,12 +780,13 @@ async function navegar(origem, destino) {
     destino.push(clonar(tela));
     destino.splice(0, Math.max(0, destino.length - cfg.historico_max));
   }
-  $("carta").value = snap.carta;
+  $("carta").value = snap.lista ? "" : snap.carta;
   $("exato").checked = snap.exato;
   if ((Date.now() - snap.tempo) / 1000 > cfg.velho_depois) {
     // resultados antigos (preço e estoque podem ter mudado): refaz a busca em vez de mostrá-los
     atualizarNavegacao();
-    await buscar(true);
+    if (snap.lista) await buscarLista(snap.lista.cartas, true);
+    else await buscar(true);
     return;
   }
   await api().cancelar();

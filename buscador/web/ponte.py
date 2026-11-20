@@ -92,6 +92,7 @@ class Ponte:
         self._carregando = set()  # lojas com "Carregar todos os preços" em andamento
         self._sid_busca = 0  # busca a que _resultados pertence
         self._bloqueio_em = None  # quando uma loja limitou as requisições nesta busca (time.monotonic)
+        self._comecar = None  # (sid, função) da lista preparada, à espera de comecar_lista
 
     # ---- envio para a página ---------------------------------------------------
     def _enviar(self, tipo, sid, dados):
@@ -325,7 +326,9 @@ class Ponte:
 
     def buscar_lista(self, cartas):
         """Começa a busca da lista nas lojas marcadas. cartas: [{qtd, nome}] (já sem as que a pessoa
-        tirou). Devolve {sid, cartas, lojas} ou {erro}. Os resultados chegam carta por carta, por loja."""
+        tirou). Devolve {sid, cartas, lojas} ou {erro}. A busca só começa quando a página chama
+        comecar_lista(sid), depois de guardar a lista: assim nenhum resultado chega antes da hora.
+        Os resultados chegam carta por carta, por loja."""
         vistas, limpas = set(), []
         for c in cartas or []:
             try:
@@ -379,11 +382,24 @@ class Ponte:
             except Exception as e:  # noqa: BLE001 - uma loja com erro não derruba as outras
                 postar("listadesiste", {"de": -1, "msg": f"{type(e).__name__}: {e}"[:120]})
 
-        threading.Thread(target=nomes.trabalhar, daemon=True).start()
-        for loja in lojas:
-            threading.Thread(target=loja_job, args=(loja,), daemon=True).start()
+        def comecar():
+            threading.Thread(target=nomes.trabalhar, daemon=True).start()
+            for loja in lojas:
+                threading.Thread(target=loja_job, args=(loja,), daemon=True).start()
+
+        with self._lock:
+            self._comecar = (sid, comecar)
         return {"sid": sid, "cartas": limpas,
                 "lojas": [{**serializar.aparencia(s), "nome": s["name"], "url": s["url"]} for s in lojas]}
+
+    def comecar_lista(self, sid):
+        """A página já guardou a lista preparada por buscar_lista: começa a busca (uma vez só)."""
+        with self._lock:
+            pronta, self._comecar = self._comecar, None
+            if not pronta or pronta[0] != sid or sid != self._sid:
+                return False
+        pronta[1]()
+        return True
 
     def carregar_loja(self, loja_url, item_urls):
         """Botão "Carregar todos os preços" de uma loja: lê as páginas dos itens pedidos, uma por vez,
