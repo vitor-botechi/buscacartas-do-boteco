@@ -3,11 +3,12 @@
 Ritmo próprio, mais lento que o da busca de uma carta (ver config.LISTA_*): em cada loja, uma requisição
 por vez, com pausa entre elas; as lojas andam ao mesmo tempo (são sites diferentes). Por carta: uma busca
 (só a primeira página) e, para os itens com o nome exato, a página do produto (onde preço e unidades estão
-em texto), no máximo LISTA_ITENS_POR_CARTA. Se uma loja der sinal de bloqueio, só ela para: espera
-(LISTA_RETOMAR) e tenta sozinha de novo a mesma carta; depois da última espera, desiste e as cartas que
-faltavam ficam como "não verificada". As outras lojas continuam.
+em texto), no máximo LISTA_ITENS_POR_CARTA. Se uma loja der sinal de bloqueio, TODAS param (Freio):
+esperam (LISTA_RETOMAR) e tentam sozinhas de novo; depois da última espera, a lista desiste e as cartas
+que faltavam ficam como "não verificada".
 """
 
+import math
 import random
 import re
 import threading
@@ -150,13 +151,60 @@ def esperar(segundos, parar, dormir=None):
     return not parar.is_set()
 
 
+class Freio:
+    """Pausa compartilhada pelas lojas da lista: as lojas desse padrão ficam atrás da mesma proteção
+    (Cloudflare), então quando uma é barrada, TODAS param juntas e voltam juntas, sozinhas.
+
+    Cada bloqueio novo (fora de uma pausa) usa a próxima espera de `retomar`; uma carta lida com
+    sucesso depois da pausa zera a contagem. Depois da última espera, a lista desiste em todas as lojas.
+    agora: relógio em segundos (trocado nos testes).
+    """
+
+    def __init__(self, retomar=None, agora=None):
+        self.retomar = tuple(LISTA_RETOMAR if retomar is None else retomar)
+        self.agora = agora or time.monotonic
+        self._lock = threading.Lock()
+        self.ate = 0.0
+        self.tentativa = 0
+        self.desistiu = False
+
+    def falta(self):
+        with self._lock:
+            return max(0.0, self.ate - self.agora())
+
+    def bloqueou(self):
+        with self._lock:
+            agora = self.agora()
+            if self.ate > agora or self.desistiu:  # já em pausa (outra loja barrou antes)
+                return
+            if self.tentativa >= len(self.retomar):
+                self.desistiu = True
+                return
+            self.ate = agora + self.retomar[self.tentativa]
+            self.tentativa += 1
+
+    def deu_certo(self):
+        with self._lock:
+            if self.ate <= self.agora():
+                self.tentativa = 0
+
+
+CANCELOU, FREIO = "cancelou", "freio"
+
+
 def uma_carta(loja, carta, nomes, pausar):
     """Busca UMA carta numa loja. Devolve (StoreResult com só os itens de nome exato, bloqueou?).
 
-    pausar(): a pausa antes de cada requisição; False = a pessoa cancelou (devolve (None, False)).
+    pausar(): a pausa antes de cada requisição; devolve True para seguir, CANCELOU (a pessoa cancelou:
+    devolve (None, False)) ou FREIO (outra loja foi barrada: devolve (None, True), para esperar e repetir).
     """
-    if not pausar():
-        return None, False
+    def seguir():
+        r = pausar()
+        return r is True, (None, r == FREIO)
+
+    ok, parar = seguir()
+    if not ok:
+        return parar
     res = safe_search(loja, carta, 1)
     if res.status == "blocked":
         return res, True
@@ -167,8 +215,9 @@ def uma_carta(loja, carta, nomes, pausar):
         res.status = "none"
         return res, False
     for it in [i for i in res.items if i.offers is None][:LISTA_ITENS_POR_CARTA]:
-        if not pausar():
-            return None, False
+        ok, parar = seguir()
+        if not ok:
+            return parar
         data = fetch_product(loja, it.url)
         if data["status"] == "blocked":
             return res, True
@@ -177,40 +226,49 @@ def uma_carta(loja, carta, nomes, pausar):
     return res, False
 
 
-def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, retomar=LISTA_RETOMAR):
+def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None):
     """Busca a lista inteira numa loja, carta por carta.
 
-    postar(tipo, dados): "lista" (resultado de uma carta: {"i", "res"}), "listapausa" ({"segundos"}),
-    "listaretoma", "listadesiste" ({"de": índice da primeira carta não verificada}) e "listafim".
+    freio: a pausa compartilhada com as outras lojas da lista (Freio).
+    postar(tipo, dados): "lista" (resultado de uma carta: {"i", "res"}), "listapausa" ({"segundos",
+    "tentativa"}), "listaretoma", "listadesiste" ({"de": índice da primeira carta não verificada}) e
+    "listafim".
     """
+    freio = freio or Freio()
     primeira = [True]
 
     def pausar():
         if primeira[0]:
             primeira[0] = False
-            return not parar.is_set()
-        return esperar(random.uniform(LISTA_PAUSA, LISTA_PAUSA * 1.5), parar, dormir)
+        elif not esperar(random.uniform(LISTA_PAUSA, LISTA_PAUSA * 1.5), parar, dormir):
+            return CANCELOU
+        if parar.is_set():
+            return CANCELOU
+        return FREIO if freio.falta() > 0 else True
 
-    i, tentativa = 0, 0
+    i = 0
     while i < len(cartas):
         if parar.is_set():
             return
-        res, bloqueou = uma_carta(loja, cartas[i], nomes.de(i), pausar)
-        if res is None:
+        if freio.desistiu:
+            postar("listadesiste", {"de": i})
             return
-        if bloqueou:
-            if tentativa >= len(retomar):
-                postar("listadesiste", {"de": i})
-                return
-            segundos = retomar[tentativa]
-            tentativa += 1
-            postar("listapausa", {"segundos": segundos, "tentativa": tentativa})
-            if not esperar(segundos, parar, dormir):
+        falta = freio.falta()
+        if falta > 0:
+            postar("listapausa", {"segundos": math.ceil(falta), "tentativa": freio.tentativa})
+            if not esperar(falta, parar, dormir):
                 return
             postar("listaretoma", {})
             primeira[0] = True  # depois da espera longa, a próxima requisição sai sem pausa curta
             continue
-        tentativa = 0
+        res, bloqueou = uma_carta(loja, cartas[i], nomes.de(i), pausar)
+        if bloqueou:
+            if res is not None:
+                freio.bloqueou()
+            continue
+        if res is None:
+            return
+        freio.deu_certo()
         postar("lista", {"i": i, "res": res})
         i += 1
     postar("listafim", {})

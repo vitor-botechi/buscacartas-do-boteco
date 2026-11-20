@@ -5,7 +5,7 @@ import threading
 import pytest
 
 from buscador import lista
-from buscador.lista import Nomes, buscar_na_loja, ler_linha, ler_lista
+from buscador.lista import Freio, Nomes, buscar_na_loja, ler_linha, ler_lista
 from buscador.modelos import Item, Offer, StoreResult
 
 LOJA = {"name": "Loja Teste", "url": "https://loja.example"}
@@ -103,12 +103,18 @@ class LojaFalsa:
 
 
 def rodar(cartas, retomar=(60, 120)):
+    """Uma loja, com relógio de mentira: dormir só avança o relógio."""
     parar = threading.Event()
     nomes = Nomes(cartas, lambda c: ({c.lower()}, True), parar)
     nomes.trabalhar()
-    eventos, dormido = [], []
-    buscar_na_loja(LOJA, cartas, nomes, parar, lambda t, d: eventos.append((t, d)),
-                   dormir=lambda s: dormido.append(s), retomar=retomar)
+    eventos, dormido, relogio = [], [], [0.0]
+
+    def dormir(s):
+        dormido.append(s)
+        relogio[0] += s
+
+    freio = Freio(retomar, agora=lambda: relogio[0])
+    buscar_na_loja(LOJA, cartas, nomes, parar, lambda t, d: eventos.append((t, d)), dormir=dormir, freio=freio)
     return eventos, dormido
 
 
@@ -186,3 +192,58 @@ def test_scryfall_fora_do_ar_usa_o_nome_digitado():
     nomes = Nomes(["Sol Ring"], falha, parar)
     nomes.trabalhar()
     assert nomes.de(0) == {"sol ring"}
+
+
+def test_loja_barrada_pausa_todas(monkeypatch):
+    """Duas lojas ao mesmo tempo: a A é barrada uma vez; a B também pausa e as duas terminam."""
+    monkeypatch.setattr(lista, "LISTA_PAUSA", 0.05)
+    barrou = []
+
+    def busca(loja, carta, paginas):
+        if loja["name"] == "A" and carta == "C2" and not barrou:
+            barrou.append(1)
+            return StoreResult(loja, "b", "blocked")
+        return StoreResult(loja, "b", "none")
+
+    monkeypatch.setattr(lista, "safe_search", busca)
+    cartas = [f"C{i}" for i in range(8)]
+    parar = threading.Event()
+    nomes = Nomes(cartas, lambda c: ({c.lower()}, True), parar)
+    nomes.trabalhar()
+    freio = Freio((0.4,))
+    eventos = {"A": [], "B": []}
+    lojas = [threading.Thread(target=buscar_na_loja, args=(
+        {"name": n, "url": n}, cartas, nomes, parar, lambda t, d, n=n: eventos[n].append(t)), kwargs={"freio": freio})
+        for n in eventos]
+    for t in lojas:
+        t.start()
+    for t in lojas:
+        t.join(timeout=10)
+    for n in eventos:
+        assert "listapausa" in eventos[n] and "listaretoma" in eventos[n], (n, eventos[n])
+        assert eventos[n][-1] == "listafim" and eventos[n].count("lista") == 8
+
+
+def test_freio_desiste_depois_das_esperas():
+    relogio = [0.0]
+    freio = Freio((10, 20), agora=lambda: relogio[0])
+    freio.bloqueou()
+    assert freio.falta() == 10
+    freio.bloqueou()  # outra loja barrada durante a pausa: não conta de novo
+    assert freio.tentativa == 1
+    relogio[0] = 11
+    freio.bloqueou()
+    assert freio.falta() == 20
+    relogio[0] = 40
+    freio.bloqueou()
+    assert freio.desistiu
+
+
+def test_freio_zera_depois_de_dar_certo():
+    relogio = [0.0]
+    freio = Freio((10, 20), agora=lambda: relogio[0])
+    freio.bloqueou()
+    relogio[0] = 11
+    freio.deu_certo()
+    freio.bloqueou()
+    assert freio.falta() == 10  # voltou para a primeira espera

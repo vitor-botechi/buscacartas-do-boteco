@@ -364,6 +364,7 @@ class Ponte:
 
         nomes_cartas = [c["nome"] for c in limpas]
         nomes = lista.Nomes(nomes_cartas, resolve_names, ctl.stop)
+        freio = lista.Freio()  # uma loja barrada pausa todas (mesma proteção na frente das lojas)
 
         def postar_de(loja):
             def postar(tipo, dados):
@@ -378,7 +379,7 @@ class Ponte:
         def loja_job(loja):
             postar = postar_de(loja)
             try:
-                lista.buscar_na_loja(loja, nomes_cartas, nomes, ctl.stop, postar)
+                lista.buscar_na_loja(loja, nomes_cartas, nomes, ctl.stop, postar, freio=freio)
             except Exception as e:  # noqa: BLE001 - uma loja com erro não derruba as outras
                 postar("listadesiste", {"de": -1, "msg": f"{type(e).__name__}: {e}"[:120]})
 

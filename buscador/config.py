@@ -43,7 +43,7 @@ LISTA_MAX_CARTAS = 100      # cartas diferentes por lista (um deck de Commander)
 # barrou a loja depois de ~6 requisições em ~10 s. Por isso a pausa é bem maior que a da busca de uma carta.
 LISTA_PAUSA = 3.0           # segundos entre requisições na MESMA loja (sorteado entre 1x e 1,5x)
 LISTA_ITENS_POR_CARTA = 2   # páginas de produto lidas por carta em cada loja (só itens com o nome exato)
-LISTA_RETOMAR = (60, 120, 240)  # loja que bloqueou: espera e tenta sozinha de novo; depois da última, desiste
+LISTA_RETOMAR = (60, 120, 240)  # uma loja bloqueou: TODAS esperam e tentam sozinhas de novo; depois da última, desiste
 
 HEADERS = {
     "User-Agent": (

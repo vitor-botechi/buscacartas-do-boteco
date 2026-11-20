@@ -233,13 +233,13 @@ function andamento(L) {
   const menos = andando.length ? Math.min(...andando.map((l) => L.estado[l.url].feitas)) : n;
   const titulo = andando.length
     ? `Carta ${Math.min(n, menos + 1)} de ${n}${L.cartas[menos] ? ` · ${esc(L.cartas[menos].nome)}` : ""}`
-    : `Esperando ${esc(ativas.map((l) => l.nome).join(", "))} voltar…`;
+    : "Uma loja pediu para ir devagar: todas pausaram e voltam sozinhas…";
   const feitasTodas = L.lojas.reduce((s, l) => s + (lojaTerminou(L.estado[l.url]) ? n : L.estado[l.url].feitas), 0);
   const chips = L.lojas.map((l) => {
     const e = L.estado[l.url];
     let t = `${e.feitas}/${n}`, cls = "";
     if (e.fim) { t = "✓ pronta"; cls = "ok"; } else if (e.desistiu) { t = "parou"; cls = "parou"; } else if (e.pausaAte > Date.now()) {
-      t = `pausada, tenta de novo em <span data-volta-em="${e.pausaAte}">${Math.ceil((e.pausaAte - Date.now()) / 1000)}</span> s`; cls = "pausa";
+      t = `pausada, volta em <span data-volta-em="${e.pausaAte}">${Math.ceil((e.pausaAte - Date.now()) / 1000)}</span> s`; cls = "pausa";
     }
     return `<span class="chip-loja ${cls}" style="--cor-loja:${corDaLoja(l)}">${esc(l.nome)} · ${t}</span>`;
   }).join("");
@@ -303,7 +303,7 @@ function vistaPorLoja(L, cs) {
         <td><button class="abrir" data-abrir="${esc(cc.url)}" title="Abrir a página da carta nesta loja">Abrir ↗</button></td></tr>`;
     }).join("");
     const e = L.estado[l.url];
-    const nota = e.desistiu && !L.cancelada ? '<div class="nota-loja">⚠ Esta loja limitou as requisições e a busca parou nela: as cartas que faltavam ficaram sem verificar.</div>' : "";
+    const nota = e.desistiu && !L.cancelada ? '<div class="nota-loja">⚠ As lojas pediram para ir devagar várias vezes e a busca parou: as cartas que faltavam ficaram sem verificar.</div>' : "";
     const corpo = tem.length ? `<table class="tabela-loja"><tbody>${linhas}</tbody></table>` : '<div class="nota-loja">Nenhuma carta da lista nesta loja (até agora).</div>';
     const faltaTxt = faltam.length ? `<div class="faltam">Faltam aqui: ${faltam.map(({ c, cc }) => esc(`${cc.estado === "parcial" ? c.qtd - cc.leva : c.qtd} ${c.nome}`)).join(", ")}</div>` : "";
     const logo = /^https:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(l.logo || "") ? `<img class="logo" src="${esc(l.logo)}" alt="" onerror="this.remove()">` : "";
@@ -327,7 +327,7 @@ function resumirLista() {
   const linhas = [{ texto: `Lista de ${plural(n, "carta", "cartas")}: ${completas} ${completas === 1 ? "tem" : "têm"} a quantidade toda em alguma loja.` +
     (L.cancelada ? " (busca cancelada: parte das cartas não foi verificada)" : ""), tipo: "principal" }];
   const paradas = L.lojas.filter((l) => L.estado[l.url].desistiu && !L.cancelada);
-  if (paradas.length) linhas.push({ texto: `⚠ ${paradas.map((l) => l.nome).join(", ")} limitou as requisições várias vezes e a busca parou ali.`, tipo: "aviso" });
+  if (paradas.length) linhas.push({ texto: "⚠ As lojas pediram para ir devagar várias vezes (a cada vez, todas pausaram juntas) e a busca parou. Tente de novo mais tarde.", tipo: "aviso" });
   if (nenhuma.length) linhas.push({ texto: `Nenhuma loja tem: ${nenhuma.map((c) => c.nome).join(", ")}.`, tipo: "aviso" });
   const semVer = L.cartas.filter((c, i) => L.lojas.some((l) => cs[i][l.url].estado === "nao_verificada")).length;
   if (semVer) linhas.push({ texto: `${plural(semVer, "carta ficou", "cartas ficaram")} sem verificar em alguma loja: busque a lista de novo mais tarde para completar.`, tipo: "aviso" });
