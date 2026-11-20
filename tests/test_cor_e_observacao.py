@@ -1,6 +1,7 @@
 """Cor principal do site da loja e observação que a loja coloca numa oferta."""
 
-from buscador.lojas.ligamagic import parse_product_page, product_from_page, theme_color, theme_logo, web_image
+from buscador.lojas.ligamagic import (parse_product_page, product_from_page, svg_colors, theme_color, theme_logo,
+                                      web_image)
 
 
 def test_cor_principal_do_site():
@@ -86,3 +87,25 @@ def test_icone_da_edicao_depois_da_foto_do_item():
     ofertas, _ = parse_product_page(linha)
     assert ofertas[0].edition == "Contos da Terra Média Commander"
     assert ofertas[0].edition_code == "ltc"
+
+
+def test_logo_e_cor_de_loja_com_layout_proprio():
+    # Epic One: logo com class="logo" e outra no rodapé; cor na <meta theme-color>
+    epic = ('<meta name="theme-color" content="#ef930c">'
+            '<img src="//www.lmcorp.com.br/arquivos/ecom/461/img/logo_epicone.png" class="logo">'
+            '<img src="//www.lmcorp.com.br/arquivos/ecom/461/img/logo_epicone_rodape.png" class="img_logo_rodape" />')
+    assert theme_logo(epic) == "https://www.lmcorp.com.br/arquivos/ecom/461/img/logo_epicone.png"
+    assert theme_color(epic) == "#ef930c"
+    # Meruru: a logo vem depois de outras imagens; as de pagamento ficam de fora; theme-color cinza não serve
+    meruru = ('<meta name="theme-color" content="#222222"><img src="//www.lmcorp.com.br/arquivos/ecom/64102/images/banner.jpg">'
+              '<img src="//www.lmcorp.com.br/arquivos/ecom/64102/images/logo_pix.png" alt="Logo PIX">'
+              '<img src="//www.lmcorp.com.br/arquivos/ecom/64102/images/logo.svg" alt="Logo Meruru">')
+    assert theme_logo(meruru) == "https://www.lmcorp.com.br/arquivos/ecom/64102/images/logo.svg"
+    assert theme_color(meruru) is None
+    assert theme_logo('<img src="//cdn.x.com/img/logo.png">') == ""  # imagem de fora da loja
+
+
+def test_cores_da_logo_em_svg():
+    svg = '<svg fill="#e14681"><g fill="#a6bf36"/><g fill="#a6bf36"/><g fill="#000000"/><g fill="#FFFFFF"/></svg>'
+    assert svg_colors(svg) == ["#a6bf36", "#e14681"]  # mais usada primeiro; preto e branco ficam de fora
+    assert svg_colors("<svg/>") == []

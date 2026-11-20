@@ -20,6 +20,7 @@ from buscador.lojas.ligamagic import (
     parse_results,
     product_from_page,
     theme_color,
+    svg_colors,
     theme_logo,
 )
 from buscador.modelos import Item, StoreResult
@@ -32,19 +33,34 @@ HAS_SCRAPING = requests is not None and BeautifulSoup is not None
 def fetch_store_look(base):
     """Abre a página inicial de uma loja nova (uma requisição só, ao adicionar).
 
-    Devolve (o site respondeu?, cor ou None, endereço da logo ou ""). Sem as bibliotecas, não confere.
+    Devolve (o site respondeu?, cor ou None, segunda cor ou None, endereço da logo ou ""). Sem as
+    bibliotecas, não confere. Se a logo for SVG, as cores vêm dela (mais uma requisição, à imagem),
+    como nas lojas padrão; senão, a cor do site.
     """
     if not HAS_SCRAPING:
-        return True, None, ""
+        return True, None, None, ""
     try:
         r = requests.get(base + "/", headers=HEADERS, timeout=TIMEOUT)
     except requests.RequestException:
-        return False, None, ""
+        return False, None, None, ""
     if r.status_code in (403, 429, 503):  # o site existe, mas barrou a leitura
-        return True, None, ""
+        return True, None, None, ""
     if r.status_code != 200:
-        return False, None, ""
-    return True, theme_color(r.text), theme_logo(r.text)
+        return False, None, None, ""
+    cor, logo = theme_color(r.text), theme_logo(r.text)
+    cores = logo_colors(logo) if logo.lower().endswith(".svg") else []
+    if cores:
+        return True, cores[0], (cores[1] if len(cores) > 1 else None), logo
+    return True, cor, None, logo
+
+
+def logo_colors(url):
+    """Cores de uma logo em SVG (texto); qualquer erro, nenhuma."""
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        return svg_colors(r.text[:200_000]) if r.status_code == 200 else []
+    except requests.RequestException:
+        return []
 
 
 def save_debug(store, url, r):

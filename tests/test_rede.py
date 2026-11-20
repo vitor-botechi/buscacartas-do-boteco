@@ -133,3 +133,26 @@ def test_pagina_do_produto_bloqueada_nao_entra_no_cache(lojas_falsas):
     assert rede.fetch_product(LOJA, url)["status"] == "blocked"
     rede.fetch_product(LOJA, url)
     assert len(pedidos) == 2
+
+
+def test_loja_nova_com_logo_svg_usa_as_cores_da_logo(lojas_falsas, monkeypatch):
+    respostas, pedidos = lojas_falsas
+    monkeypatch.setattr(rede, "HAS_SCRAPING", True)
+    respostas["loja.com.br/"] = RespostaFalsa(
+        '<meta name="theme-color" content="#222222">'
+        '<img src="//www.lmcorp.com.br/arquivos/ecom/1/images/logo.svg" alt="Logo Loja">')
+    respostas["logo.svg"] = RespostaFalsa('<svg><path fill="#a6bf36"/><path fill="#a6bf36"/><path fill="#e14681"/>'
+                                         '<path fill="#ffffff"/></svg>')
+    assert rede.fetch_store_look("https://www.loja.com.br") == (
+        True, "#a6bf36", "#e14681", "https://www.lmcorp.com.br/arquivos/ecom/1/images/logo.svg")
+    assert len(pedidos) == 2  # a página inicial e a logo, uma vez cada
+
+
+def test_loja_nova_com_logo_png_usa_a_cor_do_site(lojas_falsas, monkeypatch):
+    respostas, pedidos = lojas_falsas
+    monkeypatch.setattr(rede, "HAS_SCRAPING", True)
+    respostas["loja.com.br/"] = RespostaFalsa(
+        '<meta name="theme-color" content="#ef930c"><img src="//www.lmcorp.com.br/arquivos/ecom/2/img/logo_loja.png" class="logo">')
+    assert rede.fetch_store_look("https://www.loja.com.br") == (
+        True, "#ef930c", None, "https://www.lmcorp.com.br/arquivos/ecom/2/img/logo_loja.png")
+    assert len(pedidos) == 1

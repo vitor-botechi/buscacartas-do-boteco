@@ -164,26 +164,64 @@ def web_image(src):
     return src if re.match(r"https://[^\s\"'<>]+$", src) else ""
 
 
+# lojas com layout próprio (ex.: Epic One, Meruru): a logo fica em .../arquivos/ecom/<loja>/.../logo....
+IMG_RE = re.compile(r"<img\b[^>]*>", re.I)
+SRC_RE = re.compile(r"""\bsrc=["']((?:https?:)?//[^"']+\.(?:jpe?g|png|gif|webp|svg))["']""", re.I)
+LOGO_LIVRE_RE = re.compile(r"/arquivos/(?:up/)?ecom/.*logo[^/]*$", re.I)
+# logos que não são da loja: rodapé, formas de pagamento, selos, redes sociais...
+NAO_E_LOGO_RE = re.compile(r"rodape|footer|pix|mercado|pago|pagamento|cartao|selo|whats|insta|face|bandeira", re.I)
+
+
 def theme_logo(html):
-    """Logo da loja na página inicial (padrão LigaMagic: imagem em .../ecom/logo/...)."""
+    """Logo da loja na página inicial.
+
+    Padrão LigaMagic: imagem em .../ecom/logo/...; senão, a primeira imagem da loja com "logo" no nome
+    do arquivo (layout próprio), deixando de fora as do rodapé e das formas de pagamento.
+    """
     m = LOGO_RE.search(html or "")
-    return web_image(m.group(1)) if m else ""
+    if m:
+        return web_image(m.group(1))
+    for tag in IMG_RE.findall(html or ""):
+        src = SRC_RE.search(tag)
+        if src and LOGO_LIVRE_RE.search(src.group(1)) and not NAO_E_LOGO_RE.search(tag):
+            return web_image(src.group(1))
+    return ""
 
 
 def theme_color(html):
-    """Cor principal do site da loja (variável --color-primary do padrão LigaMagic).
+    """Cor principal do site da loja (variável --color-primary do padrão LigaMagic; senão, a theme-color).
 
     Devolve None se não houver ou se for cinza, quase branca ou quase preta (não serve de destaque).
     """
-    m = COLOR_RE.search(html or "")
-    if not m:
+    m = COLOR_RE.search(html or "") or META_COR_RE.search(html or "")  # layout próprio: <meta theme-color>
+    return cor_de_destaque(m.group(1)) if m else None
+
+
+# <meta name="theme-color" content="#ef930c">, nas lojas de layout próprio
+META_COR_RE = re.compile(r"""<meta\b[^>]*name=["']theme-color["'][^>]*content=["'](#[0-9a-fA-F]{6})\b""", re.I)
+SVG_COR_RE = re.compile(r"#[0-9a-fA-F]{6}\b")
+
+
+def cor_de_destaque(cor):
+    """A cor em minúsculas, ou None se for cinza, quase branca ou quase preta (não serve de destaque)."""
+    cor = (cor or "").lower()
+    if not re.fullmatch(r"#[0-9a-f]{6}", cor):
         return None
-    cor = m.group(1).lower()
     r, g, b = (int(cor[i:i + 2], 16) / 255 for i in (1, 3, 5))
     _, luz, sat = colorsys.rgb_to_hls(r, g, b)
     if sat < 0.25 or luz > 0.85 or luz < 0.08:
         return None
     return cor
+
+
+def svg_colors(svg):
+    """As duas cores de destaque mais usadas numa logo em SVG (como as lojas padrão: cores da logo)."""
+    contagem = {}
+    for c in SVG_COR_RE.findall(svg or ""):
+        c = cor_de_destaque(c)
+        if c:
+            contagem[c] = contagem.get(c, 0) + 1
+    return sorted(contagem, key=lambda c: -contagem[c])[:2]
 
 
 # ícone da edição: ".../arquivos/up/ed_mtg/AFC_U.gif" (código da edição e raridade)
