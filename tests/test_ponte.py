@@ -48,7 +48,7 @@ def ponte(monkeypatch, tmp_path):
     monkeypatch.setattr(automatico, "AUTO_DELAY", 0)
     monkeypatch.setattr(ponte_mod, "HAS_SCRAPING", True)
     monkeypatch.setattr(ponte_mod, "fetch_store_look",  # sem requisição
-                        lambda base: (True, "#123456", "https://cdn/logo.jpg"))
+                        lambda base: (True, "#123456", None, "https://cdn/logo.jpg"))
     p = Ponte(JanelaFalsa())
     # só a Overrun marcada, para os testes ficarem simples
     p.marcar_lojas({s["url"]: s["name"] == "Overrun" for s in p._lojas})
@@ -231,7 +231,7 @@ def test_sem_arrastar_vale_a_ordem_padrao(ponte):
 
 
 def test_site_que_nao_responde_nao_entra(ponte, monkeypatch):
-    monkeypatch.setattr(ponte_mod, "fetch_store_look", lambda base: (False, None, ""))
+    monkeypatch.setattr(ponte_mod, "fetch_store_look", lambda base: (False, None, None, ""))
     r = ponte.adicionar_loja("www.lojaquenaoexiste.com.br")
     assert "Confira se o link está certo" in r["erro"]
     assert all("lojaquenaoexiste" not in l["url"] for l in ponte.iniciar()["lojas"])

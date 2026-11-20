@@ -178,7 +178,7 @@ class Ponte:
             return {"erro": "Isso não parece o link de um site. Exemplo: www.minhaloja.com.br"}
         if any(host_key(s["url"]) == host_key(base) for s in self._lojas):
             return {"erro": "Essa loja já está na lista."}
-        ok, cor, logo = fetch_store_look(base)  # confere o site e lê cor e logo, para o cartão
+        ok, cor, cor2, logo = fetch_store_look(base)  # confere o site e lê cores e logo, para o cartão
         if not ok:
             return {"erro": f"Não consegui acessar {base}. Confira se o link está certo."}
         with self._lock:
@@ -186,7 +186,7 @@ class Ponte:
                 return {"erro": "Essa loja já está na lista."}
             self._lojas.append({"name": (nome or "").strip() or default_name(base),
                                 "url": base, "builtin": False, "enabled": True,
-                                "color": cor or "", "logo": logo or ""})
+                                "color": cor or "", "color2": cor2 or "", "logo": logo or ""})
         save_stores(self._lojas)
         return {"lojas": [serializar.loja(s) for s in self._lojas]}
 
