@@ -37,6 +37,12 @@ CACHE_TTL = 300             # segundos que uma página de produto lida fica guar
 HISTORY_MAX = 10            # quantas buscas o Voltar/Avançar lembram
 STALE_AFTER = 30 * 60       # resultados guardados mais velhos que isto (30 min) são refeitos ao voltar/avançar
 
+# Busca de uma lista inteira (buscador/lista.py): ritmo próprio, mais lento que o da busca de uma carta.
+LISTA_MAX_CARTAS = 100      # cartas diferentes por lista (um deck de Commander)
+LISTA_PAUSA = 1.2           # segundos entre requisições na MESMA loja (sorteado entre 1x e 1,5x)
+LISTA_ITENS_POR_CARTA = 3   # páginas de produto lidas por carta em cada loja (só itens com o nome exato)
+LISTA_RETOMAR = (60, 120, 240)  # loja que bloqueou: espera e tenta sozinha de novo; depois da última, desiste
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

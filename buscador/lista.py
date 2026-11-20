@@ -1,0 +1,216 @@
+"""Busca de uma lista inteira de cartas: leitura da lista colada e a busca, carta por carta, em cada loja.
+
+Ritmo próprio, mais lento que o da busca de uma carta (ver config.LISTA_*): em cada loja, uma requisição
+por vez, com pausa entre elas; as lojas andam ao mesmo tempo (são sites diferentes). Por carta: uma busca
+(só a primeira página) e, para os itens com o nome exato, a página do produto (onde preço e unidades estão
+em texto), no máximo LISTA_ITENS_POR_CARTA. Se uma loja der sinal de bloqueio, só ela para: espera
+(LISTA_RETOMAR) e tenta sozinha de novo a mesma carta; depois da última espera, desiste e as cartas que
+faltavam ficam como "não verificada". As outras lojas continuam.
+"""
+
+import random
+import re
+import threading
+import time
+
+from buscador.config import LISTA_ITENS_POR_CARTA, LISTA_PAUSA, LISTA_RETOMAR
+from buscador.rede import fetch_product, safe_search
+from buscador.scryfall import matches_exact
+from buscador.texto import clean_card_name, is_art_card, norm
+
+# ---- leitura da lista ----------------------------------------------------------------------------
+
+# títulos de seção das listas exportadas (Arena, MTGO, Moxfield, LigaMagic...): não são cartas
+SECAO_RE = re.compile(
+    r"^(deck|main ?deck|main ?board|mainboard|sideboard|side ?board|side|commander|commanders|comandante|"
+    r"companion|companheiro|maybeboard|maybe|considering|tokens?|lands?|terrenos?|"
+    r"criaturas?|creatures?|instants?|m[aá]gicas? instant[aâ]neas?|sorceries|sorcery|feiti[cç]os?|"
+    r"artifacts?|artefatos?|enchantments?|encantamentos?|planeswalkers?|batalhas?|battles?|outros?|others?)"
+    r"\s*:?\s*(\(\d+\))?\s*:?$", re.I)
+QTD_RE = re.compile(r"^(\d{1,3})\s*[xX]?\s+(.+)$|^(\d{1,3})[xX](\S.*)$")
+QTD_FIM_RE = re.compile(r"^(.+?)\s+[xX]?(\d{1,3})[xX]?$")  # "Lightning Bolt x4"
+
+BASICOS = {norm(n) for n in (
+    "Plains", "Island", "Swamp", "Mountain", "Forest", "Wastes",
+    "Snow-Covered Plains", "Snow-Covered Island", "Snow-Covered Swamp", "Snow-Covered Mountain",
+    "Snow-Covered Forest", "Snow-Covered Wastes",
+    "Planície", "Ilha", "Pântano", "Montanha", "Floresta", "Ermos",
+)}
+
+
+def limpar_linha(nome):
+    """Tira da linha o que não é o nome da carta: edição, número de coleção, foil e marcações."""
+    nome = re.sub(r"\^[^^]*\^", " ", nome)                 # Archidekt: ^Have,#37d67a^
+    nome = re.sub(r"\[[^\]]*\]", " ", nome)                # [C21], [Ramp]
+    nome = re.sub(r"\*[A-Za-z]{1,6}\*", " ", nome)         # *F*, *E*, *CMDR*
+    nome = re.sub(r"\s#\S*", " ", nome)                    # #123, #!Commander
+    nome = clean_card_name(nome)
+    # (CMM) 410 / (cmm) / (PLST) LRW-256 / (SLD) 123★ no fim
+    prev = None
+    while prev != nome:
+        prev = nome
+        nome = re.sub(r"\s*\([A-Za-z0-9]{2,6}\)(\s+[\w★†-]+)?\s*$", "", nome).strip()
+    nome = re.sub(r"\s+-\s*(foil|etched|non-?foil)\s*$", "", nome, flags=re.I)
+    return nome.strip(" -–;,")
+
+
+def ler_linha(linha):
+    """(quantidade, nome) de uma linha; None se a linha não for uma carta (título, comentário, vazia)."""
+    linha = clean_card_name(linha)
+    if not linha or linha.startswith(("//", "#")):
+        return None
+    linha = re.sub(r"^SB:\s*", "", linha, flags=re.I)  # MTGO antigo: "SB: 2 Counterspell"
+    if SECAO_RE.match(linha):
+        return None
+    qtd = 1
+    m = QTD_RE.match(linha)
+    if m:
+        qtd, linha = int(m.group(1) or m.group(3)), (m.group(2) or m.group(4))
+    else:
+        m = QTD_FIM_RE.match(linha)
+        if m and re.search(r"[xX]", linha[len(m.group(1)):]):  # só aceita "Nome x4" / "Nome 4x"
+            qtd, linha = int(m.group(2)), m.group(1)
+    nome = limpar_linha(linha)
+    # sem nenhuma letra (ou só "4x"): não é carta
+    if not re.search(r"[^\W\d_]", nome) or re.fullmatch(r"\d+\s*[xX]", nome) or qtd <= 0:
+        return None
+    return qtd, nome
+
+
+def ler_lista(texto):
+    """Lê a lista colada. Devolve {"cartas": [{qtd, nome, basico}], "ignoradas": [linhas]}.
+
+    A mesma carta em várias linhas (deck e sideboard) soma; a ordem é a da primeira vez que aparece.
+    "ignoradas" são as linhas com texto que não viraram carta, exceto títulos de seção conhecidos.
+    """
+    cartas, por_nome, ignoradas = [], {}, []
+    for linha in (texto or "").splitlines():
+        lida = ler_linha(linha)
+        if lida is None:
+            limpa = clean_card_name(linha)
+            if limpa and not limpa.startswith(("//", "#")) and not SECAO_RE.match(re.sub(r"^SB:\s*", "", limpa, flags=re.I)):
+                ignoradas.append(limpa)
+            continue
+        qtd, nome = lida
+        k = norm(nome)
+        if k in por_nome:
+            por_nome[k]["qtd"] += qtd
+        else:
+            por_nome[k] = {"qtd": qtd, "nome": nome, "basico": k in BASICOS}
+            cartas.append(por_nome[k])
+    return {"cartas": cartas, "ignoradas": ignoradas}
+
+
+def segundos_estimados(n_cartas):
+    """Tempo aproximado da busca: as lojas andam juntas; em cada uma, ~2 páginas por carta."""
+    return round(n_cartas * 2 * LISTA_PAUSA * 1.25)
+
+
+# ---- busca ---------------------------------------------------------------------------------------
+
+class Nomes:
+    """Nomes aceitos de cada carta da lista (Scryfall), resolvidos uma vez, na ordem da lista,
+    enquanto as lojas buscam. As lojas esperam o nome da carta que vão conferir."""
+
+    def __init__(self, cartas, resolver, parar):
+        self._cartas = cartas
+        self._resolver = resolver
+        self._parar = parar
+        self._nomes = [None] * len(cartas)
+        self._prontos = [threading.Event() for _ in cartas]
+
+    def trabalhar(self):
+        for i, carta in enumerate(self._cartas):
+            if self._parar.is_set():
+                break
+            try:
+                nomes, _ok = self._resolver(carta)
+            except Exception:  # noqa: BLE001 - sem Scryfall, vale o nome digitado
+                nomes = {norm(carta)}
+            self._nomes[i] = nomes
+            self._prontos[i].set()
+        for e in self._prontos:  # parou: ninguém fica esperando
+            e.set()
+
+    def de(self, i):
+        self._prontos[i].wait(timeout=30)
+        return self._nomes[i] or {norm(self._cartas[i])}
+
+
+def esperar(segundos, parar, dormir=None):
+    """Espera em pedacinhos, para parar logo quando a pessoa cancela. False se parou."""
+    dormir = dormir or time.sleep
+    falta = segundos
+    while falta > 0:
+        if parar.is_set():
+            return False
+        passo = min(0.25, falta)
+        dormir(passo)
+        falta -= passo
+    return not parar.is_set()
+
+
+def uma_carta(loja, carta, nomes, pausar):
+    """Busca UMA carta numa loja. Devolve (StoreResult com só os itens de nome exato, bloqueou?).
+
+    pausar(): a pausa antes de cada requisição; False = a pessoa cancelou (devolve (None, False)).
+    """
+    if not pausar():
+        return None, False
+    res = safe_search(loja, carta, 1)
+    if res.status == "blocked":
+        return res, True
+    if res.status != "found":
+        return res, False
+    res.items = [i for i in res.items if not is_art_card(i.name) and matches_exact(i.name, nomes)]
+    if not res.items:
+        res.status = "none"
+        return res, False
+    for it in [i for i in res.items if i.offers is None][:LISTA_ITENS_POR_CARTA]:
+        if not pausar():
+            return None, False
+        data = fetch_product(loja, it.url)
+        if data["status"] == "blocked":
+            return res, True
+        if data["status"] in ("ok", "empty"):
+            it.offers = data["offers"]
+    return res, False
+
+
+def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, retomar=LISTA_RETOMAR):
+    """Busca a lista inteira numa loja, carta por carta.
+
+    postar(tipo, dados): "lista" (resultado de uma carta: {"i", "res"}), "listapausa" ({"segundos"}),
+    "listaretoma", "listadesiste" ({"de": índice da primeira carta não verificada}) e "listafim".
+    """
+    primeira = [True]
+
+    def pausar():
+        if primeira[0]:
+            primeira[0] = False
+            return not parar.is_set()
+        return esperar(random.uniform(LISTA_PAUSA, LISTA_PAUSA * 1.5), parar, dormir)
+
+    i, tentativa = 0, 0
+    while i < len(cartas):
+        if parar.is_set():
+            return
+        res, bloqueou = uma_carta(loja, cartas[i], nomes.de(i), pausar)
+        if res is None:
+            return
+        if bloqueou:
+            if tentativa >= len(retomar):
+                postar("listadesiste", {"de": i})
+                return
+            segundos = retomar[tentativa]
+            tentativa += 1
+            postar("listapausa", {"segundos": segundos, "tentativa": tentativa})
+            if not esperar(segundos, parar, dormir):
+                return
+            postar("listaretoma", {})
+            primeira[0] = True  # depois da espera longa, a próxima requisição sai sem pausa curta
+            continue
+        tentativa = 0
+        postar("lista", {"i": i, "res": res})
+        i += 1
+    postar("listafim", {})
