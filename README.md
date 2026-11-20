@@ -12,7 +12,8 @@ Você digita o nome da carta e vê em quais lojas tem estoque, com edição, idi
 
 Na primeira vez, o Windows pode mostrar "O Windows protegeu o computador". Clique em **Mais informações** e depois em
 **Executar assim mesmo**. O aviso aparece porque o programa não tem assinatura digital, que é paga.
-Para atualizar, baixe o `.exe` novo. Suas lojas e preferências continuam.
+Quando sai uma versão nova, o próprio programa avisa no alto da tela, com um botão para baixar. Baixe o `.exe` novo e use
+no lugar do antigo. Suas lojas e preferências continuam.
 
 ## Como usar
 
@@ -54,7 +55,8 @@ Dá para rever quando quiser.
 
 O programa lê as mesmas páginas que você veria no navegador, com calma: uma busca por loja, e a página de
 cada produto só quando você pede (ou sozinho, quando a loja tem poucos itens). Se uma loja pedir para ir
-devagar, ele pausa. Não faz varreduras em massa e não compra nada por você.
+devagar, ele pausa. Não faz varreduras em massa e não compra nada por você. Fora as lojas, ele só consulta o Scryfall
+(nomes e arte das cartas) e, uma vez por dia, a página de versões do GitHub, para saber se saiu versão nova.
 
 ## Para quem desenvolve
 

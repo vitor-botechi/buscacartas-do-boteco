@@ -349,3 +349,13 @@ aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px
   .ajuda.chamando, .convite { animation: none; }
   .tour-foco, .tour-balao { transition: none; }
 }
+
+/* aviso de versão nova: recado de lousa no alto da área da busca */
+.versao-nova { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 12px; padding: 9px 14px 9px 16px;
+  border-radius: 10px; color: var(--giz); background: var(--lousa); box-shadow: 0 0 0 2px #c9b48a, 0 3px 10px rgba(40, 20, 5, .25); }
+.versao-nova[hidden] { display: none; }
+.vn-titulo { font: 700 22px/1.1 "Caveat", cursive; }
+.vn-titulo b { color: #ffd678; }
+.vn-texto { flex: 1; min-width: 220px; font-size: 13px; color: #d6ddd8; }
+.versao-nova .link { color: #c9d3cc; font-size: 13px; }
+.versao-nova .link:hover { color: #fff; }
