@@ -46,7 +46,10 @@
 
 ## Melhorias futuras anotadas
 
-- **Colunas para ordenar** (pedido do dono, 19/11/2026): clicar no título da coluna das edições para ordenar por estado (qualidade), unidades, extras ou preço, parecido com o filtro de uma planilha. Hoje a ordem é sempre a da loja (do menor para o maior preço).
+- **Colunas para ordenar** (pedido do dono, 19/11/2026): clicar no título da coluna das edições para ordenar por estado (qualidade), unidades, extras ou preço, parecido com o filtro de uma planilha. Feito (ramificação `colunas-ordenar`):
+  - Cada tabela de edições ganhou uma linha discreta com os títulos (Edição, Idioma, Estado, Unid., Extras, Preço). Um clique ordena **todas** as tabelas por aquela coluna, do jeito mais útil primeiro (estado do melhor para o pior, unidades de quem tem mais, extras primeiro, edição e idioma de A a Z, preço do menor); outro clique inverte; o terceiro volta ao normal (do menor para o maior preço, a ordem da loja). A coluna ativa fica em negrito com ▲ (ordem normal dela) ou ▼ (invertida), e o rodapé diz a ordem atual.
+  - Empate fica na ordem da loja (preço); sem dado (estado, unidades ou preço vazios) vai sempre para o fim. A escolha vale até fechar o programa, para todas as buscas, e é só da tela (`ordenacao` em `app.js`): nenhuma requisição a mais.
+  - O passo "Edições e preços" do tutorial menciona os títulos das colunas.
 - **Avisar que existe versão nova** (pedido do dono, 19/11/2026): feito (ramificação `aviso-versao-nova`), em `buscador/atualizacao.py`.
   - Ao abrir, a página chama `Ponte.versao_nova()` (numa thread do pywebview, sem atrasar a tela). Ela consulta `api.github.com/repos/vitor-botechi/buscacartas-do-boteco/releases/latest` no máximo uma vez por dia (data e resultado guardados no `config.json`: `versao_checada_em`, `versao_ultima`), com 6 s de limite. Sem internet ou com erro, fica em silêncio até o dia seguinte. Só aceita endereços do próprio projeto no GitHub e ignora rascunhos e pré-lançamentos.
   - Se a versão de lá for mais nova que `__version__`, aparece um recado de lousa no alto da área da busca: "Saiu a versão X!", com **⬇ Baixar a versão X** (abre o download do `BuscaCartas.exe` no navegador; depois o texto explica: quando terminar, feche este programa e abra o novo), **O que mudou ↗** (página da versão) e **Agora não** (some por 3 dias para aquela versão: `versao_adiada`; uma versão ainda mais nova avisa logo).
@@ -109,5 +112,5 @@
 ## Perguntas em aberto
 
 - Qual o limite seguro de requisições por loja? Registrar aqui o que for observado nos testes (bloqueios, avisos de "detalhes automáticos pausados").
-- Como avisar a comunidade de versões novas? (Hoje: baixar o `.exe` novo na página de versões; as preferências continuam. Poderia haver um aviso no programa quando sair versão nova.)
+- Como avisar a comunidade de versões novas? Respondida na versão 2.3.0: o próprio programa avisa, com botão para baixar (`buscador/atualizacao.py`). Quem estava numa versão anterior precisa baixar a 2.3.0 uma vez pela página de versões.
 - Linux e macOS: o programa roda pelo código-fonte (nada no código é exclusivo do Windows), mas nunca foi testado nesses sistemas. Programa pronto para eles: ver "Melhorias futuras anotadas".

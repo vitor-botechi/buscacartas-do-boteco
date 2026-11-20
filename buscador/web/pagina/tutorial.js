@@ -51,7 +51,7 @@ const PASSOS = [
   { alvo: no("#resultados .cartao > .cab"),
     titulo: "Uma comanda por loja", texto: "Verde: a loja tem a carta. Clique no nome da loja para abrir ou fechar." },
   { alvo: no("#resultados .item:not(.fechado) .corpo"),
-    titulo: "Edições e preços", texto: "Do mais barato ao mais caro. Clique numa linha para abrir na loja e comprar. Pare o mouse no nome para ver a arte da carta." },
+    titulo: "Edições e preços", texto: "Do mais barato ao mais caro; clique no título de uma coluna para ordenar por estado, unidades... Clique numa linha para abrir na loja e comprar. Pare o mouse no nome para ver a arte da carta." },
   { alvo: no("#resultados .item-cab .liga"),
     titulo: "Compare com a LigaMagic", texto: "Abre a carta na LigaMagic, no seu navegador, para comparar os preços." },
   { alvo: no("#resultados .item-cab .pedir"),

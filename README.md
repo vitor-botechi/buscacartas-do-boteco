@@ -33,6 +33,7 @@ Dá para rever quando quiser.
 ## O que mais ele faz
 
 - **Arte da carta:** pare o mouse no nome para ver a carta daquela edição.
+- **Ordenar as edições:** clique no título de uma coluna (Estado, Unid., Extras, Preço...) para ordenar; outro clique inverte, e o terceiro volta ao normal (do menor para o maior preço).
 - **Etiquetas:** Foil, promoção, pré-venda com data de envio, observação da loja e fotos do item.
 - **Colar nome:** copiou o nome em outro lugar? Volte para a janela e aperte **Enter** duas vezes: o primeiro cola, o segundo busca.
 - **LigaMagic:** o botão **LigaMagic ↗** abre a carta na LigaMagic, no seu navegador, para comparar os preços.

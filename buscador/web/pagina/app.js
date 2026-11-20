@@ -378,6 +378,59 @@ function qualidade(q) {
 
 const COLUNAS = '<colgroup><col class="c-edicao"><col class="c-idioma"><col class="c-qual"><col class="c-estoque"><col class="c-extras"><col class="c-preco"></colgroup>';
 
+/* ---------------- ordenar as edições pelas colunas ----------------
+   Um clique no título ordena todas as tabelas por aquela coluna, do jeito mais útil primeiro (melhor
+   estado, mais unidades, menor preço...); outro clique inverte; o terceiro volta ao normal (do menor
+   para o maior preço, a ordem da loja). Vale até fechar o programa. Empate: fica a ordem da loja. */
+const ORDEM_PADRAO = { col: "preco", inverso: false };
+let ordenacao = { ...ORDEM_PADRAO };
+const ESTADOS = ["M", "NM", "SP", "MP", "HP", "D"];
+const textoExtras = (o) => [o.pre ? "Pré-venda" : "", o.extras || "", o.promo ? "Promoção" : ""].filter(Boolean).join(" ");
+// cada coluna: título, valor para comparar (null = sem dado, sempre no fim) e como se lê a ordem
+const ORDENAVEIS = {
+  edicao: { titulo: "Edição", valor: (o) => norm(o.edicao) || null, ordem: ["por edição, de A a Z", "por edição, de Z a A"] },
+  idioma: { titulo: "Idioma", valor: (o) => norm(o.idioma) || null, ordem: ["por idioma, de A a Z", "por idioma, de Z a A"] },
+  qual: { titulo: "Estado", valor: (o) => (o.qualidade ? (ESTADOS.includes(o.qualidade) ? ESTADOS.indexOf(o.qualidade) : ESTADOS.length) : null),
+    ordem: ["por estado, do melhor (M, NM) para o pior", "por estado, do pior para o melhor (M, NM)"] },
+  estoque: { titulo: "Unid.", valor: (o) => (typeof o.estoque === "number" ? -o.estoque : null),
+    ordem: ["por unidades, de quem tem mais para quem tem menos", "por unidades, de quem tem menos para quem tem mais"] },
+  extras: { titulo: "Extras", valor: (o) => { const t = norm(textoExtras(o)); return t ? "0" + t : "1"; },
+    ordem: ["por extras (Foil, promoção...) primeiro", "sem extras primeiro"] },
+  preco: { titulo: "Preço", valor: (o) => (typeof o.preco === "number" ? o.preco : null),
+    ordem: ["do menor para o maior preço", "do maior para o menor preço"] },
+};
+const ordemNormal = () => ordenacao.col === ORDEM_PADRAO.col && ordenacao.inverso === ORDEM_PADRAO.inverso;
+const textoOrdem = () => ORDENAVEIS[ordenacao.col].ordem[ordenacao.inverso ? 1 : 0];
+
+function ordenadas(ofertas) {
+  if (ordemNormal()) return ofertas;  // já vêm da loja do menor para o maior preço
+  const { valor } = ORDENAVEIS[ordenacao.col];
+  const sinal = ordenacao.inverso ? -1 : 1;
+  return ofertas.map((o, i) => ({ o, i, v: valor(o) })).sort((a, b) => {
+    if (a.v === null || b.v === null) return (a.v === null) - (b.v === null) || a.i - b.i;  // sem dado: no fim
+    const c = typeof a.v === "number" ? a.v - b.v : a.v.localeCompare(b.v, "pt-BR");
+    return sinal * c || a.i - b.i;
+  }).map((x) => x.o);
+}
+
+function cabecalhoOfertas() {
+  const th = Object.entries(ORDENAVEIS).map(([col, c]) => {
+    const ativa = ordenacao.col === col;
+    const seta = ativa ? `<span class="seta-ordem">${ordenacao.inverso ? "▼" : "▲"}</span>` : "";
+    const dica = ativa ? `Ordenado ${c.ordem[ordenacao.inverso ? 1 : 0]}. Clique para ${ordenacao.inverso ? "voltar à ordem normal" : "inverter"}.`
+      : `Ordenar ${c.ordem[0]}`;
+    return `<th class="th-${col}${ativa ? " ativa" : ""}" data-ordenar="${col}" title="${esc(dica)}">${c.titulo}${seta}</th>`;
+  }).join("");
+  return `<thead><tr>${th}</tr></thead>`;
+}
+
+function ordenarPor(col) {
+  if (ordenacao.col !== col) ordenacao = { col, inverso: false };
+  else if (!ordenacao.inverso) ordenacao = { col, inverso: true };
+  else ordenacao = { ...ORDEM_PADRAO };
+  desenhar();
+}
+
 // bandeira que a própria loja usa para o idioma (só imagens da web, nunca outro tipo de endereço)
 function bandeira(url, idioma) {
   if (!/^https:\/\/[^\s"'<>]+\.(svg|png|gif|jpg)$/i.test(url || "")) return "";
@@ -434,7 +487,7 @@ function blocoItem(r, it) {
     return `<div class="item${aberto ? "" : " fechado"}"><div class="item-cab" data-alternar="${esc(k)}">
         <span class="seta">▾</span>${nomeItem(it)}
         <span class="info">${plural(it.ofertas.length, "oferta", "ofertas")} · ${menor}</span>${abrir}</div>
-      <div class="corpo"><table>${COLUNAS}${it.ofertas.map((o) => linhaOferta(o, it.url, it.nome)).join("")}</table></div></div>`;
+      <div class="corpo"><table>${COLUNAS}${cabecalhoOfertas()}<tbody>${ordenadas(it.ofertas).map((o) => linhaOferta(o, it.url, it.nome)).join("")}</tbody></table></div></div>`;
   }
   const d = tela.detalhes[k];
   let direita;
@@ -556,7 +609,11 @@ function resumir() {
   } else if (rs.some((r) => temCarta(r) && visiveis(r).some((i) => !i.ofertas))) {
     linhas.push({ texto: "Onde há muitos resultados, os preços não carregam sozinhos: use “Ver edições e preços” no item ou “Carregar todos os preços” na loja.", tipo: "dica" });
   }
-  if (ok) linhas.push({ texto: "Clique numa edição para abrir a página na loja. Edições do menor para o maior preço.", tipo: "dica" });
+  if (ok) {
+    const ordem = ordemNormal() ? "Edições do menor para o maior preço; clique no título de uma coluna para mudar a ordem."
+      : `Edições ordenadas ${textoOrdem()}.`;
+    linhas.push({ texto: `Clique numa edição para abrir a página na loja. ${ordem}`, tipo: "dica" });
+  }
   avisarLinhas(linhas);
   $("abrir-achadas").disabled = !(ok || conferir);
 }
@@ -571,6 +628,8 @@ function abrirUmaVez(url) {
   api().abrir(url);
 }
 $("resultados").addEventListener("click", (e) => {
+  const col = e.target.closest("[data-ordenar]");
+  if (col) { if (!tutorialAtivo) { ordenarPor(col.dataset.ordenar); } return; }
   const abrir = e.target.closest(".abrir, tr.oferta");
   if (abrir) { abrirUmaVez(abrir.dataset.abrir); return; }
   const mais = e.target.closest("[data-mais]");

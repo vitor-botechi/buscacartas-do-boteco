@@ -171,6 +171,13 @@ td { padding: 6px 10px; border-top: 1px solid #f3f4f6; white-space: nowrap; over
 td.edicao { padding-left: 86px; white-space: normal; }  /* recuada em relação ao nome do item */
 td.extras, td.pt, td.en { white-space: normal; }  /* "Português/Inglês" quebra a linha em vez de cortar */
 td.extras .etq { margin: 1px 0; }
+/* títulos das colunas: discretos; um clique ordena as edições por aquela coluna */
+th { padding: 3px 10px 2px; font-size: 11px; font-weight: 500; color: var(--cinza); text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; user-select: none; }
+th.th-edicao { padding-left: 86px; } th.th-preco { text-align: right; padding-right: 18px; }
+th:hover { color: var(--tinta); text-decoration: underline; text-underline-offset: 2px; }
+th.ativa { color: var(--tinta); font-weight: 700; }
+.seta-ordem { font-size: 9px; margin-left: 4px; vertical-align: 1px; }
 tr.oferta { cursor: pointer; }  /* um clique abre a página na loja */
 tr.oferta:hover td { background: #f8fafb; }
 .etq { display: inline-block; font-size: 12px; padding: 1px 8px; border-radius: 6px; font-weight: 500; white-space: nowrap; }
