@@ -363,7 +363,7 @@ class Ponte:
             self._bloqueio_em = None
 
         nomes_cartas = [c["nome"] for c in limpas]
-        nomes = lista.Nomes(nomes_cartas, resolve_names, ctl.stop)
+        nomes = lista.Nomes(nomes_cartas, lambda c: resolve_names(c, urgente=False), ctl.stop)  # sem pressa
 
         def postar_de(loja):
             def postar(tipo, dados):

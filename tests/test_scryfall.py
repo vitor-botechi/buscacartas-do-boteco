@@ -28,12 +28,19 @@ THALIAS_PT = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def sem_memoria(monkeypatch):
+    """Cada teste começa sem nomes guardados e sem pausa do Scryfall."""
+    monkeypatch.setattr(scryfall, "_nomes", {})
+    monkeypatch.setattr(scryfall, "RITMO", scryfall._Ritmo())
+
+
 @pytest.fixture
 def scryfall_falso(monkeypatch):
     """Responde às chamadas do programa conforme o dicionário: (caminho, q ou fuzzy) -> resposta."""
     respostas = {}
 
-    def get_falso(path, params):
+    def get_falso(path, params, urgente=True):
         chave = (path, params.get("fuzzy") or params.get("q"))
         return respostas.get(chave, RespostaFalsa(404, {}))
 
@@ -90,3 +97,48 @@ def test_sem_resposta_do_scryfall_usa_so_o_digitado(monkeypatch):
 
     monkeypatch.setattr(scryfall, "scry_get", sem_conexao)
     assert scryfall.resolve_names("Thalia") == ({"thalia"}, False)
+
+
+def test_nomes_ficam_guardados(scryfall_falso):
+    scryfall_falso[("/cards/named", "Sol Ring")] = RespostaFalsa(200, {"name": "Sol Ring"})
+    chamadas = []
+    original = scryfall.scry_get
+    scryfall.scry_get = lambda *a, **k: chamadas.append(a) or original(*a, **k)
+    try:
+        primeira = scryfall.resolve_names("Sol Ring")
+        n = len(chamadas)
+        assert scryfall.resolve_names("sol ring") == primeira and len(chamadas) == n  # sem nova consulta
+    finally:
+        scryfall.scry_get = original
+
+
+class RequestsFalso:
+    """Conta as requisições de verdade ao Scryfall (sem rede)."""
+
+    def __init__(self, status=200):
+        self.status, self.feitas = status, []
+
+    def get(self, url, **_k):
+        self.feitas.append(url)
+        return RespostaFalsa(self.status, {})
+
+
+def test_ritmo_de_duas_consultas_por_segundo(monkeypatch):
+    falso = RequestsFalso()
+    monkeypatch.setattr(scryfall.requests, "get", falso.get)
+    monkeypatch.setattr(scryfall, "SCRY_INTERVALO_CARTAS", 0.2)
+    inicio = scryfall.time.monotonic()
+    for _ in range(3):
+        scryfall.scry_get("/cards/named", {"fuzzy": "x"})
+    assert scryfall.time.monotonic() - inicio >= 0.4  # 3 consultas: 2 intervalos
+
+
+def test_depois_de_um_429_nao_consulta_mais(monkeypatch):
+    falso = RequestsFalso(429)
+    monkeypatch.setattr(scryfall.requests, "get", falso.get)
+    assert scryfall.scry_get("/cards/named", {"fuzzy": "x"}).status_code == 429
+    with pytest.raises(scryfall.ScryfallEmPausa):
+        scryfall.scry_get("/cards/named", {"fuzzy": "y"})
+    assert len(falso.feitas) == 1  # a segunda nem saiu
+    assert scryfall.resolve_names("Sol Ring") == ({"sol ring"}, False)  # tratado como sem resposta
+    assert scryfall.card_art("Sol Ring") == ""
