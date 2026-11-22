@@ -233,7 +233,7 @@ function andamento(L) {
   const menos = andando.length ? Math.min(...andando.map((l) => L.estado[l.url].feitas)) : n;
   const titulo = andando.length
     ? `Carta ${Math.min(n, menos + 1)} de ${n}${L.cartas[menos] ? ` · ${esc(L.cartas[menos].nome)}` : ""}`
-    : "Uma loja pediu para ir devagar: todas pausaram e voltam sozinhas…";
+    : "As lojas pediram para ir devagar: elas voltam sozinhas…";
   const feitasTodas = L.lojas.reduce((s, l) => s + (lojaTerminou(L.estado[l.url]) ? n : L.estado[l.url].feitas), 0);
   const chips = L.lojas.map((l) => {
     const e = L.estado[l.url];
@@ -257,19 +257,24 @@ function celula(cc, melhor) {
     case "nao_verificada": return '<td class="cel nao-verif" title="A busca parou antes de chegar nesta carta">não verificada</td>';
     case "erro": return '<td class="cel erro" title="Não consegui ler a busca desta carta: abra a carta para ver">⚠ não li</td>';
     case "nao_tem": return '<td class="cel nao-tem">não tem</td>';
-    case "sem_preco": return '<td class="cel sem-preco" title="A loja tem a carta, mas o preço não foi lido: clique na carta">tem · preço ?</td>';
+    case "sem_preco": return `<td class="cel sem-preco" data-abrir-cel="${esc(cc.url)}" title="A loja tem a carta, mas o preço não foi lido.\nClique para abrir a página da carta nesta loja">tem · preço ? <span class="seta-abrir">↗</span></td>`;
   }
   const dica = `${textoPartes(cc)} = ${dinheiro(cc.custo)}${cc.estado === "parcial" ? ` (a loja só tem ${cc.tem})` : ""}`;
   const un = cc.estado === "parcial" ? `<span class="falta">tem ${cc.tem}</span>` : `<span class="un">${cc.tem} un.</span>`;
-  return `<td class="cel ${cc.estado}${melhor ? " melhor" : ""}" title="${esc(dica)}${melhor ? "\nMais barata para esta carta" : ""}">
-    <span class="preco">${dinheiro(cc.menor)}</span>${un}</td>`;
+  return `<td class="cel ${cc.estado}${melhor ? " melhor" : ""}" data-abrir-cel="${esc(cc.url)}" title="${esc(dica)}${melhor ? "\nMais barata para esta carta" : ""}\nClique para abrir a página da carta nesta loja">
+    <span class="preco">${dinheiro(cc.menor)}</span>${un}<span class="seta-abrir">↗</span></td>`;
+}
+
+// url da loja mais barata para a carta i, entre as que têm a quantidade toda (null se só uma ou nenhuma tem)
+function melhorLoja(L, cs, i) {
+  const completas = L.lojas.filter((l) => cs[i][l.url].estado === "completa");
+  return completas.length > 1 ? completas.reduce((a, b) => (cs[i][b.url].custo < cs[i][a.url].custo ? b : a)).url : null;
 }
 
 function vistaPorCarta(L, cs) {
   const cab = L.lojas.map((l) => `<th class="th-loja" style="--cor-loja:${corDaLoja(l)}">${esc(l.nome)}</th>`).join("");
   const linhas = L.cartas.map((c, i) => {
-    const completas = L.lojas.filter((l) => cs[i][l.url].estado === "completa");
-    const melhor = completas.length > 1 ? completas.reduce((a, b) => (cs[i][b.url].custo < cs[i][a.url].custo ? b : a)).url : null;
+    const melhor = melhorLoja(L, cs, i);
     const nenhuma = !tela.pendentes && L.lojas.every((l) => ["nao_tem", "erro"].includes(cs[i][l.url].estado));
     return `<tr class="${nenhuma ? "ninguem" : ""}"><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta em cada loja">
         <span class="qtd">${c.qtd} ×</span> <span class="nome-arte" data-arte="${esc(c.nome)}">${esc(c.nome)}</span></td>
@@ -299,11 +304,11 @@ function vistaPorLoja(L, cs) {
     const linhas = tem.map(({ c, i, cc }) => {
       const qtd = cc.estado === "sem_preco" ? `${c.qtd} × ?` : (cc.estado === "parcial" ? `<span class="falta">só ${cc.leva} de ${c.qtd}</span> ` : "") + textoPartes(cc);
       return `<tr><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta"><span class="qtd">${c.qtd} ×</span> <span class="nome-arte" data-arte="${esc(c.nome)}">${esc(c.nome)}</span></td>
-        <td class="partes">${qtd}</td><td class="preco">${cc.custo != null ? dinheiro(cc.custo) : "—"}</td>
+        <td class="partes">${qtd}</td><td class="preco">${melhorLoja(L, cs, i) === l.url ? '<span class="estrela" title="Mais barata para esta carta, entre as lojas que têm a quantidade toda">★</span> ' : ""}${cc.custo != null ? dinheiro(cc.custo) : "—"}</td>
         <td><button class="abrir" data-abrir="${esc(cc.url)}" title="Abrir a página da carta nesta loja">Abrir ↗</button></td></tr>`;
     }).join("");
     const e = L.estado[l.url];
-    const nota = e.desistiu && !L.cancelada ? '<div class="nota-loja">⚠ As lojas pediram para ir devagar várias vezes e a busca parou: as cartas que faltavam ficaram sem verificar.</div>' : "";
+    const nota = e.desistiu && !L.cancelada ? '<div class="nota-loja">⚠ Esta loja pediu para ir devagar várias vezes e a busca parou nela: as cartas que faltavam ficaram sem verificar.</div>' : "";
     const corpo = tem.length ? `<table class="tabela-loja"><tbody>${linhas}</tbody></table>` : '<div class="nota-loja">Nenhuma carta da lista nesta loja (até agora).</div>';
     const faltaTxt = faltam.length ? `<div class="faltam">Faltam aqui: ${faltam.map(({ c, cc }) => esc(`${cc.estado === "parcial" ? c.qtd - cc.leva : c.qtd} ${c.nome}`)).join(", ")}</div>` : "";
     const logo = /^https:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(l.logo || "") ? `<img class="logo" src="${esc(l.logo)}" alt="" onerror="this.remove()">` : "";
@@ -327,11 +332,11 @@ function resumirLista() {
   const linhas = [{ texto: `Lista de ${plural(n, "carta", "cartas")}: ${completas} ${completas === 1 ? "tem" : "têm"} a quantidade toda em alguma loja.` +
     (L.cancelada ? " (busca cancelada: parte das cartas não foi verificada)" : ""), tipo: "principal" }];
   const paradas = L.lojas.filter((l) => L.estado[l.url].desistiu && !L.cancelada);
-  if (paradas.length) linhas.push({ texto: "⚠ As lojas pediram para ir devagar várias vezes (a cada vez, todas pausaram juntas) e a busca parou. Tente de novo mais tarde.", tipo: "aviso" });
+  if (paradas.length) linhas.push({ texto: `⚠ ${paradas.map((l) => l.nome).join(", ")}: pediu para ir devagar várias vezes e a busca parou ali. Tente de novo mais tarde.`, tipo: "aviso" });
   if (nenhuma.length) linhas.push({ texto: `Nenhuma loja tem: ${nenhuma.map((c) => c.nome).join(", ")}.`, tipo: "aviso" });
   const semVer = L.cartas.filter((c, i) => L.lojas.some((l) => cs[i][l.url].estado === "nao_verificada")).length;
   if (semVer) linhas.push({ texto: `${plural(semVer, "carta ficou", "cartas ficaram")} sem verificar em alguma loja: busque a lista de novo mais tarde para completar.`, tipo: "aviso" });
-  linhas.push({ texto: "Clique numa carta para ver as edições em cada loja; ◀ Voltar volta para a lista.", tipo: "dica" });
+  linhas.push({ texto: "Clique num preço para abrir a carta naquela loja, ou no nome da carta para ver as edições em cada loja (◀ Voltar volta para a lista).", tipo: "dica" });
   avisarLinhas(linhas);
   $("abrir-achadas").disabled = true;
 }
@@ -403,6 +408,8 @@ function cliqueNaLista(e) {
     });
     return true;
   }
+  const cel = e.target.closest("[data-abrir-cel]");
+  if (cel) { abrirUmaVez(cel.dataset.abrirCel); return true; }  // funciona já durante a busca
   const carta = e.target.closest("[data-carta-lista]");
   if (carta) { abrirCartaDaLista(+carta.dataset.cartaLista); return true; }
   return false;

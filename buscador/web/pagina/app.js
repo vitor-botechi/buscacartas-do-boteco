@@ -570,7 +570,7 @@ function desenhar() {
     area.scrollTop = rolagem;
     desenharProgresso();
     if (tela.pendentes === 0) resumirLista();
-    else avisarLinhas([{ texto: "As cartas aparecem conforme cada loja responde; quando terminar, clique numa carta para ver as edições. Cancelar guarda o que já chegou.", tipo: "dica" }]);
+    else avisarLinhas([{ texto: "As cartas aparecem conforme cada loja responde: clique num preço para abrir a carta na loja e já ir comprando. Cancelar guarda o que já chegou.", tipo: "dica" }]);
     return;
   }
   if (!tela.ordem.length) {

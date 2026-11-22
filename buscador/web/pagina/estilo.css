@@ -441,3 +441,9 @@ tr.ninguem .carta-lista .nome-arte { color: var(--vermelho); }
 .faltam { padding: 8px 16px 10px 38px; border-top: 1px solid var(--pauta); font-size: 12.5px; color: var(--ambar); }
 .lista.rodando .carta-lista { cursor: progress; }
 .lista.rodando .carta-lista:hover { background: none; }
+/* preço na vista por carta: um clique abre a carta naquela loja (já durante a busca) */
+.cel[data-abrir-cel] { cursor: pointer; }
+.cel[data-abrir-cel]:hover { box-shadow: inset 0 0 0 2px var(--azul); }
+.cel .seta-abrir { margin-left: 4px; color: var(--azul); font-size: 12px; visibility: hidden; }
+.cel:hover .seta-abrir { visibility: visible; }
+.tabela-loja .estrela { color: var(--verde); font-size: 13px; cursor: help; }

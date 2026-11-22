@@ -3,9 +3,9 @@
 Ritmo próprio, mais lento que o da busca de uma carta (ver config.LISTA_*): em cada loja, uma requisição
 por vez, com pausa entre elas; as lojas andam ao mesmo tempo (são sites diferentes). Por carta: uma busca
 (só a primeira página) e, para os itens com o nome exato, a página do produto (onde preço e unidades estão
-em texto), no máximo LISTA_ITENS_POR_CARTA. Se uma loja der sinal de bloqueio, TODAS param (Freio):
-esperam (LISTA_RETOMAR) e tentam sozinhas de novo; depois da última espera, a lista desiste e as cartas
-que faltavam ficam como "não verificada".
+em texto), no máximo LISTA_ITENS_POR_CARTA. Se uma loja der sinal de bloqueio, só ela para (Freio):
+espera (LISTA_RETOMAR), tenta sozinha de novo e passa a ir mais devagar; depois da última espera,
+desiste e as cartas que faltavam nela ficam como "não verificada". As outras lojas continuam.
 """
 
 import math
@@ -14,7 +14,13 @@ import re
 import threading
 import time
 
-from buscador.config import LISTA_ITENS_POR_CARTA, LISTA_PAUSA, LISTA_RETOMAR
+from buscador.config import (
+    LISTA_ITENS_POR_CARTA,
+    LISTA_PAUSA,
+    LISTA_PAUSA_MAX,
+    LISTA_PAUSA_PASSO,
+    LISTA_RETOMAR,
+)
 from buscador.rede import fetch_product, safe_search
 from buscador.scryfall import matches_exact
 from buscador.texto import clean_card_name, is_art_card, norm
@@ -152,11 +158,12 @@ def esperar(segundos, parar, dormir=None):
 
 
 class Freio:
-    """Pausa compartilhada pelas lojas da lista: as lojas desse padrão ficam atrás da mesma proteção
-    (Cloudflare), então quando uma é barrada, TODAS param juntas e voltam juntas, sozinhas.
+    """Pausa e ritmo de UMA loja na busca da lista (cada loja tem o seu: o teste real mostrou que a
+    proteção barra uma loja enquanto as outras seguem respondendo).
 
-    Cada bloqueio novo (fora de uma pausa) usa a próxima espera de `retomar`; uma carta lida com
-    sucesso depois da pausa zera a contagem. Depois da última espera, a lista desiste em todas as lojas.
+    Cada bloqueio novo usa a próxima espera de `retomar` e deixa a loja mais lenta dali em diante
+    (`ritmo` sobe LISTA_PAUSA_PASSO, até LISTA_PAUSA_MAX): ela se ajusta ao limite da loja. Uma carta
+    lida com sucesso depois da pausa volta as esperas para a primeira. Depois da última espera, desiste.
     agora: relógio em segundos (trocado nos testes).
     """
 
@@ -167,6 +174,7 @@ class Freio:
         self.ate = 0.0
         self.tentativa = 0
         self.desistiu = False
+        self.ritmo = LISTA_PAUSA  # pausa mínima entre requisições desta loja (sorteada até 1,5x)
 
     def falta(self):
         with self._lock:
@@ -175,13 +183,14 @@ class Freio:
     def bloqueou(self):
         with self._lock:
             agora = self.agora()
-            if self.ate > agora or self.desistiu:  # já em pausa (outra loja barrou antes)
+            if self.ate > agora or self.desistiu:  # já em pausa
                 return
             if self.tentativa >= len(self.retomar):
                 self.desistiu = True
                 return
             self.ate = agora + self.retomar[self.tentativa]
             self.tentativa += 1
+            self.ritmo = min(LISTA_PAUSA_MAX, self.ritmo + LISTA_PAUSA_PASSO)
 
     def deu_certo(self):
         with self._lock:
@@ -196,7 +205,7 @@ def uma_carta(loja, carta, nomes, pausar):
     """Busca UMA carta numa loja. Devolve (StoreResult com só os itens de nome exato, bloqueou?).
 
     pausar(): a pausa antes de cada requisição; devolve True para seguir, CANCELOU (a pessoa cancelou:
-    devolve (None, False)) ou FREIO (outra loja foi barrada: devolve (None, True), para esperar e repetir).
+    devolve (None, False)) ou FREIO (a loja está em pausa: devolve (None, True), para esperar e repetir).
     """
     def seguir():
         r = pausar()
@@ -229,7 +238,7 @@ def uma_carta(loja, carta, nomes, pausar):
 def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None):
     """Busca a lista inteira numa loja, carta por carta.
 
-    freio: a pausa compartilhada com as outras lojas da lista (Freio).
+    freio: a pausa e o ritmo desta loja (Freio).
     postar(tipo, dados): "lista" (resultado de uma carta: {"i", "res"}), "listapausa" ({"segundos",
     "tentativa"}), "listaretoma", "listadesiste" ({"de": índice da primeira carta não verificada}) e
     "listafim".
@@ -240,7 +249,7 @@ def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None):
     def pausar():
         if primeira[0]:
             primeira[0] = False
-        elif not esperar(random.uniform(LISTA_PAUSA, LISTA_PAUSA * 1.5), parar, dormir):
+        elif not esperar(random.uniform(freio.ritmo, freio.ritmo * 1.5), parar, dormir):
             return CANCELOU
         if parar.is_set():
             return CANCELOU

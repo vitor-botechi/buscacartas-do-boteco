@@ -194,8 +194,8 @@ def test_scryfall_fora_do_ar_usa_o_nome_digitado():
     assert nomes.de(0) == {"sol ring"}
 
 
-def test_loja_barrada_pausa_todas(monkeypatch):
-    """Duas lojas ao mesmo tempo: a A é barrada uma vez; a B também pausa e as duas terminam."""
+def test_so_a_loja_barrada_pausa(monkeypatch):
+    """Duas lojas ao mesmo tempo, cada uma com o seu freio: a A é barrada uma vez e pausa; a B segue."""
     monkeypatch.setattr(lista, "LISTA_PAUSA", 0.05)
     barrou = []
 
@@ -210,17 +210,17 @@ def test_loja_barrada_pausa_todas(monkeypatch):
     parar = threading.Event()
     nomes = Nomes(cartas, lambda c: ({c.lower()}, True), parar)
     nomes.trabalhar()
-    freio = Freio((0.4,))
     eventos = {"A": [], "B": []}
     lojas = [threading.Thread(target=buscar_na_loja, args=(
-        {"name": n, "url": n}, cartas, nomes, parar, lambda t, d, n=n: eventos[n].append(t)), kwargs={"freio": freio})
+        {"name": n, "url": n}, cartas, nomes, parar, lambda t, d, n=n: eventos[n].append(t)), kwargs={"freio": Freio((0.4,))})
         for n in eventos]
     for t in lojas:
         t.start()
     for t in lojas:
         t.join(timeout=10)
+    assert "listapausa" in eventos["A"] and "listaretoma" in eventos["A"]
+    assert "listapausa" not in eventos["B"]
     for n in eventos:
-        assert "listapausa" in eventos[n] and "listaretoma" in eventos[n], (n, eventos[n])
         assert eventos[n][-1] == "listafim" and eventos[n].count("lista") == 8
 
 
@@ -247,3 +247,16 @@ def test_freio_zera_depois_de_dar_certo():
     freio.deu_certo()
     freio.bloqueou()
     assert freio.falta() == 10  # voltou para a primeira espera
+
+
+def test_cada_bloqueio_deixa_a_loja_mais_lenta():
+    relogio = [0.0]
+    freio = Freio((10, 20, 40), agora=lambda: relogio[0])
+    inicio = freio.ritmo
+    freio.bloqueou()
+    assert freio.ritmo == inicio + lista.LISTA_PAUSA_PASSO
+    for t in (100, 200, 300, 400, 500, 600, 700, 800, 900):
+        relogio[0] = t
+        freio.deu_certo()
+        freio.bloqueou()
+    assert freio.ritmo == lista.LISTA_PAUSA_MAX  # nunca passa do máximo
