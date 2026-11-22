@@ -239,7 +239,7 @@ function avisoFaltando(L, cs) {
   if (!faltam.length) return "";
   return `<div class="faltando-lista"><span class="fl-texto">⚠ Nenhuma loja tem ${faltam.length === 1 ? "esta carta" : `estas ${faltam.length} cartas`}:
       <b>${faltam.map((c) => esc(c.nome)).join(", ")}</b></span>
-    <button class="btn pequeno" data-copiar-faltando title="Copia as cartas que nenhuma loja tem, no formato de lista (quantidade e nome), para colar nas suas anotações">📋 Copiar a lista das que faltam</button></div>`;
+    <button class="btn pequeno" data-copiar-faltando title="Copia as cartas que nenhuma loja tem, no formato de lista (quantidade e nome), para colar nas suas anotações">📋 Copiar lista de faltantes</button></div>`;
 }
 
 function andamento(L) {
@@ -428,7 +428,7 @@ function cliqueNaLista(e) {
     const texto = cartasFaltando(L, contas()).map((c) => `${c.qtd} ${c.nome}`).join("\n");
     copiarTexto(texto).then((ok) => {
       faltando.textContent = ok ? "✓ Copiado! Cole nas suas anotações" : "Não consegui copiar";
-      setTimeout(() => { if (faltando.isConnected) faltando.textContent = "📋 Copiar a lista das que faltam"; }, 2500);
+      setTimeout(() => { if (faltando.isConnected) faltando.textContent = "📋 Copiar lista de faltantes"; }, 2500);
     });
     return true;
   }
