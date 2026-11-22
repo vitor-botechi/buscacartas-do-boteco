@@ -301,3 +301,78 @@ def test_arte_da_carta(ponte, monkeypatch):
     assert ponte.arte("Sol Ring", "Magic 2012", "m12") == {"url": "https://cards.scryfall.io/Sol Ring-Magic 2012-m12.jpg"}
     monkeypatch.setattr(ponte_mod, "HAS_SCRAPING", False)
     assert ponte.arte("Sol Ring") == {"url": ""}
+
+
+# ---- busca de uma lista inteira -------------------------------------------------------------------
+from buscador import lista as lista_mod  # noqa: E402
+from buscador.modelos import Item, Offer  # noqa: E402
+
+
+@pytest.fixture
+def lista_rapida(monkeypatch):
+    """Lista sem pausas e sem requisições: Sol Ring existe (com 2 unidades), o resto não."""
+    monkeypatch.setattr(lista_mod, "LISTA_PAUSA", 0)
+    monkeypatch.setattr(ponte_mod, "resolve_names", lambda c: ({c.lower()}, True))
+
+    def busca(loja, carta, paginas):
+        if carta == "Sol Ring":
+            return StoreResult(loja, "b", "found", [Item("Sol Ring", None, "https://loja/sol")])
+        return StoreResult(loja, "b", "none")
+
+    monkeypatch.setattr(lista_mod, "safe_search", busca)
+    monkeypatch.setattr(lista_mod, "fetch_product", lambda loja, url: {
+        "status": "ok", "offers": [Offer("Commander", "Inglês", "NM", "", 2, 9.5)]})
+
+
+def test_ler_lista_pela_ponte(ponte):
+    lida = ponte.ler_lista("4x Sol Ring\nSideboard\n1 Ilha")
+    assert [(c["qtd"], c["nome"]) for c in lida["cartas"]] == [(4, "Sol Ring"), (1, "Ilha")]
+
+
+def test_buscar_lista_manda_carta_por_carta(ponte, lista_rapida):
+    r = ponte.buscar_lista([{"qtd": 4, "nome": "Sol Ring"}, {"qtd": 1, "nome": " Ilha "}, {"qtd": 2, "nome": "sol ring"}])
+    assert [c["nome"] for c in r["cartas"]] == ["Sol Ring", "Ilha"]  # repetida sai
+    assert r["cartas"][0]["liga"].endswith("card=Sol%20Ring")  # botão "LigaMagic ↗" de cada carta
+    assert [l["nome"] for l in r["lojas"]] == ["Overrun"]
+    janela = ponte._janela
+    time.sleep(0.2)
+    assert janela.eventos == []  # nada chega antes de a página dizer que está pronta
+    assert ponte.comecar_lista(r["sid"]) is True
+    assert ponte.comecar_lista(r["sid"]) is False  # uma vez só
+    janela.espera(lambda ev: "listafim" in [e[0] for e in ev])
+    cartas = [e[2] for e in janela.eventos if e[0] == "lista"]
+    assert [c["i"] for c in cartas] == [0, 1]
+    sol = cartas[0]["res"]
+    assert sol["status"] == "found" and sol["itens"][0]["exato"] is True
+    assert sol["itens"][0]["ofertas"][0]["estoque"] == 2
+    assert cartas[1]["res"]["status"] == "none"
+    assert all(e[1] == r["sid"] and e[2]["loja"] == "https://www.overrun.com.br" for e in janela.eventos)
+
+
+def test_buscar_lista_valida(ponte, monkeypatch):
+    assert "erro" in ponte.buscar_lista([])
+    monkeypatch.setattr(ponte_mod, "LISTA_MAX_CARTAS", 2)
+    r = ponte.buscar_lista([{"qtd": 1, "nome": n} for n in ("A", "B", "C")])
+    assert r["erro"].startswith("A lista tem 3 cartas")
+
+
+def test_cancelar_para_a_lista(ponte, lista_rapida, monkeypatch):
+    monkeypatch.setattr(lista_mod, "LISTA_PAUSA", 0.3)
+    r = ponte.buscar_lista([{"qtd": 1, "nome": n} for n in ("A", "B", "C", "D", "E", "F")])
+    ponte.comecar_lista(r["sid"])
+    ponte._janela.espera(lambda ev: any(e[0] == "lista" for e in ev))
+    ponte.cancelar()
+    time.sleep(0.8)
+    assert "listafim" not in ponte._janela.tipos()
+    assert len([t for t in ponte._janela.tipos() if t == "lista"]) < 6
+
+
+def test_comecar_lista_so_com_as_cartas_novas(ponte, lista_rapida, monkeypatch):
+    buscadas = []
+    original = lista_mod.safe_search
+    monkeypatch.setattr(lista_mod, "safe_search", lambda loja, carta, p: buscadas.append(carta) or original(loja, carta, p))
+    r = ponte.buscar_lista([{"qtd": 1, "nome": "Sol Ring"}, {"qtd": 1, "nome": "Ilha"}])
+    ponte.comecar_lista(r["sid"], {"https://www.overrun.com.br": [1]})
+    ponte._janela.espera(lambda ev: "listafim" in [e[0] for e in ev])
+    assert buscadas == ["Ilha"]
+    assert [e[2]["i"] for e in ponte._janela.eventos if e[0] == "lista"] == [1]

@@ -48,6 +48,8 @@ const PASSOS = [
     titulo: "Escolha as lojas", texto: "Ligue as lojas onde quer procurar. Arraste ⠿ para mudar a ordem." },
   { alvo: no(".busca"), titulo: "Digite a carta", texto: "Em português ou inglês. Depois é só apertar Enter ou clicar em Buscar." },
   { alvo: () => $("colar"), titulo: "Copiou o nome?", texto: "Volte para cá e aperte Enter duas vezes: o 1º cola, o 2º busca." },
+  { alvo: () => $("lista"), titulo: "Tem uma lista?",
+    texto: "Cole um deck inteiro: eu procuro carta por carta, aviso quando a loja não tem a quantidade toda e mostro o total de cada loja." },
   { alvo: no("#resultados .cartao > .cab"),
     titulo: "Uma comanda por loja", texto: "Verde: a loja tem a carta. Clique no nome da loja para abrir ou fechar." },
   { alvo: no("#resultados .item:not(.fechado) .corpo"),

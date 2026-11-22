@@ -32,7 +32,7 @@ def normalize_base(url):
     # endereço de site: partes com letras, números e hífen, separadas por ponto, terminando em letras
     if not re.fullmatch(r"(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}(?::\d+)?", p.netloc.lower()):
         raise ValueError("Link inválido")
-    return f"{p.scheme}://{p.netloc}"
+    return f"{p.scheme.lower()}://{p.netloc.lower()}"
 
 
 def host_key(url):

@@ -37,6 +37,19 @@ CACHE_TTL = 300             # segundos que uma página de produto lida fica guar
 HISTORY_MAX = 10            # quantas buscas o Voltar/Avançar lembram
 STALE_AFTER = 30 * 60       # resultados guardados mais velhos que isto (30 min) são refeitos ao voltar/avançar
 
+# Busca de uma lista inteira (buscador/lista.py): ritmo próprio, mais lento que o da busca de uma carta.
+LISTA_MAX_CARTAS = 100      # cartas diferentes por lista (um deck de Commander)
+# Teste real (nov/2026): a 1,2-1,8 s por requisição, a proteção do site (Cloudflare, 429 "Just a moment")
+# barrou a loja depois de ~6 requisições em ~10 s. Por isso a pausa é bem maior que a da busca de uma carta.
+LISTA_PAUSA = 3.0           # segundos entre requisições na MESMA loja (sorteado entre 1x e 1,5x)
+LISTA_ITENS_POR_CARTA = 2   # páginas de produto lidas por carta em cada loja (só itens com o nome exato)
+LISTA_PAUSA_PASSO = 1.0     # cada bloqueio deixa a loja 1 s mais lenta na lista...
+LISTA_PAUSA_MAX = 8.0       # ...até este máximo
+# loja bloqueou: espera e tenta sozinha de novo (as outras lojas seguem); depois da última, desiste.
+# Teste real (nov/2026): no mesmo segundo em que a Legacy deu 429, as outras 4 lojas respondiam normalmente.
+# Teste real (nov/2026, 12 cartas, 4 lojas): com 8 s a loja voltou na 1ª tentativa 2 de 7 vezes; com 9 s, 9 de 11.
+LISTA_RETOMAR = (9, 14, 36, 72, 144)  # 2ª espera menor (pedido do dono): é a única que aparece com frequência
+
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "

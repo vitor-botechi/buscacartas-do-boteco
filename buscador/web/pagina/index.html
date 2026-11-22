@@ -50,6 +50,7 @@
     <button class="btn dica dica-longa" id="colar" aria-label="Colar o nome da carta copiada"
       data-dica="Copiou o nome de uma carta em outro lugar?&#10;Volte para esta janela e aperte Enter duas vezes:&#10;  1º Enter: cola o nome no campo&#10;  2º Enter: busca nas lojas&#10;(Clicar aqui ou Ctrl+V também colam.)">📋 Colar nome</button>
     <button class="btn primario" id="buscar">Buscar</button>
+    <button class="btn dica" id="lista" aria-label="Buscar uma lista de cartas" data-dica="Buscar uma lista inteira (um deck, por exemplo)">📝 Lista</button>
     <button class="btn dica" id="navegador" aria-label="Abrir esta busca nas lojas marcadas, no navegador" data-dica="Abrir esta busca nas lojas marcadas, no seu navegador">🌐</button>
   </div>
 
@@ -78,7 +79,7 @@
   <form class="modal" id="form-loja">
     <h2>Adicionar loja</h2>
     <label><span class="rotulo-link">🔗 Link da loja</span>
-      <input id="loja-link" type="url" inputmode="url" placeholder="www.minhaloja.com.br" autocomplete="off" spellcheck="false"></label>
+      <input id="loja-link" type="text" inputmode="url" placeholder="www.minhaloja.com.br" autocomplete="off" spellcheck="false"></label>
     <label>Nome (opcional)<input id="loja-nome" autocomplete="off"></label>
     <p class="erro" id="loja-erro"></p>
     <div class="botoes">
@@ -95,6 +96,26 @@
     <div class="botoes">
       <button type="button" class="btn" id="pergunta-nao">Cancelar</button>
       <button type="button" class="btn primario" id="pergunta-sim">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- busca de uma lista inteira (lista.js) -->
+<div class="fundo-modal" id="janela-lista" hidden>
+  <div class="modal modal-lista" role="dialog" aria-modal="true" aria-labelledby="lista-titulo">
+    <h2 id="lista-titulo">Buscar uma lista</h2>
+    <p class="lista-explica">Cole a lista (de um deck, do Moxfield, do Arena...). Edição, número e foil são ignorados: vale a quantidade e o nome.</p>
+    <div class="lista-colunas">
+      <textarea id="lista-texto" spellcheck="false" placeholder="4 Lightning Bolt&#10;4x Counterspell&#10;1 Sol Ring (CMM) 410&#10;2 Anel Solar"></textarea>
+      <div class="lista-previa" id="lista-previa"></div>
+    </div>
+    <label class="caixa lista-basicos"><input type="checkbox" id="lista-basicos" checked> Ignorar terrenos básicos <span id="lista-basicos-n"></span></label>
+    <p class="lista-info" id="lista-info"></p>
+    <p class="lista-info" id="lista-ignoradas"></p>
+    <p class="erro" id="lista-erro"></p>
+    <div class="botoes">
+      <button type="button" class="btn" id="lista-cancelar">Cancelar</button>
+      <button type="button" class="btn primario" id="lista-buscar" disabled>Buscar a lista</button>
     </div>
   </div>
 </div>
@@ -122,6 +143,7 @@
   <feDisplacementMap in="SourceGraphic" in2="ruido" scale="2.4"/></filter></svg>
 
 <script src="app.js"></script>
+<script src="lista.js"></script>
 <script src="tutorial.js"></script>
 </body>
 </html>

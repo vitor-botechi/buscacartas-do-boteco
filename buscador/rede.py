@@ -77,10 +77,10 @@ def save_debug(store, url, r):
         pass
 
 
-def safe_search(store, card):
+def safe_search(store, card, max_pages=MAX_PAGES):
     """Qualquer erro inesperado vira um resultado 'error' em vez de travar a busca."""
     try:
-        return search_store(store, card)
+        return search_store(store, card, max_pages)
     except Exception as e:  # noqa: BLE001
         url = build_search_url(store["url"], card)
         return StoreResult(store, url, "error", msg=f"{type(e).__name__}: {e}"[:120])
@@ -92,7 +92,7 @@ def fetch_page(store, card, page):
     return url, r
 
 
-def search_store(store, card):
+def search_store(store, card, max_pages=MAX_PAGES):
     url = build_search_url(store["url"], card)
     if not HAS_SCRAPING:
         return StoreResult(store, url, "error", msg="Bibliotecas ausentes")
@@ -122,7 +122,7 @@ def search_store(store, card):
     # páginas seguintes (se houver mais resultados que cabem numa página)
     m = re.search(r"\d+-\d+ de (\d+)", text)
     total = int(m.group(1)) if m else len(items)
-    pages = min(MAX_PAGES, -(-total // PAGE_SIZE))
+    pages = min(max_pages, -(-total // PAGE_SIZE))
     seen = {i.url for i in items}
     for page in range(2, pages + 1):
         try:

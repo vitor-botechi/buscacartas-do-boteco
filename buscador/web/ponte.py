@@ -4,7 +4,8 @@ Regras:
 - Cada busca recebe um search_id (sid). Ao iniciar outra busca, ou ao cancelar, o sid aumenta e o
   AutoCtl da busca anterior é parado; a página ignora acontecimentos com sid antigo.
 - Acontecimentos da busca vão para a página por app.evento(tipo, sid, dados). Tipos: result, names,
-  offers, autostart, autostep, autoend, autostop.
+  offers, autostart, autostep, autoend, autostop; e, na busca de uma lista (buscar_lista), lista,
+  listapausa, listaretoma, listadesiste e listafim.
 - O pywebview roda cada chamada da página numa thread própria, por isso "detalhes" e "nomes_exatos"
   podem esperar a resposta da loja sem travar a janela.
 - Atributos começam com "_" para o pywebview não expô-los à página.
@@ -17,7 +18,7 @@ import time
 import webbrowser
 from concurrent.futures import ThreadPoolExecutor
 
-from buscador import __version__, atualizacao
+from buscador import __version__, atualizacao, lista
 from buscador.armazenamento import (
     default_name,
     host_key,
@@ -33,11 +34,12 @@ from buscador.config import (
     BLOCK_COOLDOWN,
     DEFAULT_AUTO_LIMIT,
     HISTORY_MAX,
+    LISTA_MAX_CARTAS,
     MAX_AUTO_LIMIT,
     MAX_ITEMS_PER_STORE,
     STALE_AFTER,
 )
-from buscador.lojas.ligamagic import build_search_url
+from buscador.lojas.ligamagic import build_search_url, liga_card_url
 from buscador.rede import HAS_SCRAPING, fetch_product, fetch_store_look, safe_search
 from buscador.scryfall import card_art, matches_exact, resolve_names
 from buscador.texto import clean_card_name, norm
@@ -90,6 +92,7 @@ class Ponte:
         self._carregando = set()  # lojas com "Carregar todos os preços" em andamento
         self._sid_busca = 0  # busca a que _resultados pertence
         self._bloqueio_em = None  # quando uma loja limitou as requisições nesta busca (time.monotonic)
+        self._comecar = None  # (sid, função) da lista preparada, à espera de comecar_lista
 
     # ---- envio para a página ---------------------------------------------------
     def _enviar(self, tipo, sid, dados):
@@ -114,6 +117,8 @@ class Ponte:
             "tem_bibliotecas": HAS_SCRAPING,
             "pausa_bloqueio": BLOCK_COOLDOWN,
             "tutorial_visto": bool(load_settings().get("tutorial_visto")),
+            "lista_max": LISTA_MAX_CARTAS,
+            "lista_seg_por_carta": lista.segundos_estimados(1),
         }
 
     def marcar_tutorial_visto(self):
@@ -313,6 +318,101 @@ class Ponte:
                 "lojas": [{**serializar.aparencia(s), "nome": s["name"], "url": s["url"],
                            "url_busca": build_search_url(s["url"], carta)}
                           for s in lojas]}
+
+    # ---- busca de uma lista inteira ------------------------------------------------------
+    def ler_lista(self, texto):
+        """Lê a lista colada (sem buscar nada). Devolve {cartas: [{qtd, nome, basico}], ignoradas}."""
+        return lista.ler_lista(texto)
+
+    def buscar_lista(self, cartas):
+        """Começa a busca da lista nas lojas marcadas. cartas: [{qtd, nome}] (já sem as que a pessoa
+        tirou). Devolve {sid, cartas, lojas} ou {erro}. A busca só começa quando a página chama
+        comecar_lista(sid), depois de guardar a lista: assim nenhum resultado chega antes da hora.
+        Os resultados chegam carta por carta, por loja."""
+        vistas, limpas = set(), []
+        for c in cartas or []:
+            try:
+                nome, qtd = clean_card_name(str(c.get("nome") or "")), int(c.get("qtd") or 1)
+            except (AttributeError, TypeError, ValueError):
+                continue
+            if nome and norm(nome) not in vistas:
+                vistas.add(norm(nome))
+                limpas.append({"qtd": max(1, min(999, qtd)), "nome": nome, "liga": liga_card_url(nome)})
+        lojas = self._marcadas()
+        if not limpas:
+            return {"erro": "A lista não tem nenhuma carta para buscar."}
+        if len(limpas) > LISTA_MAX_CARTAS:
+            return {"erro": f"A lista tem {len(limpas)} cartas diferentes; o máximo é {LISTA_MAX_CARTAS}."}
+        if not lojas:
+            return {"erro": "Marque ao menos uma loja."}
+        if not HAS_SCRAPING:
+            return {"erro": "sem_bibliotecas"}
+
+        with self._lock:
+            if self._ctl:
+                self._ctl.stop.set()
+            self._sid += 1
+            sid = self._sid
+            self._carta = ""
+            self._resultados = {}
+            self._nomes = None
+            self._postar = None
+            self._ctl = ctl = AutoCtl(0)  # só o freio: nova busca ou Cancelar param a lista
+            self._carregando = set()
+            self._sid_busca = sid
+            self._bloqueio_em = None
+
+        nomes_cartas = [c["nome"] for c in limpas]
+        nomes = lista.Nomes(nomes_cartas, lambda c: resolve_names(c, urgente=False), ctl.stop)  # sem pressa
+
+        def postar_de(loja):
+            def postar(tipo, dados):
+                if ctl.stop.is_set():
+                    return
+                if tipo == "lista":
+                    i = dados["i"]
+                    dados = {"i": i, "res": serializar.resultado(dados["res"], nomes.de(i))}
+                self._enviar(tipo, sid, {**dados, "loja": loja["url"]})
+            return postar
+
+        def loja_job(loja, indices):
+            postar = postar_de(loja)
+            try:
+                lista.buscar_na_loja(loja, nomes_cartas, nomes, ctl.stop, postar, freio=lista.Freio(), indices=indices)
+            except Exception as e:  # noqa: BLE001 - uma loja com erro não derruba as outras
+                postar("listadesiste", {"de": -1, "msg": f"{type(e).__name__}: {e}"[:120]})
+
+        def comecar(buscar):
+            # buscar: {url da loja: [posições das cartas a buscar]}; loja que não aparece busca todas
+            por_loja = {}
+            for loja in lojas:
+                pedidas = buscar.get(loja["url"]) if isinstance(buscar, dict) else None
+                por_loja[loja["url"]] = None if pedidas is None else sorted(
+                    {i for i in pedidas if isinstance(i, int) and 0 <= i < len(nomes_cartas)})
+            if any(v is None for v in por_loja.values()):
+                precisa = None
+            else:
+                precisa = {i for v in por_loja.values() for i in v}
+            threading.Thread(target=nomes.trabalhar, args=(precisa,), daemon=True).start()
+            for loja in lojas:
+                threading.Thread(target=loja_job, args=(loja, por_loja[loja["url"]]), daemon=True).start()
+
+        with self._lock:
+            self._comecar = (sid, comecar)
+        return {"sid": sid, "cartas": limpas,
+                "lojas": [{**serializar.aparencia(s), "nome": s["name"], "url": s["url"]} for s in lojas]}
+
+    def comecar_lista(self, sid, buscar=None):
+        """A página já guardou a lista preparada por buscar_lista: começa a busca (uma vez só).
+
+        buscar: {url da loja: [posições das cartas]} quando a pessoa editou a lista e parte dela já
+        foi buscada há pouco (a página reaproveita esses resultados); None = buscar tudo."""
+        with self._lock:
+            pronta, self._comecar = self._comecar, None
+            if not pronta or pronta[0] != sid or sid != self._sid:
+                return False
+        pronta[1](buscar)
+        return True
 
     def carregar_loja(self, loja_url, item_urls):
         """Botão "Carregar todos os preços" de uma loja: lê as páginas dos itens pedidos, uma por vez,

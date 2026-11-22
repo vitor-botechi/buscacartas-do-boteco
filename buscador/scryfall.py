@@ -15,10 +15,65 @@ from buscador.texto import norm, strip_suffix
 SCRY_HEADERS = {"User-Agent": "BuscaCartas/1.0", "Accept": "application/json;q=0.9,*/*;q=0.8"}
 SCRY_API = "https://api.scryfall.com"
 
+# Limites do Scryfall (scryfall.com/docs/api/rate-limits, nov/2026): /cards/search e /cards/named,
+# 2 por segundo; os outros, 10 por segundo. Um 429 limita o acesso por 30 s, e insistir pode bloquear
+# o programa de vez. Por isso: um ritmo só para o programa inteiro (todas as threads), com folga, e
+# depois de um 429 nenhuma consulta por SCRY_PAUSA_429 segundos.
+SCRY_INTERVALO_CARTAS = 0.55
+SCRY_INTERVALO_OUTROS = 0.12
+SCRY_PAUSA_429 = 60
 
-def scry_get(path, params):
+
+class ScryfallEmPausa(Exception if requests is None else requests.RequestException):
+    """O Scryfall pediu para esperar (429): a consulta nem é feita. Quem chama trata como falha de rede."""
+
+
+class _Ritmo:
+    """Fila das consultas ao Scryfall: uma de cada vez, no intervalo pedido. As urgentes (a arte ao
+    parar o mouse, o "Apenas nome exato") passam na frente das que não têm pressa (os nomes da lista)."""
+
+    def __init__(self):
+        self._cond = threading.Condition()
+        self._proxima = 0.0
+        self.pausa_ate = 0.0
+        self._urgentes = 0
+
+    def vez(self, intervalo, urgente=True):
+        with self._cond:
+            if urgente:
+                self._urgentes += 1
+            try:
+                while True:
+                    agora = time.monotonic()
+                    if agora < self.pausa_ate:
+                        raise ScryfallEmPausa("Scryfall pediu para esperar")
+                    if not urgente and self._urgentes:
+                        self._cond.wait(0.1)
+                        continue
+                    if agora >= self._proxima:
+                        self._proxima = agora + intervalo
+                        return
+                    self._cond.wait(self._proxima - agora)
+            finally:
+                if urgente:
+                    self._urgentes -= 1
+                    self._cond.notify_all()
+
+    def pausar(self, segundos):
+        with self._cond:
+            self.pausa_ate = max(self.pausa_ate, time.monotonic() + segundos)
+            self._cond.notify_all()
+
+
+RITMO = _Ritmo()
+
+
+def scry_get(path, params, urgente=True):
+    """Uma consulta ao Scryfall, no ritmo pedido por ele. Em pausa depois de um 429: ScryfallEmPausa."""
+    RITMO.vez(SCRY_INTERVALO_CARTAS if path.startswith("/cards/") else SCRY_INTERVALO_OUTROS, urgente)
     r = requests.get(SCRY_API + path, params=params, headers=SCRY_HEADERS, timeout=10)
-    time.sleep(0.12)  # cortesia: o Scryfall pede no máximo ~10 requisições por segundo
+    if r.status_code == 429:
+        RITMO.pausar(SCRY_PAUSA_429)
     return r
 
 
@@ -54,24 +109,43 @@ def english_for_portuguese(card, cards):
     return found.pop() if len(found) == 1 else None
 
 
-def resolve_names(card):
-    """Devolve (conjunto de nomes aceitos, scryfall_respondeu). Sempre inclui o texto digitado."""
+_nomes = {}  # nomes já resolvidos nesta execução (o Scryfall pede para guardar as respostas)
+
+
+def resolve_names(card, urgente=True):
+    """Devolve (conjunto de nomes aceitos, scryfall_respondeu). Sempre inclui o texto digitado.
+
+    urgente=False: consulta sem pressa (os nomes da busca de lista), que espera as urgentes passarem.
+    Respostas boas ficam guardadas até fechar o programa.
+    """
+    chave = norm(card or "")
+    if chave in _nomes:
+        return set(_nomes[chave]), True
+    names, ok = _resolve_names(card, urgente)
+    if ok:
+        _nomes[chave] = set(names)
+    return names, ok
+
+
+def _resolve_names(card, urgente):
     names = set()
     add_names(names, card)
     try:
         english = None
-        r = scry_get("/cards/named", {"fuzzy": card})
+        r = scry_get("/cards/named", {"fuzzy": card}, urgente)
         if r.status_code == 200:
             english = r.json().get("name")
         else:  # nome ambíguo, com erro de digitação ou em português
             r2 = scry_get("/cards/search", {"q": f'"{card}" lang:pt', "include_multilingual": "true",
-                                            "unique": "prints"})
+                                            "unique": "prints"}, urgente)
             if r2.status_code == 200:
                 english = english_for_portuguese(card, r2.json().get("data", []))
         if english:
             add_names(names, english)
             r3 = scry_get("/cards/search", {"q": f'!"{english}" lang:pt', "include_multilingual": "true",
-                                            "unique": "prints"})
+                                            "unique": "prints"}, urgente)
+            if r3.status_code == 429:  # sem os nomes em português: não guarda como resposta boa
+                return names, False
             if r3.status_code == 200:
                 for c in r3.json().get("data", []):
                     add_names(names, c.get("printed_name"))
