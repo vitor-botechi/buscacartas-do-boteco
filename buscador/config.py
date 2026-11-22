@@ -47,7 +47,8 @@ LISTA_PAUSA_PASSO = 1.0     # cada bloqueio deixa a loja 1 s mais lenta na lista
 LISTA_PAUSA_MAX = 8.0       # ...até este máximo
 # loja bloqueou: espera e tenta sozinha de novo (as outras lojas seguem); depois da última, desiste.
 # Teste real (nov/2026): no mesmo segundo em que a Legacy deu 429, as outras 4 lojas respondiam normalmente.
-LISTA_RETOMAR = (8, 16, 32, 64, 128)  # a 1ª espera é a mesma do "Carregar todos os preços" (BLOCK_COOLDOWN)
+# Teste real (nov/2026, 12 cartas, 4 lojas): com 8 s a loja voltou na 1ª tentativa 2 de 7 vezes; com 9 s, 9 de 11.
+LISTA_RETOMAR = (9, 18, 36, 72, 144)
 
 HEADERS = {
     "User-Agent": (
