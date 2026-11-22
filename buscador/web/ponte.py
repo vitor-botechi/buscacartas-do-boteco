@@ -39,7 +39,7 @@ from buscador.config import (
     MAX_ITEMS_PER_STORE,
     STALE_AFTER,
 )
-from buscador.lojas.ligamagic import build_search_url
+from buscador.lojas.ligamagic import build_search_url, liga_card_url
 from buscador.rede import HAS_SCRAPING, fetch_product, fetch_store_look, safe_search
 from buscador.scryfall import card_art, matches_exact, resolve_names
 from buscador.texto import clean_card_name, norm
@@ -337,7 +337,7 @@ class Ponte:
                 continue
             if nome and norm(nome) not in vistas:
                 vistas.add(norm(nome))
-                limpas.append({"qtd": max(1, min(999, qtd)), "nome": nome})
+                limpas.append({"qtd": max(1, min(999, qtd)), "nome": nome, "liga": liga_card_url(nome)})
         lojas = self._marcadas()
         if not limpas:
             return {"erro": "A lista não tem nenhuma carta para buscar."}

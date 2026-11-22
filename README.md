@@ -50,7 +50,7 @@ Dá para rever quando quiser.
 | Atalho | O que faz |
 | --- | --- |
 | Enter, Enter | Cola o nome copiado e busca |
-| Alt+← / Alt+→ | Volta / avança entre as buscas |
+| Alt+← / Alt+→ ou os botões laterais do mouse | Volta / avança entre as buscas |
 | Clique numa edição | Abre a página do produto na loja |
 
 ## Respeito às lojas

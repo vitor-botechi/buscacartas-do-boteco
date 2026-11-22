@@ -332,6 +332,7 @@ def test_ler_lista_pela_ponte(ponte):
 def test_buscar_lista_manda_carta_por_carta(ponte, lista_rapida):
     r = ponte.buscar_lista([{"qtd": 4, "nome": "Sol Ring"}, {"qtd": 1, "nome": " Ilha "}, {"qtd": 2, "nome": "sol ring"}])
     assert [c["nome"] for c in r["cartas"]] == ["Sol Ring", "Ilha"]  # repetida sai
+    assert r["cartas"][0]["liga"].endswith("card=Sol%20Ring")  # botão "LigaMagic ↗" de cada carta
     assert [l["nome"] for l in r["lojas"]] == ["Overrun"]
     janela = ponte._janela
     time.sleep(0.2)

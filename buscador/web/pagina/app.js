@@ -800,6 +800,16 @@ async function navegar(origem, destino) {
   $("carta").focus();
 }
 setInterval(atualizarNavegacao, 60000);  // as dicas dizem quando uma busca guardada ficou velha
+// botões laterais do mouse (3 = voltar, 4 = avançar), como no navegador; o padrão da janela fica desligado
+const botaoLateral = (e) => e.button === 3 || e.button === 4;
+window.addEventListener("mousedown", (e) => { if (botaoLateral(e)) e.preventDefault(); });
+window.addEventListener("mouseup", (e) => {
+  if (!botaoLateral(e)) return;
+  e.preventDefault();
+  if (tutorialAtivo || !$("modal").hidden || !$("pergunta").hidden || !$("janela-lista").hidden) return;
+  if (e.button === 3) navegar(historico, avancar); else navegar(avancar, historico);
+});
+
 
 /* ---------------- arte da carta ao passar o mouse ---------------- */
 // Só com o mouse em cima do texto do nome (do item ou da edição). A imagem vem da própria página da loja

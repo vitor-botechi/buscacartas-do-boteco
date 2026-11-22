@@ -177,13 +177,15 @@ class Freio:
         self.ritmo = LISTA_PAUSA  # pausa mínima entre requisições desta loja (sorteada até 1,5x)
 
     def falta(self):
+        """Segundos que faltam da pausa (sobra de arredondamento, menos de 0,01 s, conta como zero)."""
         with self._lock:
-            return max(0.0, self.ate - self.agora())
+            falta = self.ate - self.agora()
+            return falta if falta > 0.01 else 0.0
 
     def bloqueou(self):
         with self._lock:
             agora = self.agora()
-            if self.ate > agora or self.desistiu:  # já em pausa
+            if self.ate - agora > 0.01 or self.desistiu:  # já em pausa
                 return
             if self.tentativa >= len(self.retomar):
                 self.desistiu = True

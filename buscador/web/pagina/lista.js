@@ -201,6 +201,25 @@ function contas() {
   })));
 }
 
+// imagem da carta tirada das edições já lidas (a da loja pedida primeiro; senão, de qualquer loja).
+// Com ela, a arte aparece na hora ao parar o mouse; sem ela, o Python consulta o Scryfall.
+function imagemDaCarta(L, i, lojaUrl) {
+  const urls = [lojaUrl, ...L.lojas.map((l) => l.url)].filter(Boolean);
+  for (const u of urls) {
+    const r = L.res[u] && L.res[u][i];
+    for (const it of (r && r.itens) || []) {
+      const img = (it.ofertas || []).map((o) => o.imagem).find(Boolean);
+      if (img) return img;
+    }
+  }
+  return "";
+}
+
+function nomeNaLista(L, c, i, lojaUrl = "") {
+  const liga = c.liga ? `<button class="abrir liga" data-abrir="${esc(c.liga)}" title="Ver esta carta na LigaMagic, no navegador, para comparar preços">LigaMagic ↗</button>` : "";
+  return `<span class="nome-linha"><span class="qtd">${c.qtd} ×</span> <span class="nome-arte" data-arte="${esc(c.nome)}" data-imagem="${esc(imagemDaCarta(L, i, lojaUrl))}">${esc(c.nome)}</span>${liga}</span>`;
+}
+
 const textoOferta = (o) => [o.idioma, o.qualidade, o.extras, o.edicao].filter(Boolean).join(", ");
 const textoPartes = (cc) => cc.partes.map((p) => `${p.n} × ${dinheiro(p.preco)} (${textoOferta(p.o)})`).join(" + ");
 
@@ -239,7 +258,7 @@ function avisoFaltando(L, cs) {
   if (!faltam.length) return "";
   return `<div class="faltando-lista"><span class="fl-texto">⚠ Nenhuma loja tem ${faltam.length === 1 ? "esta carta" : `estas ${faltam.length} cartas`}:
       <b>${faltam.map((c) => esc(c.nome)).join(", ")}</b></span>
-    <button class="btn pequeno" data-copiar-faltando title="Copia as cartas que nenhuma loja tem, no formato de lista (quantidade e nome), para colar nas suas anotações">📋 Copiar lista de faltantes</button></div>`;
+    <button class="btn pequeno" data-copiar-faltando title="Copia as cartas que nenhuma loja tem, no formato de lista (quantidade e nome)">📋 Copiar lista de faltantes</button></div>`;
 }
 
 function andamento(L) {
@@ -302,7 +321,7 @@ function vistaPorCarta(L, cs) {
     const melhor = melhorLoja(L, cs, i);
     const nenhuma = !tela.pendentes && L.lojas.every((l) => ["nao_tem", "erro"].includes(cs[i][l.url].estado));
     return `<tr class="${nenhuma ? "ninguem" : ""}"><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta em cada loja">
-        <span class="qtd">${c.qtd} ×</span> <span class="nome-arte" data-arte="${esc(c.nome)}">${esc(c.nome)}</span></td>
+        ${nomeNaLista(L, c, i)}</td>
       ${L.lojas.map((l) => celula(cs[i][l.url], l.url === melhor)).join("")}</tr>`;
   }).join("");
   const totais = L.lojas.map((l) => {
@@ -334,7 +353,7 @@ function vistaPorLoja(L, cs) {
       const qtd = cc.estado === "sem_preco" ? `${c.qtd} × ?`
         : (cc.estado === "parcial" ? `<div><span class="falta">só ${cc.leva} de ${c.qtd}</span></div>` : "") +
           cc.partes.map((p) => `<div class="parte" title="${esc(p.o.edicao || "")}"><span class="parte-qtd">${p.n} × ${dinheiro(p.preco)}</span>${detalhesOferta(p.o)}</div>`).join("");
-      return `<tr><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta"><span class="qtd">${c.qtd} ×</span> <span class="nome-arte" data-arte="${esc(c.nome)}">${esc(c.nome)}</span></td>
+      return `<tr><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta">${nomeNaLista(L, c, i, l.url)}</td>
         <td class="partes">${qtd}</td><td class="preco">${melhorLoja(L, cs, i) === l.url ? '<span class="estrela" title="Mais barata para esta carta, entre as lojas que têm a quantidade toda">★</span> ' : ""}${cc.custo != null ? dinheiro(cc.custo) : "—"}</td>
         <td><button class="abrir" data-abrir="${esc(cc.url)}" title="Abrir a página da carta nesta loja">Abrir ↗</button></td></tr>`;
     }).join("");
@@ -407,6 +426,7 @@ function abrirCartaDaLista(i) {
 // devolve true se o clique era da lista
 function cliqueNaLista(e) {
   if (!tela.lista) return false;
+  if (e.target.closest("[data-abrir]")) return false;  // "Abrir ↗" e "LigaMagic ↗": app.js abre no navegador
   const L = tela.lista;
   const aba = e.target.closest("[data-vista]");
   if (aba) { L.vista = aba.dataset.vista; desenhar(); return true; }

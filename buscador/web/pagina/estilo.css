@@ -472,3 +472,10 @@ tr.ninguem .carta-lista .nome-arte { color: var(--vermelho); }
 .faltando-lista .btn:hover { background: #fff; }
 .tabela-lista .total span { display: block; }
 .tabela-lista .total .em-parte { color: var(--ambar); }
+/* nome da carta na lista, com o botão da LigaMagic à direita */
+.nome-linha { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.nome-linha .nome-arte { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.nome-linha .abrir.liga { margin-left: auto; flex-shrink: 0; opacity: .55; }
+.nome-linha .abrir.liga:hover, tr:hover .nome-linha .abrir.liga { opacity: 1; }
+.tabela-loja td:first-child { width: 40%; }
+.tabela-loja td:last-child { width: 9%; }
