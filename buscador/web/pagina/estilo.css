@@ -368,9 +368,10 @@ aside.lousa { display: flex; flex-direction: column; width: 246px; padding: 22px
 .versao-nova .link:hover { color: #fff; }
 
 /* ==== busca de uma lista inteira (lista.js) ==== */
-.modal.modal-lista { width: min(820px, 94vw); }
+.modal.modal-lista { width: min(900px, 94vw); }
 .lista-explica { margin: -6px 0 10px; font-size: 13px; color: var(--cinza); }
-.lista-colunas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; height: 300px; }
+/* a caixa e a prévia ocupam quase toda a altura da janela: listas grandes sem rolar tanto */
+.lista-colunas { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; height: max(260px, calc(100vh - 300px)); }
 #lista-texto { width: 100%; height: 100%; resize: none; padding: 8px 10px; border: 1px solid #d8cdb4; border-radius: 8px;
   font: 13px/1.5 Consolas, "Cascadia Mono", monospace; color: var(--texto); background: #fff; }
 #lista-texto:focus { outline: 0; border-color: var(--verde); box-shadow: 0 0 0 3px var(--verde-claro); }
