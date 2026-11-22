@@ -463,3 +463,12 @@ tr.ninguem .carta-lista .nome-arte { color: var(--vermelho); }
 .cel .det-oferta { display: flex; flex-wrap: wrap; margin: 1px 0 0; gap: 3px; }
 .cel .det-oferta .idioma { font-size: 11.5px; color: var(--cinza); }
 .cel .det-oferta .bandeira { width: 14px; height: 14px; }
+/* aviso das cartas que nenhuma loja tem, com o botão de copiar */
+.faltando-lista { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; padding: 10px 14px; border-radius: 8px;
+  background: var(--ambar-claro); border: 1px solid color-mix(in srgb, var(--ambar) 30%, #fff); color: var(--ambar); font-size: 13.5px; }
+.fl-texto { flex: 1; }
+.fl-texto b { color: var(--texto); font-weight: 600; }
+.faltando-lista .btn { flex-shrink: 0; padding: 6px 14px; font-weight: 600; color: var(--ambar); border-color: color-mix(in srgb, var(--ambar) 45%, #fff); }
+.faltando-lista .btn:hover { background: #fff; }
+.tabela-lista .total span { display: block; }
+.tabela-lista .total .em-parte { color: var(--ambar); }

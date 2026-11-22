@@ -224,7 +224,22 @@ function desenharLista() {
       <button class="aba${L.vista === "loja" ? " ativa" : ""}" data-vista="loja">Por loja</button>
       <span class="lista-acoes">${tela.pendentes ? '<button class="btn pequeno" data-lista-cancelar>Cancelar a busca</button>' : ""}
       <button class="link" data-lista-editar>Editar a lista</button></span></div>`;
-  return `<div class="lista${tela.pendentes ? " rodando" : ""}">${andamento(L)}${abas}${L.vista === "carta" ? vistaPorCarta(L, cs) : vistaPorLoja(L, cs)}</div>`;
+  return `<div class="lista${tela.pendentes ? " rodando" : ""}">${andamento(L)}${avisoFaltando(L, cs)}${abas}${L.vista === "carta" ? vistaPorCarta(L, cs) : vistaPorLoja(L, cs)}</div>`;
+}
+
+// cartas que nenhuma loja tem (só depois que a busca termina: antes, ainda podem aparecer)
+function cartasFaltando(L, cs) {
+  if (tela.pendentes) return [];
+  return L.cartas.filter((c, i) => L.lojas.every((l) => ["nao_tem", "erro"].includes(cs[i][l.url].estado)));
+}
+
+// aviso no alto do resultado, com o botão para copiar a lista do que falta (para a pessoa atualizar as anotações)
+function avisoFaltando(L, cs) {
+  const faltam = cartasFaltando(L, cs);
+  if (!faltam.length) return "";
+  return `<div class="faltando-lista"><span class="fl-texto">⚠ Nenhuma loja tem ${faltam.length === 1 ? "esta carta" : `estas ${faltam.length} cartas`}:
+      <b>${faltam.map((c) => esc(c.nome)).join(", ")}</b></span>
+    <button class="btn pequeno" data-copiar-faltando title="Copia as cartas que nenhuma loja tem, no formato de lista (quantidade e nome), para colar nas suas anotações">📋 Copiar a lista das que faltam</button></div>`;
 }
 
 function andamento(L) {
@@ -294,11 +309,15 @@ function vistaPorCarta(L, cs) {
     const cc = cs.map((x) => x[l.url]);
     const custo = cc.reduce((s, x) => s + (x.custo || 0), 0);
     const completas = cc.filter((x) => x.estado === "completa").length;
-    return `<td class="total"><b>${dinheiro(custo)}</b><span>${completas} de ${L.cartas.length} completas</span></td>`;
+    const emParte = cc.filter((x) => x.estado === "parcial").length;
+    const dica = `Esta loja tem ${completas} das ${L.cartas.length} cartas da lista na quantidade pedida` +
+      (emParte ? ` e mais ${emParte} em quantidade menor que a pedida` : "") + ".\nO valor soma o que ela tem, até a quantidade pedida.";
+    return `<td class="total" title="${esc(dica)}"><b>${dinheiro(custo)}</b><span>tem ${completas} das ${L.cartas.length} cartas</span>` +
+      (emParte ? `<span class="em-parte">+ ${emParte} sem a quantidade toda</span>` : "") + "</td>";
   }).join("");
   return `<table class="tabela-lista"><colgroup><col class="c-carta">${L.lojas.map(() => "<col>").join("")}</colgroup>
     <thead><tr><th>Carta</th>${cab}</tr></thead><tbody>${linhas}</tbody>
-    <tfoot><tr><td class="total-rotulo" title="Soma do que cada loja tem, até a quantidade pedida">Total na loja</td>${totais}</tr></tfoot></table>`;
+    <tfoot><tr><td class="total-rotulo" title="Quanto custa comprar em cada loja o que ela tem da lista, até a quantidade pedida">Total do que a loja tem</td>${totais}</tr></tfoot></table>`;
 }
 
 function vistaPorLoja(L, cs) {
@@ -340,12 +359,10 @@ function resumirLista() {
   const cs = contas();
   const n = L.cartas.length;
   const completas = cs.filter((x) => L.lojas.some((l) => x[l.url].estado === "completa")).length;
-  const nenhuma = L.cartas.filter((c, i) => L.lojas.every((l) => ["nao_tem", "erro"].includes(cs[i][l.url].estado)));
   const linhas = [{ texto: `Lista de ${plural(n, "carta", "cartas")}: ${completas} ${completas === 1 ? "tem" : "têm"} a quantidade toda em alguma loja.` +
     (L.cancelada ? " (busca cancelada: parte das cartas não foi verificada)" : ""), tipo: "principal" }];
   const paradas = L.lojas.filter((l) => L.estado[l.url].desistiu && !L.cancelada);
   if (paradas.length) linhas.push({ texto: `⚠ ${paradas.map((l) => l.nome).join(", ")}: pediu para ir devagar várias vezes e a busca parou ali. Tente de novo mais tarde.`, tipo: "aviso" });
-  if (nenhuma.length) linhas.push({ texto: `Nenhuma loja tem: ${nenhuma.map((c) => c.nome).join(", ")}.`, tipo: "aviso" });
   const semVer = L.cartas.filter((c, i) => L.lojas.some((l) => cs[i][l.url].estado === "nao_verificada")).length;
   if (semVer) linhas.push({ texto: `${plural(semVer, "carta ficou", "cartas ficaram")} sem verificar em alguma loja: busque a lista de novo mais tarde para completar.`, tipo: "aviso" });
   linhas.push({ texto: "Clique num preço para abrir a carta naquela loja, ou no nome da carta para ver as edições em cada loja (◀ Voltar volta para a lista).", tipo: "dica" });
@@ -404,6 +421,15 @@ function cliqueNaLista(e) {
         "Cada carta abre numa aba nova do navegador.", "Abrir todas"))) return;
       api().abrir(urls);
     })();
+    return true;
+  }
+  const faltando = e.target.closest("[data-copiar-faltando]");
+  if (faltando) {
+    const texto = cartasFaltando(L, contas()).map((c) => `${c.qtd} ${c.nome}`).join("\n");
+    copiarTexto(texto).then((ok) => {
+      faltando.textContent = ok ? "✓ Copiado! Cole nas suas anotações" : "Não consegui copiar";
+      setTimeout(() => { if (faltando.isConnected) faltando.textContent = "📋 Copiar a lista das que faltam"; }, 2500);
+    });
     return true;
   }
   const copiar = e.target.closest("[data-copiar-falta]");
