@@ -1,3 +1,3 @@
 """BuscaCartas do Boteco: busca cartas de Magic nas lojas."""
 
-__version__ = "2.4.0"
+__version__ = "2.5.0"

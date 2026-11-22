@@ -45,6 +45,8 @@ Dá para rever quando quiser.
 
 ![Arte da carta ao parar o mouse no nome da edição](docs/imagens/arte-da-carta.png)
 
+![Busca de uma lista: o preço de cada carta em cada loja, com o total de cada loja](docs/imagens/lista.png)
+
 ### Atalhos
 
 | Atalho | O que faz |
