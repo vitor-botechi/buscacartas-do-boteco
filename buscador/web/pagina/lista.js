@@ -172,7 +172,7 @@ function contaCarta(r, qtd, naoVerificada) {
       if (!it.ofertas) { semLer = true; continue; }
       for (const o of it.ofertas) {
         const un = typeof o.estoque === "number" ? o.estoque : 1;
-        if (o.preco != null && !o.pre && un > 0) ofertas.push({ preco: o.preco, un, url: it.url });
+        if (o.preco != null && !o.pre && un > 0) ofertas.push({ preco: o.preco, un, url: it.url, o });
       }
     }
     if (!ofertas.length) return semLer ? { estado: "sem_preco", url: r.itens[0] && r.itens[0].url, urls: r.itens.map((i) => i.url) } : { estado: "nao_tem" };
@@ -184,11 +184,10 @@ function contaCarta(r, qtd, naoVerificada) {
       if (!falta) break;
       const n = Math.min(falta, o.un);
       custo += n * o.preco; falta -= n;
-      const igual = partes.find((p) => p.preco === o.preco);
-      if (igual) igual.n += n; else partes.push({ n, preco: o.preco });
+      partes.push({ n, preco: o.preco, o: o.o, url: o.url });
       if (!urls.includes(o.url)) urls.push(o.url);
     }
-    return { estado: tem >= qtd ? "completa" : "parcial", tem, leva: qtd - falta, custo, menor: ofertas[0].preco, url: urls[0], urls, partes };
+    return { estado: tem >= qtd ? "completa" : "parcial", tem, leva: qtd - falta, custo, menor: ofertas[0].preco, url: urls[0], urls, partes, primeira: ofertas[0].o };
   }
   if (r.status === "none" || r.status === "soldout") return { estado: "nao_tem" };
   return { estado: "erro" };
@@ -202,7 +201,18 @@ function contas() {
   })));
 }
 
-const textoPartes = (cc) => cc.partes.map((p) => `${p.n} × ${dinheiro(p.preco)}`).join(" + ");
+const textoOferta = (o) => [o.idioma, o.qualidade, o.extras, o.edicao].filter(Boolean).join(", ");
+const textoPartes = (cc) => cc.partes.map((p) => `${p.n} × ${dinheiro(p.preco)} (${textoOferta(p.o)})`).join(" + ");
+
+// idioma (com a bandeira da loja), estado e extras de uma oferta, como nas comandas
+function detalhesOferta(o, curto = false) {
+  const extras = [];
+  if (o.extras) extras.push(`<span class="etq ${/foil/i.test(o.extras) ? "foil" : "q-outro"}">${esc(o.extras.replace(/\s*,\s*/g, ", "))}</span>`);
+  if (o.promo) extras.push(`<span class="etq promo">-${o.promo}%</span>`);
+  const idioma = curto ? bandeira(o.bandeira, o.idioma) || `<span class="idioma-curto">${esc((o.idioma || "").slice(0, 3))}</span>`
+    : `${bandeira(o.bandeira, o.idioma)}<span class="idioma">${esc(o.idioma || "—")}</span>`;
+  return `<span class="det-oferta">${idioma}${qualidade(o.qualidade)}${extras.join("")}</span>`;
+}
 const corDaLoja = (l) => (/^#[0-9a-f]{6}$/i.test(l.cor || "") ? l.cor : "#6b7280");
 
 /* ---------------- desenho ---------------- */
@@ -262,7 +272,7 @@ function celula(cc, melhor) {
   const dica = `${textoPartes(cc)} = ${dinheiro(cc.custo)}${cc.estado === "parcial" ? ` (a loja só tem ${cc.tem})` : ""}`;
   const un = cc.estado === "parcial" ? `<span class="falta">tem ${cc.tem}</span>` : `<span class="un">${cc.tem} un.</span>`;
   return `<td class="cel ${cc.estado}${melhor ? " melhor" : ""}" data-abrir-cel="${esc(cc.url)}" title="${esc(dica)}${melhor ? "\nMais barata para esta carta" : ""}\nClique para abrir a página da carta nesta loja">
-    <span class="preco">${dinheiro(cc.menor)}</span>${un}<span class="seta-abrir">↗</span></td>`;
+    <div class="cel-linha"><span class="preco">${dinheiro(cc.menor)}</span>${un}<span class="seta-abrir">↗</span></div>${detalhesOferta(cc.primeira)}</td>`;
 }
 
 // url da loja mais barata para a carta i, entre as que têm a quantidade toda (null se só uma ou nenhuma tem)
@@ -302,7 +312,9 @@ function vistaPorLoja(L, cs) {
     const custo = tem.reduce((s, x) => s + (x.cc.custo || 0), 0);
     const urls = [...new Set(tem.flatMap((x) => x.cc.urls || []))];
     const linhas = tem.map(({ c, i, cc }) => {
-      const qtd = cc.estado === "sem_preco" ? `${c.qtd} × ?` : (cc.estado === "parcial" ? `<span class="falta">só ${cc.leva} de ${c.qtd}</span> ` : "") + textoPartes(cc);
+      const qtd = cc.estado === "sem_preco" ? `${c.qtd} × ?`
+        : (cc.estado === "parcial" ? `<div><span class="falta">só ${cc.leva} de ${c.qtd}</span></div>` : "") +
+          cc.partes.map((p) => `<div class="parte" title="${esc(p.o.edicao || "")}"><span class="parte-qtd">${p.n} × ${dinheiro(p.preco)}</span>${detalhesOferta(p.o)}</div>`).join("");
       return `<tr><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta"><span class="qtd">${c.qtd} ×</span> <span class="nome-arte" data-arte="${esc(c.nome)}">${esc(c.nome)}</span></td>
         <td class="partes">${qtd}</td><td class="preco">${melhorLoja(L, cs, i) === l.url ? '<span class="estrela" title="Mais barata para esta carta, entre as lojas que têm a quantidade toda">★</span> ' : ""}${cc.custo != null ? dinheiro(cc.custo) : "—"}</td>
         <td><button class="abrir" data-abrir="${esc(cc.url)}" title="Abrir a página da carta nesta loja">Abrir ↗</button></td></tr>`;

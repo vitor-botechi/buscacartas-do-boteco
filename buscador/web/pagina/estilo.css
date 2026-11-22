@@ -447,3 +447,19 @@ tr.ninguem .carta-lista .nome-arte { color: var(--vermelho); }
 .cel .seta-abrir { margin-left: 4px; color: var(--azul); font-size: 12px; visibility: hidden; }
 .cel:hover .seta-abrir { visibility: visible; }
 .tabela-loja .estrela { color: var(--verde); font-size: 13px; cursor: help; }
+/* idioma, estado e extras de cada carta na lista */
+.det-oferta { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; vertical-align: middle; }
+.det-oferta .bandeira { margin-right: 0; }
+.det-oferta .idioma { font-size: 12.5px; color: var(--texto); margin-right: 2px; }
+.det-oferta .etq { font-size: 11px; padding: 0 6px; }
+.idioma-curto { font-size: 11px; color: var(--cinza); }
+.cel .det-oferta { margin: 0 6px 0 0; }
+.tabela-loja .parte { display: flex; align-items: center; flex-wrap: wrap; gap: 2px 0; line-height: 1.7; }
+.tabela-loja .parte-qtd { min-width: 92px; color: var(--cinza); font-variant-numeric: tabular-nums; }
+.tabela-loja td.partes { color: var(--texto); }
+/* vista por carta: preço e unidades na 1ª linha; idioma, estado e extras da edição mais barata embaixo */
+.tabela-lista td.cel { white-space: normal; padding-top: 4px; padding-bottom: 4px; }
+.cel-linha { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cel .det-oferta { display: flex; flex-wrap: wrap; margin: 1px 0 0; gap: 3px; }
+.cel .det-oferta .idioma { font-size: 11.5px; color: var(--cinza); }
+.cel .det-oferta .bandeira { width: 14px; height: 14px; }
