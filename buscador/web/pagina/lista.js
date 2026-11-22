@@ -85,7 +85,12 @@ $("lista-texto").addEventListener("keydown", (e) => {
 });
 
 /* ---------------- busca ---------------- */
+// Resultados de uma carta que podem ser reaproveitados ao editar a lista (a carta foi lida mesmo)
+const reaproveitavel = (r) => r && ["found", "none", "soldout"].includes(r.status);
+
 async function buscarLista(cartas, semHistorico = false) {
+  // a lista na tela, se for recente: as cartas que continuam nela não são buscadas de novo
+  const anterior = tela.lista && (Date.now() - tela.tempo) / 1000 <= cfg.velho_depois ? { lista: tela.lista, tempo: tela.tempo } : null;
   if (!semHistorico) guardarNoHistorico("\u0000lista");
   const r = await api().buscar_lista(cartas.map((c) => ({ qtd: c.qtd, nome: c.nome })));
   if (r.erro === "sem_bibliotecas") {
@@ -99,16 +104,29 @@ async function buscarLista(cartas, semHistorico = false) {
   tela.nomes = [];  // não há "Apenas nome exato" a consultar: a lista já só traz o nome exato
   tela.ordem = r.lojas.map((l) => l.url);
   tela.lojasTotal = tela.pendentes = r.lojas.length;
-  tela.lista = {
-    cartas: r.cartas, lojas: r.lojas, vista: "carta", inicio: Date.now(),
-    res: Object.fromEntries(r.lojas.map((l) => [l.url, r.cartas.map(() => null)])),
-    estado: Object.fromEntries(r.lojas.map((l) => [l.url, { feitas: 0, pausaAte: 0, tentativa: 0, fim: false, desistiu: false }])),
-    cancelada: false,
-  };
+  // reaproveita, de cada loja, as cartas já lidas na lista anterior (mesmo nome); o resto é buscado
+  const antes = anterior ? new Map(anterior.lista.cartas.map((c, j) => [norm(c.nome), j])) : new Map();
+  const res = {}, estado = {}, buscar = {};
+  let reaproveitadas = 0;
+  for (const l of r.lojas) {
+    const velhos = anterior && anterior.lista.res[l.url];
+    res[l.url] = r.cartas.map((c) => {
+      const j = antes.get(norm(c.nome));
+      const v = velhos && j !== undefined ? velhos[j] : null;
+      return reaproveitavel(v) ? clonar(v) : null;
+    });
+    buscar[l.url] = res[l.url].map((v, i) => (v ? -1 : i)).filter((i) => i >= 0);
+    reaproveitadas += r.cartas.length - buscar[l.url].length;
+    estado[l.url] = { feitas: r.cartas.length - buscar[l.url].length, aBuscar: buscar[l.url].length, buscadas: 0,
+      pausaAte: 0, tentativa: 0, fim: false, desistiu: false };
+  }
+  if (reaproveitadas) tela.tempo = anterior.tempo;  // vale a idade da busca mais antiga: depois de 30 min, refaz tudo
+  tela.lista = { cartas: r.cartas, lojas: r.lojas, vista: anterior ? anterior.lista.vista : "carta", inicio: Date.now(),
+    res, estado, cancelada: false, reaproveitadas };
   $("carta").value = "";
   atualizarNavegacao();
   desenhar();
-  api().comecar_lista(r.sid);  // só agora: os resultados já têm onde chegar
+  api().comecar_lista(r.sid, reaproveitadas ? buscar : null);  // só agora: os resultados já têm onde chegar
   return true;
 }
 
@@ -120,8 +138,9 @@ function eventoLista(tipo, d) {
   const e = L.estado[d.loja];
   if (!e || lojaTerminou(e)) return;
   if (tipo === "lista") {
+    if (!L.res[d.loja][d.i]) e.feitas += 1;
     L.res[d.loja][d.i] = d.res;
-    e.feitas = Math.max(e.feitas, d.i + 1);
+    e.buscadas += 1;
   } else if (tipo === "listapausa") {
     e.pausaAte = Date.now() + d.segundos * 1000;
     e.tentativa = d.tentativa;
@@ -267,16 +286,20 @@ function andamento(L) {
   const ativas = L.lojas.filter((l) => !lojaTerminou(L.estado[l.url]));
   const andando = ativas.filter((l) => !(L.estado[l.url].pausaAte > agora));
   const passou = (agora - L.inicio) / 1000;
-  const mais = Math.max(1, ...L.lojas.map((l) => L.estado[l.url].feitas));
+  const mais = Math.max(1, ...L.lojas.map((l) => L.estado[l.url].buscadas));
   const porCarta = mais >= 2 ? passou / mais : cfg.lista_seg_por_carta;
   // falta: a loja mais atrasada, contando a espera de quem está pausada
   const resta = Math.max(0, ...ativas.map((l) => {
     const e = L.estado[l.url];
-    return (n - e.feitas) * porCarta + Math.max(0, (e.pausaAte - agora) / 1000);
+    return (e.aBuscar - e.buscadas) * porCarta + Math.max(0, (e.pausaAte - agora) / 1000);
   }));
   const menos = andando.length ? Math.min(...andando.map((l) => L.estado[l.url].feitas)) : n;
+  // a carta da vez: a primeira ainda sem resultado na loja mais atrasada
+  const atrasada = andando.find((l) => L.estado[l.url].feitas === menos);
+  const proxima = atrasada ? L.res[atrasada.url].findIndex((v) => !v) : -1;
   const titulo = andando.length
-    ? `Carta ${Math.min(n, menos + 1)} de ${n}${L.cartas[menos] ? ` · ${esc(L.cartas[menos].nome)}` : ""}`
+    ? `Carta ${Math.min(n, menos + 1)} de ${n}${proxima >= 0 ? ` · ${esc(L.cartas[proxima].nome)}` : ""}` +
+      (L.reaproveitadas ? ' <span class="la-reap">(as que já estavam na lista não são buscadas de novo)</span>' : "")
     : "As lojas pediram para ir devagar: elas voltam sozinhas…";
   const feitasTodas = L.lojas.reduce((s, l) => s + (lojaTerminou(L.estado[l.url]) ? n : L.estado[l.url].feitas), 0);
   const chips = L.lojas.map((l) => {

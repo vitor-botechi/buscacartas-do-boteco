@@ -375,30 +375,43 @@ class Ponte:
                 self._enviar(tipo, sid, {**dados, "loja": loja["url"]})
             return postar
 
-        def loja_job(loja):
+        def loja_job(loja, indices):
             postar = postar_de(loja)
             try:
-                lista.buscar_na_loja(loja, nomes_cartas, nomes, ctl.stop, postar, freio=lista.Freio())
+                lista.buscar_na_loja(loja, nomes_cartas, nomes, ctl.stop, postar, freio=lista.Freio(), indices=indices)
             except Exception as e:  # noqa: BLE001 - uma loja com erro não derruba as outras
                 postar("listadesiste", {"de": -1, "msg": f"{type(e).__name__}: {e}"[:120]})
 
-        def comecar():
-            threading.Thread(target=nomes.trabalhar, daemon=True).start()
+        def comecar(buscar):
+            # buscar: {url da loja: [posições das cartas a buscar]}; loja que não aparece busca todas
+            por_loja = {}
             for loja in lojas:
-                threading.Thread(target=loja_job, args=(loja,), daemon=True).start()
+                pedidas = buscar.get(loja["url"]) if isinstance(buscar, dict) else None
+                por_loja[loja["url"]] = None if pedidas is None else sorted(
+                    {i for i in pedidas if isinstance(i, int) and 0 <= i < len(nomes_cartas)})
+            if any(v is None for v in por_loja.values()):
+                precisa = None
+            else:
+                precisa = {i for v in por_loja.values() for i in v}
+            threading.Thread(target=nomes.trabalhar, args=(precisa,), daemon=True).start()
+            for loja in lojas:
+                threading.Thread(target=loja_job, args=(loja, por_loja[loja["url"]]), daemon=True).start()
 
         with self._lock:
             self._comecar = (sid, comecar)
         return {"sid": sid, "cartas": limpas,
                 "lojas": [{**serializar.aparencia(s), "nome": s["name"], "url": s["url"]} for s in lojas]}
 
-    def comecar_lista(self, sid):
-        """A página já guardou a lista preparada por buscar_lista: começa a busca (uma vez só)."""
+    def comecar_lista(self, sid, buscar=None):
+        """A página já guardou a lista preparada por buscar_lista: começa a busca (uma vez só).
+
+        buscar: {url da loja: [posições das cartas]} quando a pessoa editou a lista e parte dela já
+        foi buscada há pouco (a página reaproveita esses resultados); None = buscar tudo."""
         with self._lock:
             pronta, self._comecar = self._comecar, None
             if not pronta or pronta[0] != sid or sid != self._sid:
                 return False
-        pronta[1]()
+        pronta[1](buscar)
         return True
 
     def carregar_loja(self, loja_url, item_urls):

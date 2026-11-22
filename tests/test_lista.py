@@ -260,3 +260,33 @@ def test_cada_bloqueio_deixa_a_loja_mais_lenta():
         freio.deu_certo()
         freio.bloqueou()
     assert freio.ritmo == lista.LISTA_PAUSA_MAX  # nunca passa do máximo
+
+
+def test_so_busca_as_cartas_pedidas(monkeypatch):
+    """Ao editar a lista, a loja busca só as cartas novas (as outras a página já tem)."""
+    loja = LojaFalsa(monkeypatch)
+    parar = threading.Event()
+    cartas = ["A", "B", "C"]
+    nomes = Nomes(cartas, lambda c: ({c.lower()}, True), parar)
+    nomes.trabalhar(precisa={2})
+    eventos = []
+    buscar_na_loja(LOJA, cartas, nomes, parar, lambda t, d: eventos.append((t, d)), dormir=lambda s: None, indices=[2])
+    assert loja.pedidos == [("busca", "C")]
+    assert [(t, d.get("i")) for t, d in eventos] == [("lista", 2), ("listafim", None)]
+
+
+def test_nada_a_buscar_termina_logo(monkeypatch):
+    loja = LojaFalsa(monkeypatch)
+    parar = threading.Event()
+    nomes = Nomes(["A"], lambda c: ({c.lower()}, True), parar)
+    nomes.trabalhar(precisa=set())
+    eventos = []
+    buscar_na_loja(LOJA, ["A"], nomes, parar, lambda t, d: eventos.append(t), dormir=lambda s: None, indices=[])
+    assert eventos == ["listafim"] and loja.pedidos == []
+
+
+def test_nomes_so_consulta_as_cartas_pedidas():
+    consultadas = []
+    nomes = Nomes(["A", "B"], lambda c: consultadas.append(c) or ({c.lower() + "!"}, True), threading.Event())
+    nomes.trabalhar(precisa={1})
+    assert consultadas == ["B"] and nomes.de(0) == {"a"} and nomes.de(1) == {"b!"}

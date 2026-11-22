@@ -479,3 +479,4 @@ tr.ninguem .carta-lista .nome-arte { color: var(--vermelho); }
 .nome-linha .abrir.liga:hover, tr:hover .nome-linha .abrir.liga { opacity: 1; }
 .tabela-loja td:first-child { width: 40%; }
 .tabela-loja td:last-child { width: 9%; }
+.la-reap { color: var(--cinza); font-size: 12.5px; }

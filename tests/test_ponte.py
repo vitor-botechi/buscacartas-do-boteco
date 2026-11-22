@@ -365,3 +365,14 @@ def test_cancelar_para_a_lista(ponte, lista_rapida, monkeypatch):
     time.sleep(0.8)
     assert "listafim" not in ponte._janela.tipos()
     assert len([t for t in ponte._janela.tipos() if t == "lista"]) < 6
+
+
+def test_comecar_lista_so_com_as_cartas_novas(ponte, lista_rapida, monkeypatch):
+    buscadas = []
+    original = lista_mod.safe_search
+    monkeypatch.setattr(lista_mod, "safe_search", lambda loja, carta, p: buscadas.append(carta) or original(loja, carta, p))
+    r = ponte.buscar_lista([{"qtd": 1, "nome": "Sol Ring"}, {"qtd": 1, "nome": "Ilha"}])
+    ponte.comecar_lista(r["sid"], {"https://www.overrun.com.br": [1]})
+    ponte._janela.espera(lambda ev: "listafim" in [e[0] for e in ev])
+    assert buscadas == ["Ilha"]
+    assert [e[2]["i"] for e in ponte._janela.eventos if e[0] == "lista"] == [1]

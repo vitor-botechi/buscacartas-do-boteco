@@ -126,10 +126,16 @@ class Nomes:
         self._nomes = [None] * len(cartas)
         self._prontos = [threading.Event() for _ in cartas]
 
-    def trabalhar(self):
+    def trabalhar(self, precisa=None):
+        """precisa: índices das cartas que alguma loja vai buscar (None = todas); as outras ficam
+        com o nome digitado, sem consultar o Scryfall."""
         for i, carta in enumerate(self._cartas):
             if self._parar.is_set():
                 break
+            if precisa is not None and i not in precisa:
+                self._nomes[i] = {norm(carta)}
+                self._prontos[i].set()
+                continue
             try:
                 nomes, _ok = self._resolver(carta)
             except Exception:  # noqa: BLE001 - sem Scryfall, vale o nome digitado
@@ -237,10 +243,12 @@ def uma_carta(loja, carta, nomes, pausar):
     return res, False
 
 
-def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None):
+def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None, indices=None):
     """Busca a lista inteira numa loja, carta por carta.
 
     freio: a pausa e o ritmo desta loja (Freio).
+    indices: as cartas (posições em `cartas`) que esta loja ainda precisa buscar (None = todas). Ao
+    editar a lista, as que já foram buscadas há pouco ficam de fora.
     postar(tipo, dados): "lista" (resultado de uma carta: {"i", "res"}), "listapausa" ({"segundos",
     "tentativa"}), "listaretoma", "listadesiste" ({"de": índice da primeira carta não verificada}) e
     "listafim".
@@ -257,8 +265,10 @@ def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None):
             return CANCELOU
         return FREIO if freio.falta() > 0 else True
 
-    i = 0
-    while i < len(cartas):
+    fila = list(range(len(cartas)) if indices is None else indices)
+    k = 0
+    while k < len(fila):
+        i = fila[k]
         if parar.is_set():
             return
         if freio.desistiu:
@@ -281,5 +291,5 @@ def buscar_na_loja(loja, cartas, nomes, parar, postar, dormir=None, freio=None):
             return
         freio.deu_certo()
         postar("lista", {"i": i, "res": res})
-        i += 1
+        k += 1
     postar("listafim", {})
