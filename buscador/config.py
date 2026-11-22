@@ -48,7 +48,7 @@ LISTA_PAUSA_MAX = 8.0       # ...até este máximo
 # loja bloqueou: espera e tenta sozinha de novo (as outras lojas seguem); depois da última, desiste.
 # Teste real (nov/2026): no mesmo segundo em que a Legacy deu 429, as outras 4 lojas respondiam normalmente.
 # Teste real (nov/2026, 12 cartas, 4 lojas): com 8 s a loja voltou na 1ª tentativa 2 de 7 vezes; com 9 s, 9 de 11.
-LISTA_RETOMAR = (9, 18, 36, 72, 144)
+LISTA_RETOMAR = (9, 14, 36, 72, 144)  # 2ª espera menor (pedido do dono): é a única que aparece com frequência
 
 HEADERS = {
     "User-Agent": (
