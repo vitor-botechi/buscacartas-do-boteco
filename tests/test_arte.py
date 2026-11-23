@@ -134,3 +134,25 @@ def test_tela_recebe_so_quantas_fotos_a_loja_tem():
     ofertas, _ = parse_product_page(open("tests/fixtures/produto_fotos_da_loja.html", encoding="utf-8").read())
     o = serializar.oferta(ofertas[0])
     assert o["fotos"] == 2 and o["imagem"].startswith("https://")
+
+
+def test_arte_vem_do_disco_e_pode_ser_esquecida(scry, scryfall_em_disco_de_teste, monkeypatch):
+    pedidos, respostas = scry
+    respostas["/cards/named"] = Resposta(200, carta("https://cards.scryfall.io/sol.jpg"))
+    assert scryfall.card_art("Sol Ring") == "https://cards.scryfall.io/sol.jpg"
+    monkeypatch.setattr(scryfall, "_artes", {})  # programa aberto de novo
+    n = len(pedidos)
+    assert scryfall.card_art("Sol Ring") == "https://cards.scryfall.io/sol.jpg" and len(pedidos) == n
+    scryfall.forget_art("Sol Ring")  # a imagem não abriu
+    assert scryfall_em_disco_de_teste.pegar("artes", "sol ring||") is None
+    scryfall.card_art("Sol Ring")
+    assert len(pedidos) > n
+
+
+def test_lista_de_edicoes_vem_do_disco(scry, monkeypatch):
+    pedidos, _ = scry
+    assert scryfall.set_codes("Magic 2012") == ["m12"]
+    monkeypatch.setattr(scryfall, "_edicoes", None)
+    monkeypatch.setattr(scryfall, "_codigos", set())
+    n = len(pedidos)
+    assert scryfall.set_codes("Magic 2012", "SLD") == ["m12", "sld"] and len(pedidos) == n

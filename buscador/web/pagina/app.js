@@ -896,6 +896,12 @@ $("resultados").addEventListener("mouseover", async (e) => {
   const mostrar = () => { if (arteAlvo === alvo) { img.hidden = false; tirarDica(alvo); posicionarArte(mouseX, mouseY); } };
   if (img.getAttribute("src") === url && img.complete) { mostrar(); return; }
   img.onload = mostrar;
+  img.onerror = () => {  // endereço guardado do Scryfall que não abre mais: esquece, para consultar de novo
+    const d = alvo.dataset;
+    if (ehImagem(d.imagem)) return;
+    artes.delete([d.arte, d.edicao || "", d.codigo || ""].join("|"));
+    api().arte_falhou(d.arte, d.edicao || "", d.codigo || "");
+  };
   img.src = url;
 });
 $("resultados").addEventListener("mouseleave", esconderArte);

@@ -7,6 +7,8 @@ venv/
 # Dados locais de cada usuário (não versionar)
 lojas.json
 config.json
+scryfall.json
+scryfall.json.tmp
 debug/
 
 # Páginas salvas do navegador para análise (podem conter dados da conta)

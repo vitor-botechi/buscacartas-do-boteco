@@ -92,7 +92,7 @@ py instalador/gerar_exe.py
   Detalhes em [`CLAUDE.md`](CLAUDE.md) e o roteiro de melhorias em [`docs/ROTEIRO.md`](docs/ROTEIRO.md).
 - **Linux e macOS:** pelo código-fonte deve rodar (use `python3`), mas ainda não foi testado. No Linux, o pywebview
   precisa de GTK ou Qt com WebKit.
-- **Onde ficam os dados:** `lojas.json`, `config.json` e a pasta `debug/`. No `.exe`, em `%APPDATA%\BuscaCartas`.
+- **Onde ficam os dados:** `lojas.json`, `config.json`, `scryfall.json` (respostas do Scryfall guardadas por algumas semanas) e a pasta `debug/`. No `.exe`, em `%APPDATA%\BuscaCartas`.
   Pelo código-fonte, na pasta do projeto. Nenhum deles vai para o repositório.
 
 </details>

@@ -1,5 +1,9 @@
-"""Caixa "Apenas nome exato": usa o Scryfall para descobrir os nomes da carta em inglês e português."""
+"""Consultas ao Scryfall: nomes da carta em inglês e português ("Apenas nome exato", lista) e arte.
+As respostas ficam guardadas em disco (scryfall.json) por algumas semanas (MemoriaEmDisco)."""
 
+import atexit
+import json
+import os
 import re
 import threading
 import time
@@ -68,6 +72,110 @@ class _Ritmo:
 RITMO = _Ritmo()
 
 
+# ---- memória em disco (scryfall.json) ----------------------------------------------------------
+# O Scryfall pede para guardar as respostas por pelo menos 24 h. Os nomes da carta e o endereço da
+# arte quase nunca mudam: ficam guardados por SCRY_DIAS dias, e "não achei" só por SCRY_DIAS_SEM_RESPOSTA
+# (pode ser uma carta nova, que o Scryfall ainda não tinha). Falhas e 429 nunca são guardados.
+SCRY_DIAS = 30
+SCRY_DIAS_SEM_RESPOSTA = 1
+SCRY_DIAS_EDICOES = 7      # a lista de edições (/sets): edições novas saem algumas vezes por mês
+SCRY_MAX_GUARDADOS = 5000  # por tipo; passou disso, saem os que vencem primeiro
+SCRY_GRAVAR_DEPOIS = 5     # segundos: junta várias respostas numa gravação só
+
+
+class MemoriaEmDisco:
+    """Respostas do Scryfall guardadas num arquivo JSON, para não perguntar de novo depois de fechar o
+    programa. {"versao": 1, tipo: {chave: [vence_em (time.time), valor]}}. Arquivo estragado ou de
+    outra versão: começa do zero, sem erro. A gravação é feita numa cópia que depois substitui o arquivo."""
+
+    VERSAO = 1
+
+    def __init__(self, caminho=None, agora=time.time):
+        self._caminho = caminho  # None = scryfall.json na pasta do programa (config.app_dir)
+        self._agora = agora
+        self._trava = threading.Lock()
+        self._dados = None
+        self._mudou = False
+        self._timer = None
+
+    def caminho(self):
+        if self._caminho is None:
+            from buscador.config import app_dir
+            self._caminho = os.path.join(app_dir(), "scryfall.json")
+        return self._caminho
+
+    def _carregar(self):
+        if self._dados is not None:
+            return
+        try:
+            with open(self.caminho(), encoding="utf-8") as f:
+                dados = json.load(f)
+            if not isinstance(dados, dict) or dados.get("versao") != self.VERSAO:
+                raise ValueError("versão diferente")
+        except (OSError, ValueError):
+            dados = {}
+        self._dados = {k: v for k, v in dados.items() if k != "versao" and isinstance(v, dict)}
+
+    def pegar(self, tipo, chave):
+        """O valor guardado, ou None se não houver (ou já venceu)."""
+        with self._trava:
+            self._carregar()
+            item = self._dados.get(tipo, {}).get(chave)
+            if not (isinstance(item, list) and len(item) == 2 and isinstance(item[0], (int, float))):
+                return None
+            if item[0] <= self._agora():
+                return None
+            return item[1]
+
+    def guardar(self, tipo, chave, valor, dias):
+        with self._trava:
+            self._carregar()
+            grupo = self._dados.setdefault(tipo, {})
+            grupo[chave] = [self._agora() + dias * 86400, valor]
+            if len(grupo) > SCRY_MAX_GUARDADOS:
+                for k in sorted(grupo, key=lambda k: grupo[k][0])[: len(grupo) - SCRY_MAX_GUARDADOS]:
+                    del grupo[k]
+            self._agendar()
+
+    def esquecer(self, tipo, chave):
+        with self._trava:
+            self._carregar()
+            if self._dados.get(tipo, {}).pop(chave, None) is not None:
+                self._agendar()
+
+    def _agendar(self):
+        self._mudou = True
+        if self._timer is None:
+            self._timer = threading.Timer(SCRY_GRAVAR_DEPOIS, self.gravar)
+            self._timer.daemon = True
+            self._timer.start()
+
+    def gravar(self):
+        """Grava no disco, se algo mudou. Também chamada ao fechar o programa."""
+        with self._trava:
+            if self._timer is not None:
+                self._timer.cancel()
+                self._timer = None
+            if not self._mudou or self._dados is None:
+                return
+            agora = self._agora()
+            dados = {"versao": self.VERSAO}
+            for tipo, grupo in self._dados.items():
+                dados[tipo] = {k: v for k, v in grupo.items() if v[0] > agora}
+            temp = self.caminho() + ".tmp"
+            try:
+                with open(temp, "w", encoding="utf-8") as f:
+                    json.dump(dados, f, ensure_ascii=False, separators=(",", ":"))
+                os.replace(temp, self.caminho())
+                self._mudou = False
+            except OSError:
+                pass  # sem como gravar (pasta só de leitura?): segue só com a memória
+
+
+DISCO = MemoriaEmDisco()
+atexit.register(lambda: DISCO.gravar())
+
+
 def scry_get(path, params, urgente=True):
     """Uma consulta ao Scryfall, no ritmo pedido por ele. Em pausa depois de um 429: ScryfallEmPausa."""
     RITMO.vez(SCRY_INTERVALO_CARTAS if path.startswith("/cards/") else SCRY_INTERVALO_OUTROS, urgente)
@@ -116,18 +224,25 @@ def resolve_names(card, urgente=True):
     """Devolve (conjunto de nomes aceitos, scryfall_respondeu). Sempre inclui o texto digitado.
 
     urgente=False: consulta sem pressa (os nomes da busca de lista), que espera as urgentes passarem.
-    Respostas boas ficam guardadas até fechar o programa.
+    Respostas boas ficam guardadas na memória e no disco (DISCO).
     """
     chave = norm(card or "")
     if chave in _nomes:
         return set(_nomes[chave]), True
-    names, ok = _resolve_names(card, urgente)
+    guardados = DISCO.pegar("nomes", chave) if chave else None
+    if isinstance(guardados, list):
+        _nomes[chave] = set(guardados)
+        return set(guardados), True
+    names, ok, achou = _resolve_names(card, urgente)
     if ok:
         _nomes[chave] = set(names)
+        if chave:  # achou: o Scryfall reconheceu a carta; senão, pode ser carta nova e vale só 1 dia
+            DISCO.guardar("nomes", chave, sorted(names), SCRY_DIAS if achou else SCRY_DIAS_SEM_RESPOSTA)
     return names, ok
 
 
 def _resolve_names(card, urgente):
+    """(nomes, o Scryfall respondeu, o Scryfall reconheceu a carta)."""
     names = set()
     add_names(names, card)
     try:
@@ -145,15 +260,15 @@ def _resolve_names(card, urgente):
             r3 = scry_get("/cards/search", {"q": f'!"{english}" lang:pt', "include_multilingual": "true",
                                             "unique": "prints"}, urgente)
             if r3.status_code == 429:  # sem os nomes em português: não guarda como resposta boa
-                return names, False
+                return names, False, True
             if r3.status_code == 200:
                 for c in r3.json().get("data", []):
                     add_names(names, c.get("printed_name"))
                     for face in c.get("card_faces", []) or []:
                         add_names(names, face.get("printed_name"))
-        return names, True
+        return names, True, bool(english)
     except (requests.RequestException, ValueError):
-        return names, False
+        return names, False, False
 
 
 # ---- arte da carta (ao passar o mouse) ---------------------------------------------------------
@@ -193,12 +308,17 @@ def set_codes(edition, code=""):
     if not edition and not code:
         return []
     if _edicoes is None:
-        r = scry_get("/sets", {})
-        if r.status_code != 200:
-            return []  # tenta de novo na próxima vez
-        dados = [s for s in r.json().get("data", []) if s.get("code")]
-        _edicoes = {norm(s["name"]): s["code"] for s in dados if s.get("name")}
-        _codigos = {s["code"] for s in dados}
+        guardadas = DISCO.pegar("edicoes", "todas")
+        if isinstance(guardadas, dict) and isinstance(guardadas.get("nomes"), dict):
+            _edicoes, _codigos = guardadas["nomes"], set(guardadas.get("codigos") or [])
+        else:
+            r = scry_get("/sets", {})
+            if r.status_code != 200:
+                return []  # tenta de novo na próxima vez
+            dados = [s for s in r.json().get("data", []) if s.get("code")]
+            _edicoes = {norm(s["name"]): s["code"] for s in dados if s.get("name")}
+            _codigos = {s["code"] for s in dados}
+            DISCO.guardar("edicoes", "todas", {"nomes": _edicoes, "codigos": sorted(_codigos)}, SCRY_DIAS_EDICOES)
     achados = [_edicoes.get(norm(edition or "")), _edicoes.get(norm(strip_suffix(edition or "")))]
     code = (code or "").lower()
     achados += [c for c in (code, re.sub(r"\d+$", "", code)) if c in _codigos]
@@ -232,9 +352,22 @@ def card_art(item_name, edition="", code=""):
     with _arte_trava:
         if chave in _artes:
             return _artes[chave]
+        guardada = DISCO.pegar("artes", "|".join(chave))
+        if isinstance(guardada, str):
+            _artes[chave] = guardada
+            return guardada
         try:
             carta = _buscar_carta(card_query_name(item_name), edition, code)
         except (requests.RequestException, ValueError):
             return ""
         _artes[chave] = card_image(carta) if carta else ""
+        DISCO.guardar("artes", "|".join(chave), _artes[chave], SCRY_DIAS if _artes[chave] else SCRY_DIAS_SEM_RESPOSTA)
         return _artes[chave]
+
+
+def forget_art(item_name, edition="", code=""):
+    """A imagem guardada não abriu (o endereço mudou?): esquece, para consultar de novo."""
+    chave = (norm(item_name or ""), norm(edition or ""), (code or "").lower())
+    with _arte_trava:
+        _artes.pop(chave, None)
+    DISCO.esquecer("artes", "|".join(chave))

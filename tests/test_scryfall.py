@@ -142,3 +142,79 @@ def test_depois_de_um_429_nao_consulta_mais(monkeypatch):
     assert len(falso.feitas) == 1  # a segunda nem saiu
     assert scryfall.resolve_names("Sol Ring") == ({"sol ring"}, False)  # tratado como sem resposta
     assert scryfall.card_art("Sol Ring") == ""
+
+
+# ---- memória em disco (scryfall.json) ----
+
+class Relogio:
+    def __init__(self):
+        self.t = 1_000_000.0
+
+    def __call__(self):
+        return self.t
+
+
+def test_memoria_guarda_le_e_vence(tmp_path):
+    relogio = Relogio()
+    caminho = str(tmp_path / "s.json")
+    m = scryfall.MemoriaEmDisco(caminho, agora=relogio)
+    m.guardar("nomes", "sol ring", ["anel solar", "sol ring"], 30)
+    m.gravar()
+    outra = scryfall.MemoriaEmDisco(caminho, agora=relogio)  # como se o programa abrisse de novo
+    assert outra.pegar("nomes", "sol ring") == ["anel solar", "sol ring"]
+    relogio.t += 31 * 86400
+    assert outra.pegar("nomes", "sol ring") is None
+
+
+def test_memoria_com_arquivo_estragado_comeca_do_zero(tmp_path):
+    caminho = tmp_path / "s.json"
+    caminho.write_text("{ isto não é json", encoding="utf-8")
+    m = scryfall.MemoriaEmDisco(str(caminho))
+    assert m.pegar("nomes", "x") is None
+    m.guardar("nomes", "x", ["x"], 1)
+    m.gravar()
+    assert scryfall.MemoriaEmDisco(str(caminho)).pegar("nomes", "x") == ["x"]
+
+
+def test_memoria_tem_limite(tmp_path, monkeypatch):
+    monkeypatch.setattr(scryfall, "SCRY_MAX_GUARDADOS", 3)
+    relogio = Relogio()
+    m = scryfall.MemoriaEmDisco(str(tmp_path / "s.json"), agora=relogio)
+    for i in range(5):
+        relogio.t += 1
+        m.guardar("artes", f"c{i}", "u", 30)
+    assert [m.pegar("artes", f"c{i}") for i in range(5)] == [None, None, "u", "u", "u"]  # saem as mais velhas
+
+
+def test_nomes_vem_do_disco_depois_de_reabrir(scryfall_falso, scryfall_em_disco_de_teste, monkeypatch):
+    scryfall_falso[("/cards/named", "Sol Ring")] = RespostaFalsa(200, {"name": "Sol Ring"})
+    scryfall_falso[("/cards/search", '!"Sol Ring" lang:pt')] = RespostaFalsa(200, {"data": [carta("Sol Ring", "Anel Solar")]})
+    nomes, _ = scryfall.resolve_names("Sol Ring")
+    scryfall_em_disco_de_teste.gravar()
+    # programa fechado e aberto de novo: memória vazia, Scryfall fora do ar
+    monkeypatch.setattr(scryfall, "_nomes", {})
+    monkeypatch.setattr(scryfall, "DISCO", scryfall.MemoriaEmDisco(scryfall_em_disco_de_teste.caminho()))
+
+    def sem_conexao(*_a, **_k):
+        raise AssertionError("não devia consultar o Scryfall")
+
+    monkeypatch.setattr(scryfall, "scry_get", sem_conexao)
+    assert scryfall.resolve_names("sol ring") == (nomes, True)
+
+
+def test_carta_nao_reconhecida_fica_guardada_so_um_dia(scryfall_falso, scryfall_em_disco_de_teste):
+    scryfall_falso[("/cards/named", "Sol Ring")] = RespostaFalsa(200, {"name": "Sol Ring"})
+    scryfall.resolve_names("Sol Ring")
+    scryfall.resolve_names("Carta Nova Que Ninguém Conhece")
+    grupo = scryfall_em_disco_de_teste._dados["nomes"]
+    dias = {k: round((v[0] - scryfall.time.time()) / 86400) for k, v in grupo.items()}
+    assert dias == {"sol ring": scryfall.SCRY_DIAS, "carta nova que ninguem conhece": scryfall.SCRY_DIAS_SEM_RESPOSTA}
+
+
+def test_falha_de_rede_nao_vai_para_o_disco(monkeypatch, scryfall_em_disco_de_teste):
+    def sem_conexao(*_a, **_k):
+        raise scryfall.requests.ConnectionError("sem internet")
+
+    monkeypatch.setattr(scryfall, "scry_get", sem_conexao)
+    scryfall.resolve_names("Thalia")
+    assert scryfall_em_disco_de_teste.pegar("nomes", "thalia") is None

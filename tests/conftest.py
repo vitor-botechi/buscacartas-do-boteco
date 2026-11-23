@@ -16,3 +16,14 @@ def pagina():
             return f.read()
 
     return ler
+
+
+@pytest.fixture(autouse=True)
+def scryfall_em_disco_de_teste(tmp_path, monkeypatch):
+    """As respostas guardadas do Scryfall vão para um arquivo temporário de cada teste, nunca para o
+    scryfall.json de verdade."""
+    from buscador import scryfall
+
+    disco = scryfall.MemoriaEmDisco(str(tmp_path / "scryfall.json"))
+    monkeypatch.setattr(scryfall, "DISCO", disco)
+    return disco

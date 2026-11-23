@@ -41,7 +41,7 @@ from buscador.config import (
 )
 from buscador.lojas.ligamagic import build_search_url, liga_card_url
 from buscador.rede import HAS_SCRAPING, fetch_product, fetch_store_look, safe_search
-from buscador.scryfall import card_art, matches_exact, resolve_names
+from buscador.scryfall import card_art, forget_art, matches_exact, resolve_names
 from buscador.texto import clean_card_name, norm
 from buscador.web import serializar
 
@@ -488,6 +488,11 @@ class Ponte:
         if not HAS_SCRAPING:
             return {"url": ""}
         return {"url": card_art(nome, edicao, codigo)}
+
+    def arte_falhou(self, nome, edicao="", codigo=""):
+        """A imagem que veio do Scryfall não abriu: esquece o endereço guardado."""
+        if HAS_SCRAPING:
+            forget_art(nome, edicao, codigo)
 
     # ---- detalhes de um produto (sob demanda) ---------------------------------------
     def detalhes(self, loja_url, item_url):
