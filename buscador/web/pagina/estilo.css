@@ -231,6 +231,10 @@ footer { display: flex; align-items: flex-start; gap: 12px; padding-top: 8px; co
 /* arte da carta ao passar o mouse (Scryfall) */
 #arte { position: fixed; z-index: 50; width: 244px; height: auto; border-radius: 12px; pointer-events: none;
   box-shadow: 0 8px 28px rgba(0, 0, 0, .35); background: #222; }
+/* a dica da linha (o "title") aparece embaixo da arte, e não em cima dela */
+#arte-dica { position: fixed; z-index: 50; width: 244px; box-sizing: border-box; padding: 5px 10px; border-radius: 8px; pointer-events: none;
+  background: rgba(20, 20, 20, .88); color: #fff; font-size: 12px; text-align: center; white-space: pre-line;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, .3); }
 
 /* ==== tema do boteco: balcão de madeira, lousa e comandas de caderno ==== */
 /* letra de giz: Caveat (licença SIL OFL, em fontes/OFL.txt), embutida para funcionar sem internet */

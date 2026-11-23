@@ -846,18 +846,37 @@ function prepararItem(item) {
     else if (el.classList.contains("item-nome")) enderecoDaArte(el).then(preCarregar);
   });
 }
+// A dica do Windows (o "title" da linha) aparece logo abaixo do mouse, em cima da arte (no tipo da
+// carta). Enquanto a arte está aberta, a dica sai do elemento e aparece embaixo da arte (#arte-dica).
+let dicaGuardada = null;  // [elemento, texto do title]
+function tirarDica(alvo) {
+  const el = alvo.closest("[title]");
+  if (!el || !$("resultados").contains(el)) return;
+  dicaGuardada = [el, el.getAttribute("title")];
+  el.removeAttribute("title");
+  $("arte-dica").textContent = dicaGuardada[1];
+  $("arte-dica").hidden = false;
+}
+function devolverDica() {
+  if (dicaGuardada && !dicaGuardada[0].hasAttribute("title")) dicaGuardada[0].setAttribute("title", dicaGuardada[1]);
+  dicaGuardada = null;
+  $("arte-dica").hidden = true;
+}
 function esconderArte() {
   arteAlvo = null;
   $("arte").hidden = true;
+  devolverDica();
 }
 function posicionarArte(x, y) {
-  const img = $("arte"), m = 16;
+  const img = $("arte"), dica = $("arte-dica"), m = 16;
   const w = img.offsetWidth || 244, h = img.offsetHeight || 340;
-  let left = x + 24, top = y - h / 2;
+  const hd = dica.hidden ? 0 : dica.offsetHeight + 6;  // a dica fica logo abaixo da arte
+  let left = x + 24, top = y - (h + hd) / 2;
   if (left + w + m > innerWidth) left = x - w - 24;  // sem espaço à direita: aparece à esquerda do mouse
-  top = Math.max(m, Math.min(top, innerHeight - h - m));
-  img.style.left = `${Math.max(m, left)}px`;
+  top = Math.max(m, Math.min(top, innerHeight - h - hd - m));
+  img.style.left = dica.style.left = `${Math.max(m, left)}px`;
   img.style.top = `${top}px`;
+  dica.style.top = `${top + h + 6}px`;
 }
 let mouseX = 0, mouseY = 0;
 $("resultados").addEventListener("mousemove", (e) => {
@@ -874,7 +893,7 @@ $("resultados").addEventListener("mouseover", async (e) => {
   const url = await enderecoDaArte(alvo);
   if (arteAlvo !== alvo || !ehImagem(url)) return;  // o mouse já saiu, ou não há arte
   const img = $("arte");
-  const mostrar = () => { if (arteAlvo === alvo) { img.hidden = false; posicionarArte(mouseX, mouseY); } };
+  const mostrar = () => { if (arteAlvo === alvo) { img.hidden = false; tirarDica(alvo); posicionarArte(mouseX, mouseY); } };
   if (img.getAttribute("src") === url && img.complete) { mostrar(); return; }
   img.onload = mostrar;
   img.src = url;
