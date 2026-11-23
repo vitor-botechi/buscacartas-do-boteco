@@ -33,7 +33,7 @@ Dá para rever quando quiser.
 ## O que mais ele faz
 
 - **Arte da carta:** pare o mouse no nome para ver a carta daquela edição.
-- **Buscar uma lista:** clique em **📝 Lista** e cole um deck inteiro (do Moxfield, do Arena ou escrito à mão: `4 Lightning Bolt`, `4x Counterspell`...). O programa procura carta por carta, com calma, e mostra **por carta** (o preço em cada loja, avisando quando a loja não tem a quantidade toda; um clique no preço abre a carta na loja, já durante a busca) e **por loja** (o que comprar em cada uma, com o total). Uma lista de 60 cartas leva alguns minutos.
+- **Buscar uma lista:** clique em **📝 Lista** e cole um deck inteiro (do Moxfield, do Arena ou escrito à mão: `4 Lightning Bolt`, `4x Counterspell`...). O programa procura carta por carta, com calma, e mostra **por carta** (o preço em cada loja, avisando quando a loja não tem a quantidade toda; um clique no preço abre a carta na loja, já durante a busca) e **por loja** (o que comprar em cada uma, com o total). O **🛒 Carrinho mais barato** escolhe de que loja comprar cada carta para gastar menos (dá para tirar uma loja com ✕ e, para lojas que você adicionou, contar o frete). Uma lista de 60 cartas leva alguns minutos.
 - **Ordenar as edições:** clique no título de uma coluna (Estado, Unid., Extras, Preço...) para ordenar; outro clique inverte, e o terceiro volta ao normal (do menor para o maior preço).
 - **Etiquetas:** Foil, promoção, pré-venda com data de envio, observação da loja e fotos do item.
 - **Colar nome:** copiou o nome em outro lugar? Volte para a janela e aperte **Enter** duas vezes: o primeiro cola, o segundo busca.

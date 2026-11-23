@@ -566,8 +566,13 @@ function desenhar() {
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (tela.lista) {
+    const frete = document.activeElement && document.activeElement.matches("[data-frete]") ? document.activeElement.selectionStart ?? -1 : null;
     area.innerHTML = desenharLista();
     area.scrollTop = rolagem;
+    if (frete !== null) {  // o campo do frete foi redesenhado: volta o cursor para ele
+      const campo = area.querySelector("[data-frete]");
+      if (campo) { campo.focus(); try { if (frete >= 0) campo.setSelectionRange(frete, frete); } catch { /* number não aceita */ } }
+    }
     desenharProgresso();
     if (tela.pendentes === 0) resumirLista();
     else avisarLinhas([{ texto: "As cartas aparecem conforme cada loja responde: clique num preço para abrir a carta na loja e já ir comprando. Cancelar guarda o que já chegou.", tipo: "dica" }]);

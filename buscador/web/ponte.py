@@ -78,6 +78,9 @@ def primeira_linha_limpa(texto):
     return clean_card_name(next((ln for ln in (texto or "").splitlines() if ln.strip()), ""))
 
 
+FRETE_MAX = 500  # reais: o carrinho da lista só usa o frete para comparar lojas
+
+
 class Ponte:
     def __init__(self, janela=None):
         self._janela = janela
@@ -119,6 +122,7 @@ class Ponte:
             "tutorial_visto": bool(load_settings().get("tutorial_visto")),
             "lista_max": LISTA_MAX_CARTAS,
             "lista_seg_por_carta": lista.segundos_estimados(1),
+            "frete": self._frete_salvo(),
         }
 
     def marcar_tutorial_visto(self):
@@ -156,6 +160,26 @@ class Ponte:
             v = DEFAULT_AUTO_LIMIT
         data = load_settings()
         data["auto_limit"] = v
+        save_settings(data)
+        return v
+
+    @staticmethod
+    def _frete_salvo():
+        try:
+            v = float(load_settings().get("frete_adicionadas", 0))
+        except (TypeError, ValueError):
+            v = 0.0
+        return round(max(0.0, min(FRETE_MAX, v)), 2)
+
+    def salvar_frete(self, valor):
+        """Frete (em reais) de cada loja adicionada, no carrinho mais barato da lista. As lojas que vêm no
+        programa têm frete grátis (parceria). Devolve o valor guardado (0 a FRETE_MAX)."""
+        try:
+            v = round(max(0.0, min(FRETE_MAX, float(str(valor).replace(",", ".")))), 2)
+        except (TypeError, ValueError):
+            v = 0.0
+        data = load_settings()
+        data["frete_adicionadas"] = v
         save_settings(data)
         return v
 

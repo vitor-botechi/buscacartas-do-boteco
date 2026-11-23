@@ -49,7 +49,7 @@ const PASSOS = [
   { alvo: no(".busca"), titulo: "Digite a carta", texto: "Em português ou inglês. Depois é só apertar Enter ou clicar em Buscar." },
   { alvo: () => $("colar"), titulo: "Copiou o nome?", texto: "Volte para cá e aperte Enter duas vezes: o 1º cola, o 2º busca." },
   { alvo: () => $("lista"), titulo: "Tem uma lista?",
-    texto: "Cole um deck inteiro: eu procuro carta por carta e mostro onde comprar cada uma. Clique no preço para já ir comprando." },
+    texto: "Cole um deck inteiro: eu procuro carta por carta e monto o carrinho mais barato. Clique no preço para já ir comprando." },
   { alvo: no("#resultados .cartao > .cab"),
     titulo: "Uma comanda por loja", texto: "Verde: a loja tem a carta. Clique no nome da loja para abrir ou fechar; “Abrir no navegador ↗” mostra a busca no site." },
   { alvo: no("#resultados .item:not(.fechado) .corpo"),

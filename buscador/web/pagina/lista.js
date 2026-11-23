@@ -260,9 +260,10 @@ function desenharLista() {
   const abas = `<div class="lista-abas">
       <button class="aba${L.vista === "carta" ? " ativa" : ""}" data-vista="carta">Por carta</button>
       <button class="aba${L.vista === "loja" ? " ativa" : ""}" data-vista="loja">Por loja</button>
+      <button class="aba${L.vista === "carrinho" ? " ativa" : ""}" data-vista="carrinho">🛒 Carrinho mais barato</button>
       <span class="lista-acoes">${tela.pendentes ? '<button class="btn pequeno" data-lista-cancelar>Cancelar a busca</button>' : ""}
       <button class="link" data-lista-editar>Editar a lista</button></span></div>`;
-  return `<div class="lista${tela.pendentes ? " rodando" : ""}">${andamento(L)}${avisoFaltando(L, cs)}${abas}${L.vista === "carta" ? vistaPorCarta(L, cs) : vistaPorLoja(L, cs)}</div>`;
+  return `<div class="lista${tela.pendentes ? " rodando" : ""}">${andamento(L)}${avisoFaltando(L, cs)}${abas}${L.vista === "carta" ? vistaPorCarta(L, cs) : L.vista === "carrinho" ? vistaCarrinho(L, cs) : vistaPorLoja(L, cs)}</div>`;
 }
 
 // cartas que nenhuma loja tem (só depois que a busca termina: antes, ainda podem aparecer)
@@ -395,6 +396,147 @@ function vistaPorLoja(L, cs) {
   }).join("");
 }
 
+/* ---------------- carrinho mais barato ---------------- */
+// Escolhe de que loja comprar cada carta pelo menor total: as cartas mais o frete de cada loja usada
+// (as lojas que vêm no programa têm frete grátis pela parceria; o frete vale só para as adicionadas).
+// Primeiro o carrinho leva o máximo de unidades da lista; entre os que levam o mesmo, fica o mais barato
+// (e, no empate, o de menos lojas). A mesma carta pode vir de duas lojas (2 aqui, 2 ali). Com frete,
+// testa todas as combinações de lojas (até CARRINHO_MAX_LOJAS): o resultado é o melhor, não um palpite.
+// Sem frete, comprar cada unidade onde ela é mais barata já é o melhor. Nenhuma requisição: usa o que a
+// busca da lista já trouxe (as edições mais baratas de cada loja, até a quantidade pedida).
+const CARRINHO_MAX_LOJAS = 12;
+
+// cartas: [{qtd}]; unidades[i][url]: [{n, preco, o, url}]; lojas: [{url, frete}]
+function montarCarrinho(cartas, unidades, lojas) {
+  // todas as unidades de cada carta, do menor para o maior preço (de qualquer loja)
+  const juntas = cartas.map((_, i) => lojas.flatMap((l, k) => (unidades[i][l.url] || []).map((p) => ({ ...p, k })))
+    .sort((a, b) => a.preco - b.preco || a.k - b.k));
+  const avaliar = (mascara) => {
+    let un = 0, custo = 0, usadas = 0;
+    const escolha = juntas.map((ps, i) => {
+      let falta = cartas[i].qtd;
+      const partes = [];
+      for (const p of ps) {
+        if (!falta) break;
+        if (!(mascara & (1 << p.k))) continue;
+        const n = Math.min(falta, p.n);
+        partes.push({ ...p, n });
+        custo += n * p.preco; falta -= n; usadas |= 1 << p.k;
+      }
+      un += cartas[i].qtd - falta;
+      return partes;
+    });
+    const frete = lojas.reduce((s, l, k) => s + (usadas & (1 << k) ? l.frete : 0), 0);
+    let nLojas = 0;
+    for (let k = 0; k < lojas.length; k++) if (usadas & (1 << k)) nLojas++;
+    return { un, custo, frete, total: custo + frete, nLojas, escolha };
+  };
+  const todas = (1 << lojas.length) - 1;
+  const semEscolha = avaliar(todas);  // cada unidade onde é mais barata
+  if (lojas.every((l) => !l.frete) || lojas.length > CARRINHO_MAX_LOJAS) return { melhor: semEscolha, semEscolha };
+  let melhor = semEscolha;
+  for (let m = 1; m < todas; m++) {
+    const r = avaliar(m);
+    if (r.un > melhor.un || (r.un === melhor.un && (r.total < melhor.total - 0.005 ||
+        (Math.abs(r.total - melhor.total) <= 0.005 && r.nLojas < melhor.nLojas)))) melhor = r;
+  }
+  return { melhor, semEscolha };
+}
+
+let ultimoCarrinho = { urls: {}, faltam: "" };  // para os botões "Abrir todas" e "Copiar" do carrinho
+
+function vistaCarrinho(L, cs) {
+  const fora = L.fora || {};
+  const frete = Math.max(0, Number(cfg.frete) || 0);
+  const ativas = L.lojas.filter((l) => !fora[l.url]);
+  const lojas = ativas.map((l) => ({ url: l.url, frete: l.padrao ? 0 : frete }));
+  const unidades = L.cartas.map((_, i) => Object.fromEntries(ativas.map((l) => {
+    const cc = cs[i][l.url];
+    return [l.url, ["completa", "parcial"].includes(cc.estado) ? cc.partes : []];
+  })));
+  const { melhor, semEscolha } = montarCarrinho(L.cartas, unidades, lojas);
+
+  // o que cada loja leva
+  const porLoja = Object.fromEntries(ativas.map((l) => [l.url, []]));
+  melhor.escolha.forEach((partes, i) => {
+    for (const p of partes) {
+      const url = lojas[p.k].url, linhas = porLoja[url];
+      const ja = linhas.find((x) => x.i === i);
+      if (ja) ja.partes.push(p); else linhas.push({ i, partes: [p] });
+    }
+  });
+  ultimoCarrinho = { urls: {}, faltam: "" };
+
+  const completas = melhor.escolha.filter((ps, i) => ps.reduce((s, p) => s + p.n, 0) >= L.cartas[i].qtd).length;
+  const usadas = ativas.filter((l) => porLoja[l.url].length);
+  const temAdicionadas = L.lojas.some((l) => !l.padrao);
+  const parcial = tela.pendentes ? '<span class="cr-parcial">parcial: a busca ainda está andando</span>' : "";
+  const freteTxt = melhor.frete ? ` <span class="cr-det">(cartas ${dinheiro(melhor.custo)} + frete ${dinheiro(melhor.frete)})</span>` : "";
+  const campoFrete = temAdicionadas ? `<label class="cr-frete" title="As lojas que vêm no programa têm frete grátis (parceria). Este valor vale para cada loja que você adicionou e entra na conta: com frete, o carrinho tenta usar menos lojas.">
+      Frete de cada loja adicionada: R$ <input type="number" min="0" max="500" step="1" value="${frete}" data-frete></label>` : "";
+  const economia = semEscolha.un === melhor.un && semEscolha.total > melhor.total + 0.005
+    ? `<div class="cr-compara">Comprando cada carta onde ela é mais barata: ${dinheiro(semEscolha.total)} em ${plural(semEscolha.nLojas, "loja", "lojas")} (com frete). Este carrinho economiza <b>${dinheiro(semEscolha.total - melhor.total)}</b>.</div>` : "";
+  const tiradas = L.lojas.filter((l) => fora[l.url]);
+  const foraTxt = tiradas.length ? `<div class="cr-fora">Fora do carrinho: ${tiradas.map((l) =>
+    `<button class="link" data-devolver-loja="${esc(l.url)}" title="Pôr esta loja de volta no carrinho">↩ ${esc(l.nome)}</button>`).join(" ")}</div>` : "";
+  const resumo = `<div class="carrinho-resumo">
+      <div class="cr-linha"><span class="cr-total">Total: <b>${dinheiro(melhor.total)}</b>${freteTxt}</span>
+        <span>em ${plural(usadas.length, "loja", "lojas")}</span><span>· ${completas} de ${L.cartas.length} cartas completas</span>${parcial}</div>
+      ${campoFrete}${economia}${foraTxt}</div>`;
+
+  const comandas = L.lojas.map((l, k) => {
+    const linhas = porLoja[l.url];
+    if (!linhas || !linhas.length) return "";
+    const custo = linhas.reduce((s, x) => s + x.partes.reduce((t, p) => t + p.n * p.preco, 0), 0);
+    const urls = [...new Set(linhas.flatMap((x) => x.partes.map((p) => p.url)))];
+    ultimoCarrinho.urls[l.url] = urls;
+    const corpo = linhas.map(({ i, partes }) => {
+      const c = L.cartas[i];
+      const aqui = partes.reduce((s, p) => s + p.n, 0);
+      const divide = aqui < c.qtd ? `<div><span class="cr-divide">${aqui} de ${c.qtd} aqui</span></div>` : "";
+      const sub = partes.reduce((s, p) => s + p.n * p.preco, 0);
+      return `<tr><td class="carta-lista" data-carta-lista="${i}" title="Ver as edições desta carta em cada loja">${nomeNaLista(L, c, i, l.url)}</td>
+        <td class="partes">${divide}${partes.map((p) => `<div class="parte" title="${esc(p.o.edicao || "")}"><span class="parte-qtd">${p.n} × ${dinheiro(p.preco)}</span>${detalhesOferta(p.o)}</div>`).join("")}</td>
+        <td class="preco">${dinheiro(sub)}</td>
+        <td><button class="abrir" data-abrir="${esc(partes[0].url)}" title="Abrir a página da carta nesta loja">Abrir ↗</button></td></tr>`;
+    }).join("");
+    const freteLoja = l.padrao ? '<span class="cr-gratis" title="Loja da parceria">frete grátis</span>' : frete ? `<span class="cr-det">+ frete ${dinheiro(frete)}</span>` : "";
+    const logo = /^https:\/\/[^\s"'<>]+\.(jpg|jpeg|png|gif|webp|svg)$/i.test(l.logo || "") ? `<img class="logo" src="${esc(l.logo)}" alt="" onerror="this.remove()">` : "";
+    const cor = corDaLoja(l), cor2 = /^#[0-9a-f]{6}$/i.test(l.cor2 || "") ? l.cor2 : cor;
+    return `<div class="cartao loja-lista" style="--cor-loja:${cor};--cor-loja2:${cor2}">
+      <div class="cab">${logo}<span class="nome">${esc(l.nome)}</span><span class="pedido">nº ${k + 1}</span>
+        <span class="status st-found">${plural(linhas.length, "carta", "cartas")} · <b>${dinheiro(custo)}</b></span>${freteLoja}
+        <button class="abrir" data-abrir-carrinho="${esc(l.url)}" title="Abre no navegador a página de cada carta que o carrinho leva desta loja">Abrir todas (${urls.length}) ↗</button>
+        <button class="tirar-loja" data-tirar-loja="${esc(l.url)}" title="Tirar esta loja do carrinho (a conta é refeita sem ela)" aria-label="Tirar ${esc(l.nome)} do carrinho">✕</button></div>
+      <div class="corpo"><table class="tabela-loja"><tbody>${corpo}</tbody></table></div></div>`;
+  }).join("");
+
+  const sobra = ativas.filter((l) => !porLoja[l.url].length);
+  const sobraTxt = usadas.length && sobra.length ? `<div class="cr-sobra">Sem nada no carrinho: ${sobra.map((l) => esc(l.nome)).join(", ")}.</div>` : "";
+
+  // cartas que o carrinho não completa
+  const faltam = [];
+  L.cartas.forEach((c, i) => {
+    const leva = melhor.escolha[i].reduce((s, p) => s + p.n, 0);
+    if (leva >= c.qtd) return;
+    const estados = L.lojas.map((l) => cs[i][l.url].estado);
+    const porque = leva ? `só ${leva} de ${c.qtd}`
+      : estados.includes("pendente") ? "ainda buscando"
+      : estados.includes("sem_preco") ? "preço não lido: abra a carta"
+      : estados.includes("nao_verificada") || estados.includes("erro") ? "não verificada em alguma loja"
+      : tiradas.length && tiradas.some((l) => ["completa", "parcial"].includes(cs[i][l.url].estado)) ? "só nas lojas tiradas"
+      : "nenhuma loja tem";
+    faltam.push({ c, falta: c.qtd - leva, porque });
+  });
+  ultimoCarrinho.faltam = faltam.map((x) => `${x.falta} ${x.c.nome}`).join("\n");
+  const faltaTxt = faltam.length ? `<div class="faltando-lista cr-faltam"><span class="fl-texto">${faltam.length === 1 ? "1 carta não entra" : `${faltam.length} cartas não entram`} no carrinho:
+      ${faltam.map((x) => `<b>${esc(x.c.nome)}</b> (${esc(x.porque)})`).join(", ")}</span>
+    <button class="btn pequeno" data-copiar-carrinho title="Copia o que falta comprar, no formato de lista (quantidade e nome)">📋 Copiar lista de faltantes</button></div>` : "";
+
+  const vazio = !usadas.length ? `<div class="nota-loja">${tela.pendentes ? "O carrinho vai sendo montado conforme as cartas chegam." : "Nenhuma carta da lista com preço nas lojas do carrinho."}</div>` : "";
+  return resumo + faltaTxt + comandas + vazio + sobraTxt;
+}
+
 /* ---------------- rodapé ---------------- */
 function resumirLista() {
   const L = tela.lista;
@@ -446,6 +588,16 @@ function abrirCartaDaLista(i) {
   $("resultados").scrollTop = 0;
 }
 
+let freteTimer = null;
+$("resultados").addEventListener("input", (e) => {
+  const campo = e.target.closest("[data-frete]");
+  if (!campo || !tela.lista) return;
+  const v = Math.max(0, Math.min(500, Number(String(campo.value).replace(",", ".")) || 0));
+  cfg.frete = v;
+  clearTimeout(freteTimer);
+  freteTimer = setTimeout(() => { api().salvar_frete(v); desenhar(); }, 400);  // espera a pessoa parar de digitar
+});
+
 // devolve true se o clique era da lista
 function cliqueNaLista(e) {
   if (!tela.lista) return false;
@@ -455,6 +607,28 @@ function cliqueNaLista(e) {
   if (aba) { L.vista = aba.dataset.vista; desenhar(); return true; }
   if (e.target.closest("[data-lista-cancelar]")) { cancelarLista(); return true; }
   if (e.target.closest("[data-lista-editar]")) { abrirJanelaLista(); return true; }
+  const tirar = e.target.closest("[data-tirar-loja]");
+  if (tirar) { L.fora = { ...(L.fora || {}), [tirar.dataset.tirarLoja]: true }; desenhar(); return true; }
+  const devolver = e.target.closest("[data-devolver-loja]");
+  if (devolver) { const f = { ...(L.fora || {}) }; delete f[devolver.dataset.devolverLoja]; L.fora = f; desenhar(); return true; }
+  const doCarrinho = e.target.closest("[data-abrir-carrinho]");
+  if (doCarrinho) {
+    const urls = ultimoCarrinho.urls[doCarrinho.dataset.abrirCarrinho] || [];
+    (async () => {
+      if (urls.length > 10 && !(await perguntar(`Abrir ${urls.length} páginas?`,
+        "Cada carta abre numa aba nova do navegador.", "Abrir todas"))) return;
+      api().abrir(urls);
+    })();
+    return true;
+  }
+  const copiarCarrinho = e.target.closest("[data-copiar-carrinho]");
+  if (copiarCarrinho) {
+    copiarTexto(ultimoCarrinho.faltam).then((ok) => {
+      copiarCarrinho.textContent = ok ? "✓ Copiado! Cole nas suas anotações" : "Não consegui copiar";
+      setTimeout(() => { if (copiarCarrinho.isConnected) copiarCarrinho.textContent = "📋 Copiar lista de faltantes"; }, 2500);
+    });
+    return true;
+  }
   const todas = e.target.closest("[data-abrir-todas]");
   if (todas) {
     const cs = contas();
