@@ -111,6 +111,7 @@ class Ponte:
     def iniciar(self):
         return {
             "versao": __version__,
+            "pagina_versoes": atualizacao.PAGINA_VERSOES,
             "lojas": [serializar.loja(s) for s in self._lojas],
             "auto_limite": self._auto_limite_salvo(),
             "auto_max": MAX_AUTO_LIMIT,

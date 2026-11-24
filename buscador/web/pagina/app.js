@@ -11,6 +11,15 @@ const dinheiro = (v) => (v == null ? "—" : new Intl.NumberFormat("pt-BR", { st
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 const norm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const clonar = (o) => JSON.parse(JSON.stringify(o));
+// "8 s", "2 min 05 s"
+function duracaoTexto(seg) {
+  const s = Math.max(1, Math.round(seg));
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
+}
+function linhaDuracao() {
+  return tela.duracao ? [{ texto: `⏱ Busca completa em ${duracaoTexto(tela.duracao)}.`, tipo: "tempo" }] : [];
+}
+
 function idade(seg) {
   let m = Math.floor(seg / 60);
   if (m < 60) return `há ${m} min`;
@@ -28,6 +37,7 @@ let tutorialAtivo = false;  // o tutorial (tutorial.js) está mostrando a busca 
 function novaTela() {
   return {
     sid: 0, carta: "", exato: false, nomes: null, nomesOk: true, tempo: Date.now(),
+    inicio: Date.now(), duracao: 0,  // quanto a busca levou até terminar (segundos; 0 = não terminou)
     ordem: [], res: {}, pendentes: 0, lojasTotal: 0, lojasFeitas: 0,
     autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", liberaEm: 0, bloqueio: "",
     abertos: {}, fechadas: {}, expandidas: {}, recolhido: false, detalhes: {},
@@ -321,6 +331,7 @@ const app = {
       tela.bloqueio = dados.loja;  // o rodapé mostra o aviso, com a contagem
       pausar(dados.pausa);
     }
+    if (!tela.duracao && tela.pendentes === 0 && tela.autoAtivo === 0) tela.duracao = (Date.now() - tela.inicio) / 1000;
     desenhar();
   },
 };
@@ -638,7 +649,7 @@ function resumir() {
       : `Edições ordenadas ${textoOrdem()}.`;
     linhas.push({ texto: `Clique numa edição para abrir a página na loja. ${ordem}`, tipo: "dica" });
   }
-  avisarLinhas(linhas);
+  avisarLinhas(linhas.concat(linhaDuracao()));
   $("abrir-achadas").disabled = !(ok || conferir);
 }
 
@@ -917,7 +928,9 @@ document.addEventListener("mousedown", esconderArte, true);
 window.addEventListener("pywebviewready", async () => {
   cfg = await api().iniciar();
   lojas = cfg.lojas;
-  $("versao").textContent = `versão ${cfg.versao}`;
+  $("versao").textContent = `versão ${cfg.versao} ↗`;
+  $("versao").hidden = false;
+  $("versao").onclick = () => api().abrir(cfg.pagina_versoes);
   $("auto").max = cfg.auto_max;
   $("auto").value = cfg.auto_limite;
   desenharLojas();

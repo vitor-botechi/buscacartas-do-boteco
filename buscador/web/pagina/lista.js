@@ -550,7 +550,7 @@ function resumirLista() {
   const semVer = L.cartas.filter((c, i) => L.lojas.some((l) => cs[i][l.url].estado === "nao_verificada")).length;
   if (semVer) linhas.push({ texto: `${plural(semVer, "carta ficou", "cartas ficaram")} sem verificar em alguma loja: busque a lista de novo mais tarde para completar.`, tipo: "aviso" });
   linhas.push({ texto: "Clique num preço para abrir a carta naquela loja, ou no nome da carta para ver as edições em cada loja (◀ Voltar volta para a lista).", tipo: "dica" });
-  avisarLinhas(linhas);
+  avisarLinhas(L.cancelada ? linhas : linhas.concat(linhaDuracao()));
   $("abrir-achadas").disabled = true;
 }
 
