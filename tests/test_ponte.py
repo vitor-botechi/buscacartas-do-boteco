@@ -110,6 +110,16 @@ def test_auto_limite_fica_entre_0_e_10(ponte):
     assert Ponte().iniciar()["auto_limite"] == 0
 
 
+def test_frete_das_lojas_adicionadas(ponte):
+    assert ponte.iniciar()["frete"] == 0  # começa em zero: as lojas da parceria têm frete grátis
+    assert ponte.salvar_frete("12,5") == 12.5
+    assert ponte.salvar_frete("-3") == 0
+    assert ponte.salvar_frete("x") == 0
+    assert ponte.salvar_frete(9999) == 500
+    ponte.salvar_frete(20)
+    assert Ponte().iniciar()["frete"] == 20
+
+
 def test_tutorial_chama_atencao_so_ate_ser_visto(ponte):
     assert ponte.iniciar()["tutorial_visto"] is False
     ponte.salvar_auto_limite(3)  # outras preferências não apagam a marca, nem ela apaga as outras

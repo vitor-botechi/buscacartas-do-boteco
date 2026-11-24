@@ -11,6 +11,15 @@ const dinheiro = (v) => (v == null ? "—" : new Intl.NumberFormat("pt-BR", { st
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 const norm = (s) => String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 const clonar = (o) => JSON.parse(JSON.stringify(o));
+// "8 s", "2 min 05 s"
+function duracaoTexto(seg) {
+  const s = Math.max(1, Math.round(seg));
+  return s < 60 ? `${s} s` : `${Math.floor(s / 60)} min ${String(s % 60).padStart(2, "0")} s`;
+}
+function linhaDuracao() {
+  return tela.duracao ? [{ texto: `⏱ Busca completa em ${duracaoTexto(tela.duracao)}.`, tipo: "tempo" }] : [];
+}
+
 function idade(seg) {
   let m = Math.floor(seg / 60);
   if (m < 60) return `há ${m} min`;
@@ -28,6 +37,7 @@ let tutorialAtivo = false;  // o tutorial (tutorial.js) está mostrando a busca 
 function novaTela() {
   return {
     sid: 0, carta: "", exato: false, nomes: null, nomesOk: true, tempo: Date.now(),
+    inicio: Date.now(), duracao: 0,  // quanto a busca levou até terminar (segundos; 0 = não terminou)
     ordem: [], res: {}, pendentes: 0, lojasTotal: 0, lojasFeitas: 0,
     autoAtivo: 0, autoTotal: 0, autoFeito: 0, carregando: {}, aviso: "", liberaEm: 0, bloqueio: "",
     abertos: {}, fechadas: {}, expandidas: {}, recolhido: false, detalhes: {},
@@ -321,6 +331,7 @@ const app = {
       tela.bloqueio = dados.loja;  // o rodapé mostra o aviso, com a contagem
       pausar(dados.pausa);
     }
+    if (!tela.duracao && tela.pendentes === 0 && tela.autoAtivo === 0) tela.duracao = (Date.now() - tela.inicio) / 1000;
     desenhar();
   },
 };
@@ -566,8 +577,13 @@ function desenhar() {
   const area = $("resultados");
   const rolagem = area.scrollTop;
   if (tela.lista) {
+    const frete = document.activeElement && document.activeElement.matches("[data-frete]") ? document.activeElement.selectionStart ?? -1 : null;
     area.innerHTML = desenharLista();
     area.scrollTop = rolagem;
+    if (frete !== null) {  // o campo do frete foi redesenhado: volta o cursor para ele
+      const campo = area.querySelector("[data-frete]");
+      if (campo) { campo.focus(); try { if (frete >= 0) campo.setSelectionRange(frete, frete); } catch { /* number não aceita */ } }
+    }
     desenharProgresso();
     if (tela.pendentes === 0) resumirLista();
     else avisarLinhas([{ texto: "As cartas aparecem conforme cada loja responde: clique num preço para abrir a carta na loja e já ir comprando. Cancelar guarda o que já chegou.", tipo: "dica" }]);
@@ -633,7 +649,7 @@ function resumir() {
       : `Edições ordenadas ${textoOrdem()}.`;
     linhas.push({ texto: `Clique numa edição para abrir a página na loja. ${ordem}`, tipo: "dica" });
   }
-  avisarLinhas(linhas);
+  avisarLinhas(linhas.concat(linhaDuracao()));
   $("abrir-achadas").disabled = !(ok || conferir);
 }
 
@@ -846,18 +862,37 @@ function prepararItem(item) {
     else if (el.classList.contains("item-nome")) enderecoDaArte(el).then(preCarregar);
   });
 }
+// A dica do Windows (o "title" da linha) aparece logo abaixo do mouse, em cima da arte (no tipo da
+// carta). Enquanto a arte está aberta, a dica sai do elemento e aparece embaixo da arte (#arte-dica).
+let dicaGuardada = null;  // [elemento, texto do title]
+function tirarDica(alvo) {
+  const el = alvo.closest("[title]");
+  if (!el || !$("resultados").contains(el)) return;
+  dicaGuardada = [el, el.getAttribute("title")];
+  el.removeAttribute("title");
+  $("arte-dica").textContent = dicaGuardada[1];
+  $("arte-dica").hidden = false;
+}
+function devolverDica() {
+  if (dicaGuardada && !dicaGuardada[0].hasAttribute("title")) dicaGuardada[0].setAttribute("title", dicaGuardada[1]);
+  dicaGuardada = null;
+  $("arte-dica").hidden = true;
+}
 function esconderArte() {
   arteAlvo = null;
   $("arte").hidden = true;
+  devolverDica();
 }
 function posicionarArte(x, y) {
-  const img = $("arte"), m = 16;
+  const img = $("arte"), dica = $("arte-dica"), m = 16;
   const w = img.offsetWidth || 244, h = img.offsetHeight || 340;
-  let left = x + 24, top = y - h / 2;
+  const hd = dica.hidden ? 0 : dica.offsetHeight + 6;  // a dica fica logo abaixo da arte
+  let left = x + 24, top = y - (h + hd) / 2;
   if (left + w + m > innerWidth) left = x - w - 24;  // sem espaço à direita: aparece à esquerda do mouse
-  top = Math.max(m, Math.min(top, innerHeight - h - m));
-  img.style.left = `${Math.max(m, left)}px`;
+  top = Math.max(m, Math.min(top, innerHeight - h - hd - m));
+  img.style.left = dica.style.left = `${Math.max(m, left)}px`;
   img.style.top = `${top}px`;
+  dica.style.top = `${top + h + 6}px`;
 }
 let mouseX = 0, mouseY = 0;
 $("resultados").addEventListener("mousemove", (e) => {
@@ -874,9 +909,15 @@ $("resultados").addEventListener("mouseover", async (e) => {
   const url = await enderecoDaArte(alvo);
   if (arteAlvo !== alvo || !ehImagem(url)) return;  // o mouse já saiu, ou não há arte
   const img = $("arte");
-  const mostrar = () => { if (arteAlvo === alvo) { img.hidden = false; posicionarArte(mouseX, mouseY); } };
+  const mostrar = () => { if (arteAlvo === alvo) { img.hidden = false; tirarDica(alvo); posicionarArte(mouseX, mouseY); } };
   if (img.getAttribute("src") === url && img.complete) { mostrar(); return; }
   img.onload = mostrar;
+  img.onerror = () => {  // endereço guardado do Scryfall que não abre mais: esquece, para consultar de novo
+    const d = alvo.dataset;
+    if (ehImagem(d.imagem)) return;
+    artes.delete([d.arte, d.edicao || "", d.codigo || ""].join("|"));
+    api().arte_falhou(d.arte, d.edicao || "", d.codigo || "");
+  };
   img.src = url;
 });
 $("resultados").addEventListener("mouseleave", esconderArte);
@@ -887,7 +928,9 @@ document.addEventListener("mousedown", esconderArte, true);
 window.addEventListener("pywebviewready", async () => {
   cfg = await api().iniciar();
   lojas = cfg.lojas;
-  $("versao").textContent = `versão ${cfg.versao}`;
+  $("versao").textContent = `versão ${cfg.versao} ↗`;
+  $("versao").hidden = false;
+  $("versao").onclick = () => api().abrir(cfg.pagina_versoes);
   $("auto").max = cfg.auto_max;
   $("auto").value = cfg.auto_limite;
   desenharLojas();
