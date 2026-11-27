@@ -42,6 +42,16 @@ BLOCK_MARKERS = (
     "just a moment", "cf-browser-verification", "captcha", "access denied",
     "attention required", "verificando se voce", "checking your browser",
 )
+
+
+def is_challenge(html, headers=None):
+    """A página é a verificação de segurança do Cloudflare ("Just a moment...", desafio que só um navegador
+    resolve), e não um limite de requisições. O programa não resolve esse desafio: a pessoa abre no navegador."""
+    if headers and str(headers.get("cf-mitigated", "")).lower() == "challenge":
+        return True
+    return "challenges.cloudflare.com" in html or "_cf_chl_opt" in html
+
+
 SOLDOUT_MARKERS = ("indisponivel", "esgotado", "sem estoque")
 
 
