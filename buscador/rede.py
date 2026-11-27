@@ -13,6 +13,7 @@ from buscador.armazenamento import host_key
 from buscador.config import CACHE_TTL, HEADERS, MAX_PAGES, PAGE_SIZE, TIMEOUT, app_dir
 from buscador.lojas.ligamagic import (
     BLOCK_MARKERS,
+    is_challenge,
     BeautifulSoup,
     NONE_PHRASES,
     build_search_url,
@@ -113,7 +114,9 @@ def search_store(store, card, max_pages=MAX_PAGES):
 
     if not items:
         if r.status_code in (403, 429, 503) or any(m in text for m in BLOCK_MARKERS):
-            return StoreResult(store, url, "blocked")
+            # "verificacao": desafio do Cloudflare para esta conexão (não passa com o tempo); "": limite de pedidos
+            motivo = "verificacao" if is_challenge(r.text, getattr(r, "headers", None)) else ""
+            return StoreResult(store, url, "blocked", msg=motivo)
         # página de busca válida (tem o filtro de estoque) e sem produtos = não tem a carta
         if "txt_estoque" in r.text or any(p in text for p in NONE_PHRASES):
             return StoreResult(store, url, "none")

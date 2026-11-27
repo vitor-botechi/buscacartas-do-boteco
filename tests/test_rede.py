@@ -90,6 +90,23 @@ def test_pagina_de_captcha_vira_blocked(lojas_falsas):
     assert rede.search_store(LOJA, "Sol Ring").status == "blocked"
 
 
+def test_verificacao_do_cloudflare_tem_motivo_proprio(lojas_falsas):
+    respostas, _ = lojas_falsas
+    respostas["busca="] = RespostaFalsa(
+        "<!DOCTYPE html><html><head><title>Just a moment...</title></head><body><script>"
+        "(function(){window._cf_chl_opt = {cType: 'managed'};})();</script>"
+        '<script src="https://challenges.cloudflare.com/x.js"></script></body></html>', status_code=403)
+    res = rede.search_store(LOJA, "Sol Ring")
+    assert (res.status, res.msg) == ("blocked", "verificacao")
+
+
+def test_limite_de_pedidos_nao_e_verificacao(lojas_falsas):
+    respostas, _ = lojas_falsas
+    respostas["busca="] = RespostaFalsa("<html><body>Too many requests</body></html>", status_code=429)
+    res = rede.search_store(LOJA, "Sol Ring")
+    assert (res.status, res.msg) == ("blocked", "")
+
+
 def test_erro_inesperado_nao_trava_a_busca(lojas_falsas, monkeypatch):
     monkeypatch.setattr(rede, "search_store", lambda *_: 1 / 0)
     res = rede.safe_search(LOJA, "Sol Ring")

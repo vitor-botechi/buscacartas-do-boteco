@@ -378,7 +378,9 @@ function textoStatus(r) {
       return ["exato", `Nenhum com o nome exato (${r.itens.length} parecidos escondidos)`];
     case "soldout": return ["soldout", "Cadastrada, mas indisponível"];
     case "none": return ["none", "Não encontrada"];
-    case "blocked": return ["blocked", "⚠ A loja bloqueou a leitura: abra no navegador ou tente novamente em alguns segundos"];
+    case "blocked": return ["blocked", r.msg === "verificacao"
+      ? "⚠ O site pediu uma verificação de segurança: abra no navegador"
+      : "⚠ A loja bloqueou a leitura: tente novamente em alguns segundos ou abra no navegador"];
     case "unknown": return ["unknown", r.loja.padrao ? "⚠ Não consegui ler: abra no navegador"
       : "⚠ Não consegui ler os resultados: confira se o link da loja está certo ou abra no navegador"];
     default: return ["error", (r.loja.padrao ? "⚠ Não consegui acessar o site: abra no navegador"
@@ -637,6 +639,9 @@ function resumir() {
   }
   if (tela.aviso) linhas.push({ texto: tela.aviso, tipo: "aviso" });
   if (conferir) linhas.push({ texto: `⚠ ${plural(conferir, "loja não pôde ser lida", "lojas não puderam ser lidas")}: confira no navegador.`, tipo: "aviso" });
+  if (rs.some((r) => r.status === "blocked" && r.msg === "verificacao")) {
+    linhas.push({ texto: "A proteção do site (Cloudflare) às vezes pede uma verificação que só o navegador faz, dependendo da conexão. “Abrir só as lojas com a carta” abre essas lojas no navegador.", tipo: "dica" });
+  }
   if (tela.exato && tela.nomes && !tela.nomesOk) linhas.push({ texto: "⚠ Scryfall indisponível: filtrando só pelo texto digitado.", tipo: "aviso" });
   // 3) como usar
   if (tela.autoAtivo > 0) {
