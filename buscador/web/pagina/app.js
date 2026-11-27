@@ -378,7 +378,7 @@ function textoStatus(r) {
       return ["exato", `Nenhum com o nome exato (${r.itens.length} parecidos escondidos)`];
     case "soldout": return ["soldout", "Cadastrada, mas indisponível"];
     case "none": return ["none", "Não encontrada"];
-    case "blocked": return ["blocked", "⚠ A loja bloqueou a leitura: abra no navegador ou tente novamente em alguns segundos"];
+    case "blocked": return ["blocked", "⚠ A loja bloqueou a leitura: tente novamente em alguns segundos ou abra no navegador"];
     case "unknown": return ["unknown", r.loja.padrao ? "⚠ Não consegui ler: abra no navegador"
       : "⚠ Não consegui ler os resultados: confira se o link da loja está certo ou abra no navegador"];
     default: return ["error", (r.loja.padrao ? "⚠ Não consegui acessar o site: abra no navegador"
